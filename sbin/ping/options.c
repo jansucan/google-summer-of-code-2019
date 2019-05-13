@@ -41,11 +41,10 @@ options_remove(int *const argc, char **const argv, const int *indices)
 	int i, j;
 	
 	for (i = j = 0; (argv[i] != NULL); i++) {
-		if ((indices[j] >= 0) && (i == indices[j])) {
+		if ((indices[j] >= 0) && (i == indices[j]))
 			j++;
-		} else if (j > 0) {
+		else if (j > 0)
 			argv[i - j] = argv[i];	
-		}	
 	}
 
 	*argc -= j;
