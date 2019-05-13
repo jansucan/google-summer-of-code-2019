@@ -98,6 +98,8 @@ __FBSDID("$FreeBSD$");
 #include <sysexits.h>
 #include <unistd.h>
 
+#include "ping.h"
+
 #define	INADDR_LEN	((int)sizeof(in_addr_t))
 #define	TIMEVAL_LEN	((int)sizeof(struct tv32))
 #define	MASK_LEN	(ICMP_MASKLEN - ICMP_MINLEN)
@@ -225,7 +227,7 @@ static void tvsub(struct timeval *, const struct timeval *);
 static void usage(void) __dead2;
 
 int
-main(int argc, char *const *argv)
+ping(int argc, char *const *argv)
 {
 	struct sockaddr_in from, sock_in;
 	struct in_addr ifaddr;

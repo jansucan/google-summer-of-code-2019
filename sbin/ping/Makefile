@@ -5,11 +5,13 @@
 
 PACKAGE=runtime
 PROG=	ping
-MAN=	ping.8
-BINOWN=	root
+SRCS=	main.c options.c ping.c ping6.c
+MAN=	ping.8 ping6.8
+Binown=	root
 BINMODE=4555
 WARNS?=	3
-LIBADD=	m
+LIBADD=	ipsec m md
+CFLAGS+=-DIPSEC -DKAME_SCOPEID -DUSE_RFC2292BIS
 
 .if ${MK_DYNAMICROOT} == "no"
 .warning ${PROG} built without libcasper support

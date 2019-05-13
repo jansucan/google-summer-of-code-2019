@@ -137,6 +137,8 @@ __FBSDID("$FreeBSD$");
 
 #include <md5.h>
 
+#include "ping6.h"
+
 struct tv32 {
 	u_int32_t tv32_sec;
 	u_int32_t tv32_usec;
@@ -255,7 +257,6 @@ static volatile sig_atomic_t seenint;
 static volatile sig_atomic_t seeninfo;
 #endif
 
-int	 main(int, char *[]);
 static void	 fill(char *, char *);
 static int	 get_hoplim(struct msghdr *);
 static int	 get_pathmtu(struct msghdr *);
@@ -286,7 +287,7 @@ static char	*nigroup(char *, int);
 static void	 usage(void);
 
 int
-main(int argc, char *argv[])
+ping6(int argc, char *argv[])
 {
 	struct timeval last, intvl;
 	struct sockaddr_in6 from, *sin6;
