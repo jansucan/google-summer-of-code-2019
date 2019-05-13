@@ -21,6 +21,8 @@ options_parse(int *const argc, char **const argv, int *const options, char **con
 			*options |= F_PROTOCOL_IPV6;
 			optinds_to_remove[i++] = optind - 1;
 			break;
+		default:
+			break;
 		}
 	}
 	
