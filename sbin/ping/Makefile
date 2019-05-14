@@ -13,6 +13,10 @@ WARNS?=	3
 LIBADD=	ipsec m md
 CFLAGS+=-DIPSEC -DKAME_SCOPEID -DUSE_RFC2292BIS
 
+.if ${MK_INET6_SUPPORT} != "no"
+CFLAGS+= -DINET6
+.endif
+
 .if ${MK_DYNAMICROOT} == "no"
 .warning ${PROG} built without libcasper support
 .elif ${MK_CASPER} != "no" && !defined(RESCUE)
