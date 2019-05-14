@@ -40,11 +40,11 @@ packets to network hosts
 .Sh SYNOPSIS
 .Nm
 .\" without ipsec, or new ipsec
-.Op Fl DdfHmnNoqrRtvwW
+.Op Fl AaDdfHnNoquvwYy
 .\" old ipsec
-.\" .Op Fl ADdEfmnNqRtvwW
+.\" .Op Fl ADdEfnNquvwYyZ
 .Bk -words
-.Op Fl a Ar addrtype
+.Op Fl r Ar addrtype
 .Ek
 .Bk -words
 .Op Fl b Ar bufsiz
@@ -53,10 +53,10 @@ packets to network hosts
 .Op Fl c Ar count
 .Ek
 .Bk -words
-.Op Fl g Ar gateway
+.Op Fl e Ar gateway
 .Ek
 .Bk -words
-.Op Fl h Ar hoplimit
+.Op Fl j Ar hoplimit
 .Ek
 .Bk -words
 .Op Fl I Ar interface
@@ -110,10 +110,10 @@ header formatted as documented in RFC2463.
 The options are as follows:
 .Bl -tag -width Ds
 .\" old ipsec
-.\" .It Fl A
+.\" .It Fl Z
 .\" Enables transport-mode IPsec authentication header
 .\" (experimental).
-.It Fl a Ar addrtype
+.It Fl r Ar addrtype
 Generate ICMPv6 Node Information Node Addresses query, rather than echo-request.
 .Ar addrtype
 must be a string constructed of the following characters.
@@ -172,7 +172,7 @@ Only the super-user may use this option.
 .Bf -emphasis
 This can be very hard on a network and should be used with caution.
 .Ef
-.It Fl g Ar gateway
+.It Fl e Ar gateway
 Specifies to use
 .Ar gateway
 as the next hop to the destination.
@@ -182,7 +182,7 @@ Specifies to try reverse-lookup of IPv6 addresses.
 The
 .Nm
 utility does not try reverse-lookup unless the option is specified.
-.It Fl h Ar hoplimit
+.It Fl j Ar hoplimit
 Set the IPv6 hoplimit.
 .It Fl I Ar interface
 Source packets with the given interface address.
@@ -214,12 +214,12 @@ is specified,
 sends that many packets as fast as possible before falling into its normal
 mode of behavior.
 Only the super-user may use this option.
-.It Fl m
+.It Fl u
 By default,
 .Nm
 asks the kernel to fragment packets to fit into the minimum IPv6 MTU.
 The
-.Fl m
+.Fl u
 option
 will suppress the behavior in the following two levels:
 when the option is specified once, the behavior will be disabled for
@@ -270,13 +270,13 @@ specifies IPsec policy to be used for the probe.
 Quiet output.
 Nothing is displayed except the summary lines at startup time and
 when finished.
-.It Fl r
+.It Fl a
 Audible.
 Include a bell
 .Tn ( ASCII
 0x07)
 character in the output when any packet is received.
-.It Fl R
+.It Fl A
 Audible.
 Output a bell
 .Tn ( ASCII
@@ -301,12 +301,12 @@ header data.
 You may need to specify
 .Fl b
 as well to extend socket buffer size.
-.It Fl t
+.It Fl y
 Generate ICMPv6 Node Information supported query types query,
 rather than echo-request.
 .Fl s
 has no effect if
-.Fl t
+.Fl y
 is specified.
 .It Fl v
 Verbose output.
@@ -320,7 +320,7 @@ Generate ICMPv6 Node Information DNS Name query, rather than echo-request.
 has no effect if
 .Fl w
 is specified.
-.It Fl W
+.It Fl Y
 Same as
 .Fl w ,
 but with old packet format based on 03 draft.

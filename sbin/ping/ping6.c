@@ -334,14 +334,14 @@ ping6(int argc, char *argv[])
 #ifdef IPSEC_POLICY_IPSEC
 #define ADDOPTS	"P:"
 #else
-#define ADDOPTS	"AE"
+#define ADDOPTS	"ZE"
 #endif /*IPSEC_POLICY_IPSEC*/
 #endif
 	while ((ch = getopt(argc, argv,
-	    "a:b:c:DdfHg:h:I:i:l:mnNop:qrRS:s:tvwWx:X:" ADDOPTS)) != -1) {
+	    "Aab:c:Dde:fHI:i:j:l:nNop:qr:S:s:uvwx:X:Yy" ADDOPTS)) != -1) {
 #undef ADDOPTS
 		switch (ch) {
-		case 'a':
+		case 'r':
 		{
 			char *cp;
 
@@ -418,13 +418,13 @@ ping6(int argc, char *argv[])
 			options |= F_FLOOD;
 			setbuf(stdout, (char *)NULL);
 			break;
-		case 'g':
+		case 'e':
 			gateway = optarg;
 			break;
 		case 'H':
 			options |= F_HOSTNAME;
 			break;
-		case 'h':		/* hoplimit */
+		case 'j':		/* hoplimit */
 			hoplimit = strtol(optarg, &e, 10);
 			if (*optarg == '\0' || *e != '\0')
 				errx(1, "illegal hoplimit %s", optarg);
@@ -468,7 +468,7 @@ ping6(int argc, char *argv[])
 			if (preload < 0 || *optarg == '\0' || *e != '\0')
 				errx(1, "illegal preload value -- %s", optarg);
 			break;
-		case 'm':
+		case 'u':
 #ifdef IPV6_USE_MIN_MTU
 			mflag++;
 			break;
@@ -493,10 +493,10 @@ ping6(int argc, char *argv[])
 		case 'q':
 			options |= F_QUIET;
 			break;
-		case 'r':
+		case 'a':
 			options |= F_AUDIBLE;
 			break;
-		case 'R':
+		case 'A':
 			options |= F_MISSED;
 			break;
 		case 'S':
@@ -530,7 +530,7 @@ ping6(int argc, char *argv[])
 				    MAXDATALEN);
 			}
 			break;
-		case 't':
+		case 'y':
 			options &= ~F_NOUSERDATA;
 			options |= F_SUPTYPES;
 			break;
@@ -541,7 +541,7 @@ ping6(int argc, char *argv[])
 			options &= ~F_NOUSERDATA;
 			options |= F_FQDN;
 			break;
-		case 'W':
+		case 'Y':
 			options &= ~F_NOUSERDATA;
 			options |= F_FQDNOLD;
 			break;
@@ -577,7 +577,7 @@ ping6(int argc, char *argv[])
 				errx(1, "invalid security policy");
 			break;
 #else
-		case 'A':
+		case 'Z':
 			options |= F_AUTHHDR;
 			break;
 		case 'E':
@@ -2754,27 +2754,27 @@ static void
 usage(void)
 {
 	(void)fprintf(stderr,
-#if defined(IPSEC) && !defined(IPSEC_POLICY_IPSEC)
-	    "A"
-#endif
 	    "usage: ping6 [-"
-	    "Dd"
+	    "AaDd"
 #if defined(IPSEC) && !defined(IPSEC_POLICY_IPSEC)
 	    "E"
 #endif
-	    "fH"
+	    "fHnNoq"
 #ifdef IPV6_USE_MIN_MTU
-	    "m"
+	    "u"
 #endif
-	    "nNoqrRtvwW] "
-	    "[-a addrtype] [-b bufsiz] [-c count] [-g gateway]\n"
-	    "             [-h hoplimit] [-I interface] [-i wait] [-l preload]"
+	    "vwYy"
+#if defined(IPSEC) && !defined(IPSEC_POLICY_IPSEC)
+	    "Z"
+#endif
+	    "] "
+	    "[-b bufsiz] [-c count] [-e gateway]\n"
+	    "             [-I interface] [-i wait] [-j hoplimit] [-l preload]"
 #if defined(IPSEC) && defined(IPSEC_POLICY_IPSEC)
 	    " [-P policy]"
 #endif
 	    "\n"
-	    "             [-p pattern] [-S sourceaddr] [-s packetsize] "
-	    "[-x waittime]\n"
-	    "             [-X timeout] [hops ...] host\n");
+	    "             [-p pattern] [-r addrtype] [-S sourceaddr] [-s packetsize]\n"
+	    "[-x waittime] [-X timeout] [hops ...] host\n");
 	exit(1);
 }
