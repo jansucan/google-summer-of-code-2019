@@ -29,6 +29,8 @@
 #ifndef PING_H
 #define PING_H 1
 
-int ping(int argc, char *const *argv);
+#include "options.h"
+
+int ping(struct options *const options, int argc, char *const *argv);
 
 #endif

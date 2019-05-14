@@ -27,6 +27,9 @@
  */
 
 #include <err.h>
+#include <errno.h>
+#include <float.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sysexits.h>
@@ -34,9 +37,9 @@
 
 #include "options.h"
 
-#define OPSTR_COMMON        "Aac:DdfI:i:l:nop:qS:s:v"
-#define OPSTR_IPV4          "4G:g:h:LM:m:QRrT:t:W:z:"
-#define OPSTR_IPV6          "6b:e:Hj:k:Nuwx:X:Yy"
+#define OPSTR_COMMON        "Aac:DdfI:i:l:nop:qS:s:t:vW:"
+#define OPSTR_IPV4          "4G:g:h:LM:m:QRrT:z:"
+#define OPSTR_IPV6          "6b:e:Hj:k:NuwYy"
 #define OPSTR_IPSEC_COMMON  "P:"
 
 #ifdef IPSEC
@@ -55,10 +58,9 @@
 #define OPSTR  OPSTR_COMMON OPSTR_IPV4 OPSTR_IPSEC
 #endif	/* INET6 */
 
-static bool options_process_common(int opt, struct options *const options);
-static bool options_process_ipv4(int opt, struct options *const options);
-static bool options_process_ipv6(int opt, struct options *const options);
-static bool options_process_ipsec(int opt, struct options *const options);
+static bool options_strtol(const char *const str, long *const val);
+static bool options_strtoi(const char *const str, int *const val);
+static bool options_strtoul(const char *const str, unsigned long *const val);
 
 void
 options_parse(int *const argc, char **argv, struct options *const options)
@@ -68,214 +70,285 @@ options_parse(int *const argc, char **argv, struct options *const options)
 	memset(options, 0, sizeof(*options));
 	
 	while ((ch = getopt(*argc, argv, OPSTR)) != -1) {
-		const bool opt_ipv4 = options_process_ipv4(ch, options);
-#ifdef INET6	
-		const bool opt_ipv6 = options_process_ipv6(ch, options);
-#endif
-
-		if (!options_process_common(ch, options) &&
+		switch (ch) {
+		case 'A':
+			options->f_missed = true;
+			break;
+		case 'a':
+			options->f_audible = true;
+			break;
+		case 'c':
+			if (!options_strtol(optarg, &options->n_packets))
+				errx(EX_USAGE, "invalid count of packets to transmit: `%s'", optarg);
+			options->f_packets = true;
+			break;
+		case 'D':
+			options->f_dont_fragment = true;
+			break;
+		case 'd':
+			options->f_so_debug = true;
+			break;
+		case 'f':
+			if (getuid() != 0) {
+				errno = EPERM;
+				errx(EX_NOPERM, "Must be superuser to flood ping");
+			}
+			options->f_flood = true;
+			break;
+		case 'I':
+			options->f_interface = true;
+			options->s_interface = optarg;
+			break;
+		case 'i':
+			if (options_strtoi(optarg, &options->n_interval))
+				errx(EX_USAGE, "invalid timing interval: `%s'", optarg);
+			options->f_interval = true;		
+			break;
+		case 'l':
+			if (!options_strtoi(optarg, &options->n_preload))
+				errx(EX_USAGE, "invalid preload value: `%s'", optarg);
+			options->f_preload = true;
+			break;
+		case 'n':
+			options->f_numeric = true;
+			break;
+		case 'o':
+			options->f_once = true;
+			break;
+		case 'p':
+			options->f_ping_filled = true;
+			options->s_ping_filled = optarg;
+			break;
+		case 'q':
+			options->f_somewhat_quiet = true;
+			break;
+		case 'S':
+			options->s_source = optarg;
+			break;
+		case 's':
+			if (options_strtol(optarg, &options->n_packet_size))
+				errx(EX_USAGE, "invalid packet size: `%s'", optarg);
+			options->f_packet_size = true;
+			break;
+		case 't':
+			if (options_strtoul(optarg, &options->n_alarm_timeout))
+				errx(EX_USAGE, "invalid timeout: `%s'", optarg);
+			options->f_alarm_timeout = true;
+			break;
+		case 'v':
+			options->f_verbose = true;
+			break;
+		case 'W':
+			if (options_strtoi(optarg, &options->n_wait_time))
+				errx(EX_USAGE, "invalid timing interval: `%s'", optarg);
+			options->f_wait_time = true;				
+			break;
+			/* IPV4 options */
+		case '4':
+			options->f_protocol_ipv4 = true;
+			break;
+		case 'G':
+			if (options_strtoi(optarg, &options->n_sweep_max))
+				errx(EX_USAGE, "invalid packet size: `%s'", optarg);
+			options->f_sweep_max = true;
+			break;
+		case 'g':
+			if (options_strtoi(optarg, &options->n_sweep_min))
+				errx(EX_USAGE, "invalid packet size: `%s'", optarg);
+			options->f_sweep_min = true;
+			break;
+		case 'h':
+			if (options_strtoi(optarg, &options->n_sweep_incr))
+				errx(EX_USAGE, "invalid increment size: `%s'", optarg);
+			options->f_sweep_incr = true;
+			break;
+		case 'L':
+			options->f_no_loop = true;
+			break;
+		case 'M':
+			switch(optarg[0]) {
+			case 'M':
+			case 'm':
+				options->f_mask = true;
+				break;
+			case 'T':
+			case 't':
+				options->f_time = true;
+				break;
+			default:
+				errx(EX_USAGE, "invalid message: `%c'", optarg[0]);
+				break;
+			}
+			break;
+		case 'm':
+			if (options_strtoi(optarg, &options->n_ttl))
+				errx(EX_USAGE, "invalid TTL: `%s'", optarg);
+			options->f_ttl = true;		
+			break;
+		case 'Q':
+			options->f_quiet = true;
+			break;
+		case 'R':
+			options->f_rroute = true;
+			break;
+		case 'r':
+			options->f_so_dontroute = true;
+			break;
+		case 'T':
+			if (options_strtoi(optarg, &options->n_multicast_ttl))
+				errx(EX_USAGE, "invalid multicast TTL: `%s'", optarg);
+			options->f_multicast_ttl = true;		
+			break;
+		case 'z':
+			if (options_strtoi(optarg, &options->n_tos))
+				errx(EX_USAGE, "invalid TOS: `%s'", optarg);
+			options->f_tos = true;		
+			break;
+			/* IPv6 options */
 #ifdef INET6
-		    !opt_ipv6 &&
-#endif
-#ifdef IPSEC
-		    !options_process_ipsec(ch, options) &&
-#endif
-		    !opt_ipv4) {
-			usage();
-			/* NOTREACHED */
-		}
-#ifdef INET6
-		if (options->f_protocol_ipv6 && opt_ipv4)
-			errx(EX_USAGE, "IPv6 requested but IPv4 option provided");
-		else if (options->f_protocol_ipv4 && opt_ipv6)
-			errx(EX_USAGE, "IPv4 requested but IPv6 option provided");
+		case '6':
+			options->f_protocol_ipv6 = true;
+			break;
+		case 'b':
+			break;
+		case 'e':
+			break;
+		case 'H':
+			break;
+		case 'j':
+			break;
+		case 'k':
+			break;
+		case 'N':
+			break;
+		case 'u':
+			break;
+		case 'w':
+			break;
+		case 'Y':
+			break;
+		case 'y':
+			break;
 #endif /* INET6 */
+#ifdef IPSEC
+		case 'P':
+			/* TODO: use EX_ code in errx() */
+			if (!strncmp("in", optarg, 2)) {
+				if ((options->s_policy_in = strdup(optarg)) == NULL)
+					errx(1, "strdup");
+			} else if (!strncmp("out", optarg, 3)) {
+				if ((options->s_policy_out = strdup(optarg)) == NULL)
+					errx(1, "strdup");
+			} else
+				errx(1, "invalid security policy");
+			options->f_policy = true;
+			break;
+#if defined(INET6) && !defined(IPSEC_POLICY_IPSEC)
+		case 'Z':
+			break;
+		case 'E':
+			break;
+#endif /* INET6 && IPSEC_POLICY_IPSEC */
+#endif /* IPSEC */
+			
+		default:
+			usage();
+		}
 	}
+
+/* 		const bool opt_ipv4 = options_process_ipv4(ch, options); */
+/* #ifdef INET6	 */
+/* 		const bool opt_ipv6 = options_process_ipv6(ch, options); */
+/* #endif */
+
+/* 		if (!options_process_common(ch, options) && */
+/* #ifdef INET6 */
+/* 		    !opt_ipv6 && */
+/* #endif */
+/* #ifdef IPSEC */
+/* 		    !options_process_ipsec(ch, options) && */
+/* #endif */
+/* 		    !opt_ipv4) { */
+/* 			usage(); */
+/* 			/\* NOTREACHED *\/ */
+/* 		} */
+/* #ifdef INET6 */
+/* 		if (options->f_protocol_ipv6 && opt_ipv4) */
+/* 			errx(EX_USAGE, "IPv6 requested but IPv4 option provided"); */
+/* 		else if (options->f_protocol_ipv4 && opt_ipv6) */
+/* 			errx(EX_USAGE, "IPv4 requested but IPv6 option provided"); */
+/* #endif /\* INET6 *\/ */
+/* 	} */
 
 #ifdef INET6
 	if (options->f_protocol_ipv4 && options->f_protocol_ipv6)
 		errx(EX_USAGE, "-4 and -6 cannot be used together");
 #endif
+	/* TODO: kontrolovat az tu mozne nespravne kombinacie */
 
 	*argc -= optind;
 	argv += optind;
 }
 
 static bool
-options_process_common(int opt, struct options *const options)
+options_strtol(const char *const str, long *const val)
 {
-	switch (opt) {
-	case 'A':
-		options->f_missed = true;
-		break;
-	case 'a':
-		options->f_audible = true;
-		break;
-	case 'c':
-		break;
-	case 'D':
-		options->f_dont_fragment = true;
-		break;
-	case 'd':
-		options->f_so_debug = true;
-		break;
-	case 'f':
-		break;
-	case 'I':
-		break;
-	case 'i':
-		break;
-	case 'l':
-		break;
-	case 'n':
-		options->f_numeric = true;
-		break;
-	case 'o':
-		options->f_once = true;
-		break;
-	case 'p':
-		break;
-	case 'q':
-		options->f_somewhat_quiet = true;
-		break;
-	case 'S':
-		options->s_source = optarg;
-		break;
-	case 's':
-		options->f_ping_filled = true;
-		options->s_ping_filled = optarg;
-		break;
-	case 'v':
-		options->f_verbose = true;
-		break;
-	default:
-		return false;
-	}
+	char *ep;
+	
+	*val = strtol(str, &ep, 0);
 
-	return true;
+	return (*ep == '\0' && optarg != '\0');
 }
 
 static bool
-options_process_ipv4(int opt, struct options *const options)
+options_strtoi(const char *const str, int *const val)
 {
-	switch (opt) {
-	case '4':
-		options->f_protocol_ipv4 = true;
-		break;
-	case 'G':
-		break;
-	case 'g':
-		break;
-	case 'h':
-		break;
-	case 'L':
-		options->f_no_loop = true;
-		break;
-	case 'M':
-		switch(optarg[0]) {
-		case 'M':
-		case 'm':
-			options->f_mask;
-			break;
-		case 'T':
-		case 't':
-			options->f_mask;
-			break;
-		default:
-			errx(EX_USAGE, "invalid message: `%c'", optarg[0]);
-			break;
-		}
-		break;
-	case 'm':
-		break;
-	case 'Q':
-		options->f_quiet = true;
-		break;
-	case 'R':
-		options->f_rroute = true;
-		break;
-	case 'r':
-		options->f_so_dontroute = true;
-		break;
-	case 'T':
-		break;
-	case 't':
-		break;
-	case 'W':
-		break;
-	case 'z':
-		break;
-	default:
+	long ltmp;
+	if (!options_strtol(str, &ltmp) || ltmp > INT_MAX || ltmp < INT_MIN)
 		return false;
+	else {
+		*val = (int) ltmp;
+		return true;
 	}
-
-	return true;
 }
 
-#ifdef INET6
 static bool
-options_process_ipv6(int opt, struct options *const options)
+options_strtoul(const char *const str, unsigned long *const val)
 {
-	switch (opt) {
-	case '6':
-		options->f_protocol_ipv6 = true;
-		break;
-	case 'b':
-		break;
-	case 'e':
-		break;
-	case 'H':
-		break;
-	case 'j':
-		break;
-	case 'k':
-		break;
-	case 'N':
-		break;
-	case 'u':
-		break;
-	case 'w':
-		break;
-	case 'x':
-		break;
-	case 'X':
-		break;
-	case 'Y':
-		break;
-	case 'y':
-		break;
-	default:
-		return false;
-	}
+	char *ep;
+	
+	*val = strtoul(optarg, &ep, 0);
 
-	return true;
+	return ((*ep == '\0' && optarg != '\0') && (*val != ULONG_MAX));	
 }
-#endif /* INET6 */
-
-#ifdef IPSEC
-static bool
-options_process_ipsec(int opt, struct options *const options)
-{
-	switch (opt) {
-	case 'P':
-		break;
-#if defined(INET6) && !defined(IPSEC_POLICY_IPSEC)
-	case 'Z':
-		break;
-	case 'E':
-		break;
-#endif /* INET6 && IPSEC_POLICY_IPSEC */
-	default:
-		return false;
-	}
-
-	return true;
-}
-#endif /* IPSEC */
 
 void
 usage(void)
 {
 	/* TODO */
+
+	/* PING USAGE */
+/* #if defined(IPSEC) && defined(IPSEC_POLICY_IPSEC) */
+/* #define	SECOPT		" [-P policy]" */
+/* #else */
+/* #define	SECOPT		"" */
+/* #endif */
+/* static void */
+/* usage(void) */
+/* { */
+
+/* 	(void)fprintf(stderr, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n", */
+/* "usage: ping [-AaDdfnoQqRrv] [-c count] [-G sweepmaxsize] [-g sweepminsize]", */
+/* "            [-h sweepincrsize] [-i wait] [-l preload] [-M mask | time] [-m ttl]", */
+/* "           " SECOPT " [-p pattern] [-S src_addr] [-s packetsize] [-t timeout]", */
+/* "            [-W waittime] [-z tos] host", */
+/* "       ping [-AaDdfLnoQqRrv] [-c count] [-I iface] [-i wait] [-l preload]", */
+/* "            [-M mask | time] [-m ttl]" SECOPT " [-p pattern] [-S src_addr]", */
+/* "            [-s packetsize] [-T ttl] [-t timeout] [-W waittime]", */
+/* "            [-z tos] mcast-group"); */
+/* 	exit(EX_USAGE); */
+/* } */
+
+	
 	exit(EX_USAGE);
 }

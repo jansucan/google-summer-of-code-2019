@@ -33,24 +33,80 @@
 
 struct options {
 	/* TODO: conditional compilation of INET6 and IPSEC variables */
+	/* TODO: rationalize the data types */
 	bool f_protocol_ipv4;
 	bool f_protocol_ipv6;
 	bool f_missed;
 	bool f_audible;
-	int  n_packets;
+
+	/* Max packets to transmit */
+	bool f_packets;
+	long n_packets;
+	
 	bool f_so_debug;
 	bool f_numeric;
 	bool f_once;
+
+	/* Fill buffer with user pattern  */
 	bool f_ping_filled;
 	const char *s_ping_filled;
+	
 	bool f_somewhat_quiet;
 	bool f_quiet;
 	bool f_rroute;
 	bool f_so_dontroute;
+	
 	const char *s_source;
+	
 	bool f_verbose;
 	bool f_no_loop;
 	bool f_dont_fragment;
+	bool f_flood;
+
+	bool f_preload;
+	int  n_preload;
+
+	/* Max value of payload in sweep */
+	bool f_sweep_max;
+	int  n_sweep_max;
+        /* Start value of payload in sweep */
+	bool f_sweep_min;
+	int  n_sweep_min;
+        /* Payload increment in sweep */
+	bool f_sweep_incr;
+	int  n_sweep_incr;
+
+	bool f_ttl;
+	int  n_ttl;
+
+	bool f_multicast_ttl;
+	int  n_multicast_ttl;
+
+	bool          f_alarm_timeout;
+	unsigned long n_alarm_timeout;
+
+	/* Timeout for each packet */
+	bool f_wait_time;
+	int  n_wait_time;
+
+	bool f_tos;
+	int  n_tos;
+
+	bool f_policy;
+	const char *s_policy_in;
+	const char *s_policy_out;
+	
+	/* -I */
+	bool        f_interface;
+	const char *s_interface;
+	
+	/* Wait between sending packets */
+	bool f_interval;
+	int  n_interval;
+	
+	/* Size of packet to send */
+	bool f_packet_size;
+	long n_packet_size;
 
 	/* IPv4 -M */
 	bool f_mask;
