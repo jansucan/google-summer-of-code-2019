@@ -338,10 +338,10 @@ ping6(int argc, char *argv[])
 #endif /*IPSEC_POLICY_IPSEC*/
 #endif
 	while ((ch = getopt(argc, argv,
-	    "Aab:c:Dde:fHI:i:j:l:nNop:qr:S:s:uvwx:X:Yy" ADDOPTS)) != -1) {
+	    "Aab:c:Dde:fHI:i:j:k:l:nNop:qS:s:uvwx:X:Yy" ADDOPTS)) != -1) {
 #undef ADDOPTS
 		switch (ch) {
-		case 'r':
+		case 'k':
 		{
 			char *cp;
 
@@ -2769,12 +2769,12 @@ usage(void)
 #endif
 	    "] "
 	    "[-b bufsiz] [-c count] [-e gateway]\n"
-	    "             [-I interface] [-i wait] [-j hoplimit] [-l preload]"
+	    "             [-I interface] [-i wait] [-j hoplimit] [-k addrtype] [-l preload]"
 #if defined(IPSEC) && defined(IPSEC_POLICY_IPSEC)
 	    " [-P policy]"
 #endif
 	    "\n"
-	    "             [-p pattern] [-r addrtype] [-S sourceaddr] [-s packetsize]\n"
+	    "             [-p pattern] [-S sourceaddr] [-s packetsize]\n"
 	    "[-x waittime] [-X timeout] [hops ...] host\n");
 	exit(1);
 }
