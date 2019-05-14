@@ -29,9 +29,35 @@
 #ifndef OPTIONS_H
 #define OPTIONS_H 1
 
-#define F_PROTOCOL_IPV4  0x10000000
-#define F_PROTOCOL_IPV6  0x20000000
+#include <stdbool.h>
 
-void options_parse(int *const argc, char **const argv, int *const options, char **const ping_target);
+struct options {
+	/* TODO: conditional compilation of INET6 and IPSEC variables */
+	bool f_protocol_ipv4;
+	bool f_protocol_ipv6;
+	bool f_missed;
+	bool f_audible;
+	int  n_packets;
+	bool f_so_debug;
+	bool f_numeric;
+	bool f_once;
+	bool f_ping_filled;
+	const char *s_ping_filled;
+	bool f_somewhat_quiet;
+	bool f_quiet;
+	bool f_rroute;
+	bool f_so_dontroute;
+	const char *s_source;
+	bool f_verbose;
+	bool f_no_loop;
+	bool f_dont_fragment;
+
+	/* IPv4 -M */
+	bool f_mask;
+	bool f_time;
+};
+
+void options_parse(int *const argc, char **argv, struct options *const options);
+void usage(void) __dead2;
 
 #endif	/* OPTIONS_H */

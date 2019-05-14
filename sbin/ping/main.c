@@ -27,8 +27,6 @@
  */
 
 #include <err.h>
-#include <stdbool.h>
-#include <stdlib.h>
 #include <sysexits.h>
 #include <string.h>
 
@@ -53,22 +51,19 @@ enum target_type {
 
 static void get_target_types(const char *const target, enum target_type *types, int *const count);
 static void resolv_hostname(const char *const hostname, enum target_type *types, int *const count);
-static void usage(void) __dead2;
 
 int
 main(int argc, char *argv[])
 {
+	struct options options;
 	char *ping_target;
-	int options;
 	enum target_type types[MAX_TARGET_TYPES];
 	int type_count;
 	
-	options = 0;
-	ping_target = NULL;
-	
-	options_parse(&argc, argv, &options, &ping_target);
+	options_parse(&argc, argv, &options);
+	ping_target = (argc > 0) ? argv[argc - 1] : NULL;
 
-	if (((options & F_PROTOCOL_IPV4) && (options & F_PROTOCOL_IPV6)) || (ping_target == NULL))
+	if (ping_target == NULL)
 		usage();
 	
 	get_target_types(ping_target, types, &type_count);
@@ -77,13 +72,13 @@ main(int argc, char *argv[])
 	if (type_count == 0)
 		errx(EX_USAGE, "invalid ping target: `%s'", ping_target);
 	else if (type_count == 1) {
-		if ((options & F_PROTOCOL_IPV4) && (types[0] == TARGET_ADDRESS_IPV6))
+		if ((options.f_protocol_ipv4) && (types[0] == TARGET_ADDRESS_IPV6))
 			errx(EX_USAGE, "IPv4 requested but IPv6 target address provided");
-		else if ((options & F_PROTOCOL_IPV6) && (types[0] == TARGET_ADDRESS_IPV4))
+		else if ((options.f_protocol_ipv6) && (types[0] == TARGET_ADDRESS_IPV4))
 			errx(EX_USAGE, "IPv6 requested but IPv4 target address provided");
-		else if ((options & F_PROTOCOL_IPV4) && (types[0] == TARGET_HOSTNAME_IPV6))
+		else if ((options.f_protocol_ipv4) && (types[0] == TARGET_HOSTNAME_IPV6))
 			errx(EX_USAGE, "IPv4 requested but the hostname has been resolved to IPv6");
-		else if ((options & F_PROTOCOL_IPV6) && (types[0] == TARGET_HOSTNAME_IPV4))
+		else if ((options.f_protocol_ipv6) && (types[0] == TARGET_HOSTNAME_IPV4))
 			errx(EX_USAGE, "IPv6 requested but the hostname has been resolved to IPv4");
 	}
 	
@@ -93,9 +88,9 @@ main(int argc, char *argv[])
 			return ping(argc, argv);
 		else if ((types[0] == TARGET_ADDRESS_IPV6) || (types[0] == TARGET_HOSTNAME_IPV6))
 			return ping6(argc, argv);
-	} else if (options & F_PROTOCOL_IPV4)
+	} else if (options.f_protocol_ipv4)
 		return ping(argc, argv);
-	else if (options & F_PROTOCOL_IPV6)
+	else if (options.f_protocol_ipv6)
 		return ping6(argc, argv);
 	else if (types[0] == TARGET_HOSTNAME_IPV4)
 		return ping(argc, argv);
@@ -140,11 +135,4 @@ resolv_hostname(const char *const hostname, enum target_type *types, int *const 
 		
 		freeaddrinfo(res);
 	}
-}
-
-static void
-usage(void)
-{
-	/* TODO */
-	exit(EX_USAGE);
 }

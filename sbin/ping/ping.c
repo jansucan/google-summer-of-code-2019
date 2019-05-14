@@ -294,9 +294,10 @@ ping(int argc, char *const *argv)
 		err(EX_OSERR, "srecv socket");
 	}
 
-	alarmtimeout = df = preload = tos = 0;
+	alarmtimeout = df = loop = preload = tos = 0;
 
 	outpack = outpackhdr + sizeof(struct ip);
+
 	while ((ch = getopt(argc, argv,
 		"Aac:DdfG:g:h:I:i:Ll:M:m:nop:QqRrS:s:T:t:vW:z:"
 #ifdef IPSEC
@@ -307,12 +308,12 @@ ping(int argc, char *const *argv)
 		)) != -1)
 	{
 		switch(ch) {
-		case 'A':
-			options |= F_MISSED;
-			break;
-		case 'a':
-			options |= F_AUDIBLE;
-			break;
+		/* case 'A': */
+		/* 	options |= F_MISSED; */
+		/* 	break; */
+		/* case 'a': */
+		/* 	options |= F_AUDIBLE; */
+		/* 	break; */
 		case 'c':
 			ltmp = strtol(optarg, &ep, 0);
 			if (*ep || ep == optarg || ltmp <= 0)
@@ -321,13 +322,13 @@ ping(int argc, char *const *argv)
 				    optarg);
 			npackets = ltmp;
 			break;
-		case 'D':
-			options |= F_HDRINCL;
-			df = 1;
-			break;
-		case 'd':
-			options |= F_SO_DEBUG;
-			break;
+		/* case 'D': */
+		/* 	options |= F_HDRINCL; */
+		/* 	df = 1; */
+		/* 	break; */
+		/* case 'd': */
+		/* 	options |= F_SO_DEBUG; */
+		/* 	break; */
 		case 'f':
 			if (uid) {
 				errno = EPERM;
@@ -397,10 +398,9 @@ ping(int argc, char *const *argv)
 				err(EX_NOPERM, "-i interval too short");
 			}
 			break;
-		case 'L':
-			options |= F_NOLOOP;
-			loop = 0;
-			break;
+		/* case 'L': */
+		/* 	options |= F_NOLOOP; */
+		/* 	break; */
 		case 'l':
 			ltmp = strtol(optarg, &ep, 0);
 			if (*ep || ep == optarg || ltmp > INT_MAX || ltmp < 0)
@@ -412,21 +412,21 @@ ping(int argc, char *const *argv)
 			}
 			preload = ltmp;
 			break;
-		case 'M':
-			switch(optarg[0]) {
-			case 'M':
-			case 'm':
-				options |= F_MASK;
-				break;
-			case 'T':
-			case 't':
-				options |= F_TIME;
-				break;
-			default:
-				errx(EX_USAGE, "invalid message: `%c'", optarg[0]);
-				break;
-			}
-			break;
+		/* case 'M': */
+		/* 	switch(optarg[0]) { */
+		/* 	case 'M': */
+		/* 	case 'm': */
+		/* 		options |= F_MASK; */
+		/* 		break; */
+		/* 	case 'T': */
+		/* 	case 't': */
+		/* 		options |= F_TIME; */
+		/* 		break; */
+		/* 	default: */
+		/* 		errx(EX_USAGE, "invalid message: `%c'", optarg[0]); */
+		/* 		break; */
+		/* 	} */
+		/* 	break; */
 		case 'm':		/* TTL */
 			ltmp = strtol(optarg, &ep, 0);
 			if (*ep || ep == optarg || ltmp > MAXTTL || ltmp < 0)
@@ -434,12 +434,12 @@ ping(int argc, char *const *argv)
 			ttl = ltmp;
 			options |= F_TTL;
 			break;
-		case 'n':
-			options |= F_NUMERIC;
-			break;
-		case 'o':
-			options |= F_ONCE;
-			break;
+		/* case 'n': */
+		/* 	options |= F_NUMERIC; */
+		/* 	break; */
+		/* case 'o': */
+		/* 	options |= F_ONCE; */
+		/* 	break; */
 #ifdef IPSEC
 #ifdef IPSEC_POLICY_IPSEC
 		case 'P':
@@ -453,25 +453,25 @@ ping(int argc, char *const *argv)
 			break;
 #endif /*IPSEC_POLICY_IPSEC*/
 #endif /*IPSEC*/
-		case 'p':		/* fill buffer with user pattern */
-			options |= F_PINGFILLED;
-			payload = optarg;
-			break;
-		case 'Q':
-			options |= F_QUIET2;
-			break;
-		case 'q':
-			options |= F_QUIET;
-			break;
-		case 'R':
-			options |= F_RROUTE;
-			break;
-		case 'r':
-			options |= F_SO_DONTROUTE;
-			break;
-		case 'S':
-			source = optarg;
-			break;
+		/* case 'p':		/\* fill buffer with user pattern *\/ */
+		/* 	options |= F_PINGFILLED; */
+		/* 	payload = optarg; */
+		/* 	break; */
+		/* case 'Q': */
+		/* 	options |= F_QUIET2; */
+		/* 	break; */
+		/* case 'q': */
+		/* 	options |= F_QUIET; */
+		/* 	break; */
+		/* case 'R': */
+		/* 	options |= F_RROUTE; */
+		/* 	break; */
+		/* case 'r': */
+		/* 	options |= F_SO_DONTROUTE; */
+		/* 	break; */
+		/* case 'S': */
+		/* 	source = optarg; */
+		/* 	break; */
 		case 's':		/* size of packet to send */
 			ltmp = strtol(optarg, &ep, 0);
 			if (*ep || ep == optarg || ltmp < 0)
@@ -503,9 +503,9 @@ ping(int argc, char *const *argv)
 				    optarg, MAXALARM);
 			alarm((int)alarmtimeout);
 			break;
-		case 'v':
-			options |= F_VERBOSE;
-			break;
+		/* case 'v': */
+		/* 	options |= F_VERBOSE; */
+		/* 	break; */
 		case 'W':		/* wait ms for answer */
 			t = strtod(optarg, &ep);
 			if (*ep || ep == optarg || t > (double)INT_MAX)
