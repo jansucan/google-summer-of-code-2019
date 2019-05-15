@@ -191,7 +191,6 @@ static char DOT = '.';
 static char *hostname;
 static int ident;		/* process id to identify our packets */
 static u_int8_t nonce[8];	/* nonce field for node information */
-static int hoplimit = -1;	/* hoplimit */
 static u_char *packet = NULL;
 
 /* counters */
@@ -266,16 +265,9 @@ ping6(struct options *const options, int argc, char *argv[])
 	struct cmsghdr *scmsgp = NULL;
 	/* For control (ancillary) data received from recvmsg() */
 	struct cmsghdr cm[CONTROLLEN];
-#if defined(SO_SNDBUF) && defined(SO_RCVBUF)
-	int sockbufsize = 0;
-#endif
 	struct in6_pktinfo *pktinfo = NULL;
 #ifdef USE_RFC2292BIS
 	struct ip6_rthdr *rthdr = NULL;
-#endif
-#ifdef IPSEC_POLICY_IPSEC
-	char *policy_in = NULL;
-	char *policy_out = NULL;
 #endif
 	size_t rthlen;
 
@@ -505,9 +497,9 @@ ping6(struct options *const options, int argc, char *argv[])
 #ifdef IPSEC
 #ifdef IPSEC_POLICY_IPSEC
 	if (options->f_policy) {
-		if (setpolicy(s, policy_in) < 0)
+		if (setpolicy(s, options->s_policy_in) < 0)
 			errx(1, "%s", ipsec_strerror());
-		if (setpolicy(s, policy_out) < 0)
+		if (setpolicy(s, options->s_policy_out) < 0)
 			errx(1, "%s", ipsec_strerror());
 	}
 #else
@@ -578,7 +570,7 @@ ping6(struct options *const options, int argc, char *argv[])
 	if (options->f_interface)
 		ip6optlen += CMSG_SPACE(sizeof(struct in6_pktinfo));
 
-	if (hoplimit != -1)
+	if (options->f_hoplimit)
 		ip6optlen += CMSG_SPACE(sizeof(int));
 
 	/* set IP6 packet options */
@@ -609,11 +601,11 @@ ping6(struct options *const options, int argc, char *argv[])
 			errx(1, "%s: invalid interface name", options->s_interface);
 #endif
 	}
-	if (hoplimit != -1) {
+	if (options->f_hoplimit) {
 		scmsgp->cmsg_len = CMSG_LEN(sizeof(int));
 		scmsgp->cmsg_level = IPPROTO_IPV6;
 		scmsgp->cmsg_type = IPV6_HOPLIMIT;
-		*(int *)(CMSG_DATA(scmsgp)) = hoplimit;
+		*(int *)(CMSG_DATA(scmsgp)) = options->n_hoplimit;
 
 		scmsgp = CMSG_NXTHDR(&smsghdr, scmsgp);
 	}
@@ -692,14 +684,14 @@ ping6(struct options *const options, int argc, char *argv[])
 		    (void *)pktinfo, sizeof(*pktinfo)))
 			err(1, "UDP setsockopt(IPV6_PKTINFO)");
 
-		if (hoplimit != -1 &&
+		if (options->f_hoplimit &&
 		    setsockopt(dummy, IPPROTO_IPV6, IPV6_UNICAST_HOPS,
-		    (void *)&hoplimit, sizeof(hoplimit)))
+			(void *)&(options->n_hoplimit), sizeof(options->n_hoplimit)))
 			err(1, "UDP setsockopt(IPV6_UNICAST_HOPS)");
 
-		if (hoplimit != -1 &&
+		if (options->f_hoplimit &&
 		    setsockopt(dummy, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
-		    (void *)&hoplimit, sizeof(hoplimit)))
+			(void *)&(options->n_hoplimit), sizeof(options->n_hoplimit)))
 			err(1, "UDP setsockopt(IPV6_MULTICAST_HOPS)");
 
 		if (rthdr &&
@@ -723,14 +715,14 @@ ping6(struct options *const options, int argc, char *argv[])
 	}
 
 #if defined(SO_SNDBUF) && defined(SO_RCVBUF)
-	if (sockbufsize) {
-		if (options->n_packet_size > sockbufsize)
+	if (options->f_sock_buff_size) {
+		if (options->n_packet_size > (long)options->n_sock_buff_size)
 			warnx("you need -b to increase socket buffer size");
-		if (setsockopt(s, SOL_SOCKET, SO_SNDBUF, &sockbufsize,
-		    sizeof(sockbufsize)) < 0)
+		if (setsockopt(s, SOL_SOCKET, SO_SNDBUF, &(options->n_sock_buff_size),
+		    sizeof(options->n_sock_buff_size)) < 0)
 			err(1, "setsockopt(SO_SNDBUF)");
-		if (setsockopt(s, SOL_SOCKET, SO_RCVBUF, &sockbufsize,
-		    sizeof(sockbufsize)) < 0)
+		if (setsockopt(s, SOL_SOCKET, SO_RCVBUF, &(options->n_sock_buff_size),
+		    sizeof(options->n_sock_buff_size)) < 0)
 			err(1, "setsockopt(SO_RCVBUF)");
 	}
 	else {
@@ -2484,7 +2476,7 @@ check_options(struct options *const options, struct timeval *const intvl)
 	if (options->f_sock_buff_size && (options->n_sock_buff_size > INT_MAX))
 		errx(1, "invalid socket buffer size");
 
-	if ((options->f_hoplimit) && ((options->n_hoplimit < -1) || (options->n_hoplimit > 255)))
+	if ((options->f_hoplimit) && ((options->n_hoplimit < 0) || (options->n_hoplimit > 255)))
 		errx(1, "illegal hoplimit -- %d", options->n_hoplimit);
 
 	if (!options->f_interval)

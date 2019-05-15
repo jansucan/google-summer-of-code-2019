@@ -101,8 +101,8 @@ struct options {
 	int  n_tos;
 
 	bool f_policy;
-	const char *s_policy_in;
-	const char *s_policy_out;
+	char *s_policy_in;
+	char *s_policy_out;
 	
 	/* -I */
 	bool        f_interface;
@@ -120,8 +120,10 @@ struct options {
 	bool f_mask;
 	bool f_time;
 
+#if defined(SO_SNDBUF) && defined(SO_RCVBUF)
 	bool          f_sock_buff_size;
 	unsigned long n_sock_buff_size;
+#endif
 
 	const char *s_gateway;
 

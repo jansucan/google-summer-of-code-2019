@@ -217,10 +217,10 @@ options_parse(int *const argc, char **argv, struct options *const options)
 #if defined(SO_SNDBUF) && defined(SO_RCVBUF)
 			if (options_strtul(optarg, &options->n_sock_buff_size))
 				errx(EX_USAGE, "invalid socket buffer size: `%s'", optarg);
+			options->f_sock_buff_size = true;
 #else
 			errx(1, "-b option ignored: SO_SNDBUF/SO_RCVBUF socket options not supported");
 #endif
-			options->f_sock_buff_size = true;
 			break;
 		case 'e':
 			options->s_gateway = optarg;

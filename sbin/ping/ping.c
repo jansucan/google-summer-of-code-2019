@@ -205,9 +205,6 @@ ping(struct options *const options, int argc, char *const *argv)
 	u_char *datap, packet[IP_MAXPACKET] __aligned(4);
 	char *target;
 	struct hostent *hp;
-#ifdef IPSEC_POLICY_IPSEC
-	char *policy_in, *policy_out;
-#endif
 	struct sockaddr_in *to;
 	int almost_done, hold, i, icmp_len, mib[4];
 	int ssend_errno, srecv_errno;
@@ -217,10 +214,6 @@ ping(struct options *const options, int argc, char *const *argv)
 	char rspace[MAX_IPOPTLEN];	/* record route space */
 #endif
 	unsigned char loop;
-
-#ifdef IPSEC_POLICY_IPSEC
-	policy_in = policy_out = NULL;
-#endif
 	cap_rights_t rights;
 
 	/*
@@ -388,8 +381,8 @@ ping(struct options *const options, int argc, char *const *argv)
 #ifdef IPSEC_POLICY_IPSEC
 	if (options->f_policy) {
 		char *buf;
-		if (policy_in != NULL) {
-			buf = ipsec_set_policy(policy_in, strlen(policy_in));
+		if (options->s_policy_in != NULL) {
+			buf = ipsec_set_policy(options->s_policy_in, strlen(options->s_policy_in));
 			if (buf == NULL)
 				errx(EX_CONFIG, "%s", ipsec_strerror());
 			if (setsockopt(srecv, IPPROTO_IP, IP_IPSEC_POLICY,
@@ -399,8 +392,8 @@ ping(struct options *const options, int argc, char *const *argv)
 			free(buf);
 		}
 
-		if (policy_out != NULL) {
-			buf = ipsec_set_policy(policy_out, strlen(policy_out));
+		if (options->s_policy_out != NULL) {
+			buf = ipsec_set_policy(options->s_policy_out, strlen(options->s_policy_out));
 			if (buf == NULL)
 				errx(EX_CONFIG, "%s", ipsec_strerror());
 			if (setsockopt(ssend, IPPROTO_IP, IP_IPSEC_POLICY,
