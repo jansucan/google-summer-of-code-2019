@@ -612,7 +612,7 @@ ping(struct options *const options, int argc, char *const *argv)
 		intvl.tv_usec = 10000;
 	} else {
 		intvl.tv_sec = options->n_interval / 1000;
-		intvl.tv_usec = options->n_interval % 1000 * 1000;
+		intvl.tv_usec = (int)options->n_interval % 1000 * 1000;
 	}
 
 	almost_done = 0;
@@ -1549,9 +1549,14 @@ check_options(struct options *const options, struct in_addr *const ifaddr)
 
 	if (!options->f_interval)
 		options->n_interval = MININTERVAL;
-	else if ((getuid() != 0) && (options->n_interval < MININTERVAL)) {
-		errno = EPERM;
-		err(EX_NOPERM, "-i interval too short");
+	else {
+		options->n_interval *= 1000;
+		if (options->n_interval > (double)INT_MAX)
+			errx(EX_USAGE, "invalid timing interval: `%f'", options->n_interval);
+		else if ((getuid() != 0) && (options->n_interval < 1000)) {
+			errno = EPERM;
+			err(EX_NOPERM, "-i interval too short");
+		}
 	}
 
 	if (options->f_preload) {

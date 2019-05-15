@@ -61,11 +61,13 @@
 static bool options_strtol(const char *const str, long *const val);
 static bool options_strtoi(const char *const str, int *const val);
 static bool options_strtoul(const char *const str, unsigned long *const val);
+static bool options_strtod(const char *const str, double *const val);
 
 void
 options_parse(int *const argc, char **argv, struct options *const options)
 {
 	int ch;
+	char *cp;
 
 	memset(options, 0, sizeof(*options));
 	
@@ -96,13 +98,15 @@ options_parse(int *const argc, char **argv, struct options *const options)
 			options->f_flood = true;
 			break;
 		case 'I':
-			options->f_interface = true;
 			options->s_interface = optarg;
+#if !defined(INET6) || !defined(USE_SIN6_SCOPE_ID)
+			options->f_interface = true;
+#endif
 			break;
 		case 'i':
-			if (options_strtoi(optarg, &options->n_interval))
+			if (options_strtod(optarg, &options->n_interval))
 				errx(EX_USAGE, "invalid timing interval: `%s'", optarg);
-			options->f_interval = true;		
+			options->f_interval = true;
 			break;
 		case 'l':
 			if (!options_strtoi(optarg, &options->n_preload))
@@ -210,24 +214,93 @@ options_parse(int *const argc, char **argv, struct options *const options)
 			options->f_protocol_ipv6 = true;
 			break;
 		case 'b':
+#if defined(SO_SNDBUF) && defined(SO_RCVBUF)
+			if (options_strtul(optarg, &options->n_sock_buff_size))
+				errx(EX_USAGE, "invalid socket buffer size: `%s'", optarg);
+#else
+			errx(1, "-b option ignored: SO_SNDBUF/SO_RCVBUF socket options not supported");
+#endif
+			options->f_sock_buff_size = true;
 			break;
 		case 'e':
+			options->s_gateway = optarg;
 			break;
 		case 'H':
+			options->f_hostname = true;
 			break;
 		case 'j':
+			if (options_strtoi(optarg, &options->n_hoplimit))
+				errx(EX_USAGE, "illegal hoplimit %s", optarg);
+			options->f_hoplimit = true;
 			break;
 		case 'k':
+			for (cp = optarg; *cp != '\0'; cp++) {
+				switch (*cp) {
+				case 'a':
+					options->f_nodeaddr_flag_all = true;
+					break;
+				case 'c':
+				case 'C':
+					options->f_nodeaddr_flag_compat = true;
+					break;
+				case 'l':
+				case 'L':
+					options->f_nodeaddr_flag_linklocal = true;
+					break;
+				case 's':
+				case 'S':
+					options->f_nodeaddr_flag_sitelocal = true;
+					break;
+				case 'g':
+				case 'G':
+					options->f_nodeaddr_flag_global = true;
+					break;
+				case 'A': /* experimental. not in the spec */
+#ifdef NI_NODEADDR_FLAG_ANYCAST
+					options->f_nodeaddr_flag_anycast = true;
+					break;
+#else
+					errx(1, "-a A is not supported on the platform");
+					/*NOTREACHED*/
+#endif
+				default:
+					usage();
+					/*NOTREACHED*/
+				}
+			}
+			options->f_fqdn = false;
+			options->f_fqdn_old = false;
+			options->f_subtypes = false;
+			options->f_nodeaddr = true;
 			break;
 		case 'N':
+			options->f_nigroup = true;
+			options->c_nigroup++;
 			break;
 		case 'u':
+#ifdef IPV6_USE_MIN_MTU
+			options->c_use_min_mtu++;
+#else
+			errx(1, "-u is not supported on this platform");
+#endif
 			break;
 		case 'w':
+			options->f_nodeaddr = false;
+			options->f_fqdn_old = false;
+			options->f_subtypes = false;
+			options->f_fqdn = true;
 			break;
 		case 'Y':
+			options->f_nodeaddr = false;
+			options->f_fqdn = false;
+			options->f_subtypes = false;
+			options->f_fqdn_old = true;
 			break;
 		case 'y':
+			options->f_nodeaddr = false;
+			options->f_fqdn = false;
+			options->f_fqdn_old = false;
+			options->f_subtypes = true;			
 			break;
 #endif /* INET6 */
 #ifdef IPSEC
@@ -245,8 +318,10 @@ options_parse(int *const argc, char **argv, struct options *const options)
 			break;
 #if defined(INET6) && !defined(IPSEC_POLICY_IPSEC)
 		case 'Z':
+			options->f_authhdr = true;
 			break;
 		case 'E':
+			options->f_encrypt = true;
 			break;
 #endif /* INET6 && IPSEC_POLICY_IPSEC */
 #endif /* IPSEC */
@@ -284,7 +359,7 @@ options_parse(int *const argc, char **argv, struct options *const options)
 	if (options->f_protocol_ipv4 && options->f_protocol_ipv6)
 		errx(EX_USAGE, "-4 and -6 cannot be used together");
 #endif
-	/* TODO: kontrolovat az tu mozne nespravne kombinacie */
+	/* TODO: check for invalid combinations of the options */
 
 	*argc -= optind;
 	argv += optind;
@@ -293,6 +368,7 @@ options_parse(int *const argc, char **argv, struct options *const options)
 static bool
 options_strtol(const char *const str, long *const val)
 {
+	/* TODO: check errno */
 	char *ep;
 	
 	*val = strtol(str, &ep, 0);
@@ -303,6 +379,7 @@ options_strtol(const char *const str, long *const val)
 static bool
 options_strtoi(const char *const str, int *const val)
 {
+	/* TODO: check errno */
 	long ltmp;
 	if (!options_strtol(str, &ltmp) || ltmp > INT_MAX || ltmp < INT_MIN)
 		return false;
@@ -315,11 +392,23 @@ options_strtoi(const char *const str, int *const val)
 static bool
 options_strtoul(const char *const str, unsigned long *const val)
 {
+	/* TODO: check errno */
 	char *ep;
 	
 	*val = strtoul(optarg, &ep, 0);
 
 	return ((*ep == '\0' && optarg != '\0') && (*val != ULONG_MAX));	
+}
+
+static bool
+options_strtod(const char *const str, double *const val)
+{
+	/* TODO: check errno */
+	char *ep;
+	
+	*val = strtod(str, &ep);
+
+	return (*ep == '\0' && optarg != '\0');
 }
 
 void
@@ -349,6 +438,35 @@ usage(void)
 /* 	exit(EX_USAGE); */
 /* } */
 
-	
+	/* PING6 USAGE */
+/* static void */
+/* usage(void) */
+/* { */
+/* 	(void)fprintf(stderr, */
+/* 	    "usage: ping6 [-" */
+/* 	    "AaDd" */
+/* #if defined(IPSEC) && !defined(IPSEC_POLICY_IPSEC) */
+/* 	    "E" */
+/* #endif */
+/* 	    "fHnNoq" */
+/* #ifdef IPV6_USE_MIN_MTU */
+/* 	    "u" */
+/* #endif */
+/* 	    "vwYy" */
+/* #if defined(IPSEC) && !defined(IPSEC_POLICY_IPSEC) */
+/* 	    "Z" */
+/* #endif */
+/* 	    "] " */
+/* 	    "[-b bufsiz] [-c count] [-e gateway]\n" */
+/* 	    "             [-I interface] [-i wait] [-j hoplimit] [-k addrtype] [-l preload]" */
+/* #if defined(IPSEC) && defined(IPSEC_POLICY_IPSEC) */
+/* 	    " [-P policy]" */
+/* #endif */
+/* 	    "\n" */
+/* 	    "             [-p pattern] [-S sourceaddr] [-s packetsize]\n" */
+/* 	    "[-x waittime] [-X timeout] [hops ...] host\n"); */
+/* 	exit(1); */
+/* } */
+
 	exit(EX_USAGE);
 }

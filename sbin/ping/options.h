@@ -32,6 +32,14 @@
 #include <stdbool.h>
 
 struct options {
+	/*
+	 * Prefixes of the member variables:
+	 *   f_ - flag
+	 *   n_ - number argument
+	 *   s_ - string argument
+	 *   c_ - occurence count of the option
+	 */
+	
 	/* TODO: conditional compilation of INET6 and IPSEC variables */
 	/* TODO: rationalize the data types */
 	bool f_protocol_ipv4;
@@ -101,8 +109,8 @@ struct options {
 	const char *s_interface;
 	
 	/* Wait between sending packets */
-	bool f_interval;
-	int  n_interval;
+	bool    f_interval;
+	double  n_interval;
 	
 	/* Size of packet to send */
 	bool f_packet_size;
@@ -111,6 +119,38 @@ struct options {
 	/* IPv4 -M */
 	bool f_mask;
 	bool f_time;
+
+	bool          f_sock_buff_size;
+	unsigned long n_sock_buff_size;
+
+	const char *s_gateway;
+
+	bool f_hostname;
+
+	bool f_nigroup;
+	int  c_nigroup;
+	
+#ifdef IPV6_USE_MIN_MTU
+	int  c_use_min_mtu;
+#endif
+
+	bool f_hoplimit;
+	int  n_hoplimit;
+
+	bool f_nodeaddr;
+	bool f_fqdn;
+	bool f_fqdn_old;
+	bool f_subtypes;
+
+	bool f_nodeaddr_flag_all;
+	bool f_nodeaddr_flag_compat;
+	bool f_nodeaddr_flag_linklocal;
+	bool f_nodeaddr_flag_sitelocal;
+	bool f_nodeaddr_flag_global;
+	bool f_nodeaddr_flag_anycast;
+
+	bool f_authhdr;
+	bool f_encrypt;
 };
 
 void options_parse(int *const argc, char **argv, struct options *const options);

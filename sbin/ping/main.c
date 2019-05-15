@@ -87,15 +87,15 @@ main(int argc, char *argv[])
 	       	if ((types[0] == TARGET_ADDRESS_IPV4) || (types[0] == TARGET_HOSTNAME_IPV4))
 			return ping(&options, argc, argv);
 		else if ((types[0] == TARGET_ADDRESS_IPV6) || (types[0] == TARGET_HOSTNAME_IPV6))
-			return ping6(argc, argv);
+			return ping6(&options, argc, argv);
 	} else if (options.f_protocol_ipv4)
 		return ping(&options, argc, argv);
 	else if (options.f_protocol_ipv6)
-		return ping6(argc, argv);
+		return ping6(&options, argc, argv);
 	else if (types[0] == TARGET_HOSTNAME_IPV4)
 		return ping(&options, argc, argv);
 	else
-		return ping6(argc, argv);
+		return ping6(&options, argc, argv);
 }
 
 static void
