@@ -232,7 +232,7 @@ options_parse(int *const argc, char ***argv, struct options *const options)
 				errx(EX_USAGE, "invalid socket buffer size: `%s'", optarg);
 			options->f_sock_buff_size = true;
 #else
-			errx(1, "-b option ignored: SO_SNDBUF/SO_RCVBUF socket options not supported");
+			errx(EX_USAGE, "-b option ignored: SO_SNDBUF/SO_RCVBUF socket options not supported");
 #endif
 			break;
 		case 'e':
@@ -273,7 +273,7 @@ options_parse(int *const argc, char ***argv, struct options *const options)
 					options->f_nodeaddr_flag_anycast = true;
 					break;
 #else
-					errx(1, "-a A is not supported on the platform");
+					errx(EX_USAGE, "-a A is not supported on the platform");
 					/*NOTREACHED*/
 #endif
 				default:
@@ -294,7 +294,7 @@ options_parse(int *const argc, char ***argv, struct options *const options)
 #ifdef IPV6_USE_MIN_MTU
 			options->c_use_min_mtu++;
 #else
-			errx(1, "-u is not supported on this platform");
+			errx(EX_USAGE, "-u is not supported on this platform");
 #endif
 			break;
 		case 'w':
@@ -318,15 +318,14 @@ options_parse(int *const argc, char ***argv, struct options *const options)
 #endif /* INET6 */
 #ifdef IPSEC
 		case 'P':
-			/* TODO: use EX_ code in errx() */
 			if (!strncmp("in", optarg, 2)) {
 				if ((options->s_policy_in = strdup(optarg)) == NULL)
-					errx(1, "strdup");
+					errx(EX_OSERR, "strdup");
 			} else if (!strncmp("out", optarg, 3)) {
 				if ((options->s_policy_out = strdup(optarg)) == NULL)
-					errx(1, "strdup");
+					errx(EX_OSERR, "strdup");
 			} else
-				errx(1, "invalid security policy");
+				errx(EX_USAGE, "invalid security policy");
 			options->f_policy = true;
 			break;
 #if defined(INET6) && !defined(IPSEC_POLICY_IPSEC)
