@@ -43,6 +43,14 @@
 
 #include <stdbool.h>
 
+enum target_type {
+	TARGET_UNKNOWN,
+	TARGET_ADDRESS_IPV4,
+	TARGET_ADDRESS_IPV6,
+	TARGET_HOSTNAME_IPV4,
+	TARGET_HOSTNAME_IPV6
+};
+
 struct options {
 	/*
 	 * Prefixes of the member variables:
@@ -174,9 +182,10 @@ struct options {
 	bool f_nodeaddr_flag_anycast;
 #endif
 
+	enum target_type target_type;
 };
 
-void options_parse(int *const argc, char **argv, struct options *const options);
+void options_parse(int *const argc, char ***argv, struct options *const options);
 void usage(void) __dead2;
 
 #endif	/* OPTIONS_H */

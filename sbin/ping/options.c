@@ -64,6 +64,8 @@
 #define OPSTR  OPSTR_COMMON OPSTR_IPV4 OPSTR_IPSEC
 #endif	/* INET6 */
 
+static void options_check(int argc, char **argv, struct options *const options);
+static void options_get_target_type(struct options *const options, const char *const target);
 static bool options_has_ipv4_only(const struct options *const options);
 #ifdef INET6
 static bool options_has_ipv6_only(const struct options *const options);
@@ -74,7 +76,7 @@ static bool options_strtoul(const char *const str, unsigned long *const val);
 static bool options_strtod(const char *const str, double *const val);
 
 void
-options_parse(int *const argc, char **argv, struct options *const options)
+options_parse(int *const argc, char ***argv, struct options *const options)
 {
 	int ch;
 #ifdef INET6
@@ -82,7 +84,7 @@ options_parse(int *const argc, char **argv, struct options *const options)
 #endif
 	memset(options, 0, sizeof(*options));
 	
-	while ((ch = getopt(*argc, argv, OPSTR)) != -1) {
+	while ((ch = getopt(*argc, *argv, OPSTR)) != -1) {
 		switch (ch) {
 		case 'A':
 			options->f_missed = true;
@@ -336,44 +338,90 @@ options_parse(int *const argc, char **argv, struct options *const options)
 			break;
 #endif /* INET6 && IPSEC_POLICY_IPSEC */
 #endif /* IPSEC */
-			
 		default:
 			usage();
 		}
 	}
 
-/* 		const bool opt_ipv4 = options_process_ipv4(ch, options); */
-/* #ifdef INET6	 */
-/* 		const bool opt_ipv6 = options_process_ipv6(ch, options); */
-/* #endif */
-
-/* 		if (!options_process_common(ch, options) && */
-/* #ifdef INET6 */
-/* 		    !opt_ipv6 && */
-/* #endif */
-/* #ifdef IPSEC */
-/* 		    !options_process_ipsec(ch, options) && */
-/* #endif */
-/* 		    !opt_ipv4) { */
-/* 			usage(); */
-/* 			/\* NOTREACHED *\/ */
-/* 		} */
-/* #ifdef INET6 */
-/* 		if (options->f_protocol_ipv6 && opt_ipv4) */
-/* 			errx(EX_USAGE, "IPv6 requested but IPv4 option provided"); */
-/* 		else if (options->f_protocol_ipv4 && opt_ipv6) */
-/* 			errx(EX_USAGE, "IPv4 requested but IPv6 option provided"); */
-/* #endif /\* INET6 *\/ */
-/* 	} */
-
-#ifdef INET6
-	if (options->f_protocol_ipv4 && options->f_protocol_ipv6)
-		errx(EX_USAGE, "-4 and -6 cannot be used together");
-#endif
-	/* TODO: check for invalid combinations of the options */
-
 	*argc -= optind;
-	argv += optind;
+	*argv += optind;
+
+	options_check(*argc, *argv, options);
+}
+
+static void
+options_check(int argc, char **argv, struct options *const options)
+{
+#ifdef INET6
+	if (options->f_protocol_ipv6 && options_has_ipv4_only(options))
+		errx(EX_USAGE, "IPv6 requested but IPv4 option provided");
+	else if (options->f_protocol_ipv4 && options_has_ipv6_only(options))
+		errx(EX_USAGE, "IPv4 requested but IPv6 option provided");
+#endif /* INET6 */
+
+	const char *const target = (argc > 0) ? argv[argc - 1] : NULL;
+
+	if (target == NULL)
+		usage();
+
+	options_get_target_type(options, target);
+
+	if (options->target_type == TARGET_UNKNOWN)
+		errx(EX_USAGE, "invalid ping target: `%s'", target);
+#ifdef INET6
+	else if (options->f_protocol_ipv4 && (options->target_type == TARGET_ADDRESS_IPV6))
+		errx(EX_USAGE, "IPv4 requested but IPv6 target address provided");
+	else if (options->f_protocol_ipv6 && (options->target_type == TARGET_ADDRESS_IPV4))
+		errx(EX_USAGE, "IPv6 requested but IPv4 target address provided");
+	else if (options->f_protocol_ipv4 && (options->target_type == TARGET_HOSTNAME_IPV6))
+		errx(EX_USAGE, "IPv4 requested but the hostname has been resolved to IPv6");
+	else if (options->f_protocol_ipv6 && (options->target_type == TARGET_HOSTNAME_IPV4))
+		errx(EX_USAGE, "IPv6 requested but the hostname has been resolved to IPv4");
+#endif
+}
+
+static void
+options_get_target_type(struct options *const options, const char *const target)
+{
+	struct in_addr a;
+#ifdef INET6
+	struct in6_addr a6;
+#endif
+	struct addrinfo hints, *res;
+
+	options->target_type = TARGET_UNKNOWN;
+
+	if (inet_pton(AF_INET, target, &a) == 1)
+		options->target_type = TARGET_ADDRESS_IPV4;
+#ifdef INET6
+	else if (inet_pton(AF_INET6, target, &a6) == 1)
+		options->target_type = TARGET_ADDRESS_IPV6;
+#endif
+	else {
+		memset(&hints, 0, sizeof(hints));
+		hints.ai_socktype = SOCK_RAW;
+
+		if (options->f_protocol_ipv4)
+			hints.ai_family = AF_INET;
+#ifdef INET6
+		else if (options->f_protocol_ipv6)
+			hints.ai_family = AF_INET6;
+#endif
+		else
+			hints.ai_family = AF_UNSPEC;
+
+		getaddrinfo(target, NULL, &hints, &res);
+
+		if (res != NULL) {
+			if (res[0].ai_family == AF_INET)
+				options->target_type = TARGET_HOSTNAME_IPV4;
+#ifdef INET6
+			else if (res[0].ai_family == AF_INET6)
+				options->target_type = TARGET_HOSTNAME_IPV6;
+#endif
+			freeaddrinfo(res);
+		}
+	}
 }
 
 static bool
