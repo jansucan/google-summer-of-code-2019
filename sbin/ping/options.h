@@ -29,6 +29,18 @@
 #ifndef OPTIONS_H
 #define OPTIONS_H 1
 
+#include <sys/cdefs.h>
+
+/*
+ * This block of includes is needed here. It contains preprocessor
+ * symbols for configuration of 'struct options' during build-time.
+ */
+#include <net/if.h>
+#include <netinet/in.h>
+#include <netinet/ip6.h>
+#include <netinet/icmp6.h>
+#include <netipsec/ipsec.h>
+
 #include <stdbool.h>
 
 struct options {
@@ -40,7 +52,7 @@ struct options {
 	 *   c_ - occurence count of the option
 	 */
 	
-	/* TODO: conditional compilation of INET6 and IPSEC variables */
+	/* TODO: ordering of the variables vs. number of #ifdef directives */
 	/* TODO: rationalize the data types */
 	bool f_protocol_ipv4;
 	bool f_protocol_ipv6;
@@ -100,12 +112,21 @@ struct options {
 	bool f_tos;
 	int  n_tos;
 
+#ifdef IPSEC
 	bool f_policy;
 	char *s_policy_in;
 	char *s_policy_out;
+#if defined(INET6) && !defined(IPSEC_POLICY_IPSEC)
+	/* TODO: authhdr and encrypt have to make f_policy = false */
+	bool f_authhdr;
+	bool f_encrypt;
+#endif /* INET6 && IPSEC_POLICY_IPSEC */
+#endif /* IPSEC */
 	
 	/* -I */
+#if !defined(INET6) || !defined(USE_SIN6_SCOPE_ID)
 	bool        f_interface;
+#endif
 	const char *s_interface;
 	
 	/* Wait between sending packets */
@@ -120,7 +141,7 @@ struct options {
 	bool f_mask;
 	bool f_time;
 
-#if defined(SO_SNDBUF) && defined(SO_RCVBUF)
+#if defined(INET6) && defined(SO_SNDBUF) && defined(SO_RCVBUF)
 	bool          f_sock_buff_size;
 	unsigned long n_sock_buff_size;
 #endif
@@ -132,7 +153,7 @@ struct options {
 	bool f_nigroup;
 	int  c_nigroup;
 	
-#ifdef IPV6_USE_MIN_MTU
+#if defined(INET6) && defined(IPV6_USE_MIN_MTU)
 	int  c_use_min_mtu;
 #endif
 
@@ -149,10 +170,10 @@ struct options {
 	bool f_nodeaddr_flag_linklocal;
 	bool f_nodeaddr_flag_sitelocal;
 	bool f_nodeaddr_flag_global;
+#if defined(INET6) && defined(NI_NODEADDR_FLAG_ANYCAST)
 	bool f_nodeaddr_flag_anycast;
+#endif
 
-	bool f_authhdr;
-	bool f_encrypt;
 };
 
 void options_parse(int *const argc, char **argv, struct options *const options);

@@ -26,6 +26,13 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/types.h>
+#include <sys/socket.h>
+
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <netdb.h>
+
 #include <err.h>
 #include <errno.h>
 #include <limits.h>
