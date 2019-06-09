@@ -58,6 +58,10 @@
 #define OPSTR  OPSTR_COMMON OPSTR_IPV4 OPSTR_IPSEC
 #endif	/* INET6 */
 
+static bool options_has_ipv4_only(const struct options *const options);
+#ifdef INET6
+static bool options_has_ipv6_only(const struct options *const options);
+#endif
 static bool options_strtol(const char *const str, long *const val);
 static bool options_strtoi(const char *const str, int *const val);
 static bool options_strtoul(const char *const str, unsigned long *const val);
@@ -410,6 +414,51 @@ options_strtod(const char *const str, double *const val)
 
 	return (*ep == '\0' && optarg != '\0');
 }
+
+
+static bool
+options_has_ipv4_only(const struct options *const options)
+{
+	return (options->f_protocol_ipv4 ||
+	    options->f_sweep_max ||
+	    options->f_sweep_min ||
+	    options->f_sweep_incr ||
+	    options->f_no_loop ||
+	    options->f_mask ||
+	    options->f_time ||
+	    options->f_ttl ||
+	    options->f_quiet ||
+	    options->f_rroute ||
+	    options->f_so_dontroute ||
+	    options->f_multicast_ttl ||
+	    options->f_tos);
+}
+
+#ifdef INET6
+static bool
+options_has_ipv6_only(const struct options *const options)
+{
+	return (options->f_protocol_ipv6 ||
+#if defined(SO_SNDBUF) && defined(SO_RCVBUF)
+	    options->f_sock_buff_size ||
+#endif
+	    options->s_gateway != NULL ||
+	    options->f_hostname ||
+	    options->f_hoplimit ||
+	    options->f_nodeaddr ||
+	    options->f_nigroup ||
+#ifdef IPV6_USE_MIN_MTU
+	    options->c_use_min_mtu > 0 ||
+#endif
+	    options->f_fqdn ||
+	    options->f_fqdn_old ||
+#ifndef IPSEC_POLICY_IPSEC
+	    options->f_authhdr ||
+	    options->f_encrypt ||
+#endif /* !IPSEC_POLICY_IPSEC */
+	    options->f_subtypes);
+}
+#endif /* INET6 */
 
 void
 usage(void)
