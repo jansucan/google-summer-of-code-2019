@@ -77,8 +77,9 @@ void
 options_parse(int *const argc, char **argv, struct options *const options)
 {
 	int ch;
+#ifdef INET6
 	char *cp;
-
+#endif
 	memset(options, 0, sizeof(*options));
 	
 	while ((ch = getopt(*argc, argv, OPSTR)) != -1) {
