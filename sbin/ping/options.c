@@ -28,7 +28,6 @@
 
 #include <err.h>
 #include <errno.h>
-#include <float.h>
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
