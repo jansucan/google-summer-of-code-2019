@@ -469,7 +469,7 @@ options_strtod(const char *const str, double *const val)
 	return (*ep == '\0' && optarg != '\0');
 }
 
-
+#ifdef INET6
 static bool
 options_has_ipv4_only(const struct options *const options)
 {
@@ -488,7 +488,6 @@ options_has_ipv4_only(const struct options *const options)
 	    options->f_tos);
 }
 
-#ifdef INET6
 static bool
 options_has_ipv6_only(const struct options *const options)
 {
