@@ -485,7 +485,9 @@ options_has_ipv4_only(const struct options *const options)
 	    options->f_rroute ||
 	    options->f_so_dontroute ||
 	    options->f_multicast_ttl ||
-	    
+#if defined(IPSEC) && !defined(IPSEC_POLICY_IPSEC)
+	    options->f_policy ||
+#endif
 	    options->f_tos);
 }
 
