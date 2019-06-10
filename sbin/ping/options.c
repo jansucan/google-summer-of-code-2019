@@ -136,8 +136,8 @@ options_parse(int *const argc, char ***argv, struct options *const options)
 			options->f_ping_filled = true;
 			options->s_ping_filled = optarg;
 			break;
-		case 'Q':
-			options->f_somewhat_quiet = true;
+		case 'q':
+			options->f_quiet = true;
 			break;
 		case 'S':
 			options->s_source = optarg;
@@ -202,8 +202,8 @@ options_parse(int *const argc, char ***argv, struct options *const options)
 				errx(EX_USAGE, "invalid TTL: `%s'", optarg);
 			options->f_ttl = true;		
 			break;
-		case 'q':
-			options->f_quiet = true;
+		case 'Q':
+			options->f_somewhat_quiet = true;
 			break;
 		case 'R':
 			options->f_rroute = true;
