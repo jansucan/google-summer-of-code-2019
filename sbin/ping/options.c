@@ -485,6 +485,7 @@ options_has_ipv4_only(const struct options *const options)
 	    options->f_rroute ||
 	    options->f_so_dontroute ||
 	    options->f_multicast_ttl ||
+	    
 	    options->f_tos);
 }
 
@@ -505,10 +506,10 @@ options_has_ipv6_only(const struct options *const options)
 #endif
 	    options->f_fqdn ||
 	    options->f_fqdn_old ||
-#ifndef IPSEC_POLICY_IPSEC
+#if defined(IPSEC) && !defined(IPSEC_POLICY_IPSEC)
 	    options->f_authhdr ||
 	    options->f_encrypt ||
-#endif /* !IPSEC_POLICY_IPSEC */
+#endif /* IPSEC && !IPSEC_POLICY_IPSEC */
 	    options->f_subtypes);
 }
 #endif /* INET6 */
