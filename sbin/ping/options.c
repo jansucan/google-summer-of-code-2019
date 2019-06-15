@@ -36,6 +36,7 @@
 #include <err.h>
 #include <errno.h>
 #include <limits.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sysexits.h>
@@ -521,59 +522,46 @@ options_has_ipv6_only(const struct options *const options)
 void
 usage(void)
 {
-	/* TODO */
+	/* TODO: Why (void)? */
+	(void)fprintf(stderr,
+	    "usage: ping [-4AaDdfnoQqRrv] [-c count] [-G sweepmaxsize] [-g sweepminsize]\n"
+	    "            [-h sweepincrsize] [-i wait] [-l preload] [-M mask | time] [-m ttl]\n"
+	    "            "
+#ifdef IPSEC
+	    "[-P policy] "
+#endif
+	    "[-p pattern] [-S src_addr] [-s packetsize] [-t timeout]\n"
+	    "            [-W waittime] [-z tos] IPv4-host\n"
+	    "       ping [-4AaDdfLnoQqRrv] [-c count] [-I iface] [-i wait] [-l preload]\n"
+	    "            [-M mask | time] [-m ttl] "
+#ifdef IPSEC
+	    "[-P policy] "
+#endif
+	    "[-p pattern] [-S src_addr]\n"
+	    "            [-s packetsize] [-T ttl] [-t timeout] [-W waittime]\n"
+	    "            [-z tos] IPv4-mcast-group\n"
+#ifdef INET6
+	    "       ping [-6AaDd"
+#if defined(IPSEC) && !defined(IPSEC_POLICY_IPSEC)
+	    "E"
+#endif
+	    "fHNnoq"
+#ifdef IPV6_USE_MIN_MTU
+	    "u"
+#endif
+	    "vwYy"
+#if defined(IPSEC) && !defined(IPSEC_POLICY_IPSEC)
+	    "Z"
+#endif
+	    "] [-b bufsiz ] [-c count] [-e gateway]\n"
+	    "            [-I iface] [-i wait] [-j hoplimit] [-k addrtype]\n"
+	    "            [-l preload] "
+#if defined(IPSEC) && defined(IPSEC_POLICY_IPSEC)
+	    "[-P policy] "
+#endif
+	    "[-p pattern] [-S src_addr] [-s packetsize]\n"
+	    "            [-t timeout] [-W waittime] [IPv6 hops ...] IPv6-host\n");
+#endif	/* INET6 */
 
-	/* PING USAGE */
-/* #if defined(IPSEC) && defined(IPSEC_POLICY_IPSEC) */
-/* #define	SECOPT		" [-P policy]" */
-/* #else */
-/* #define	SECOPT		"" */
-/* #endif */
-/* static void */
-/* usage(void) */
-/* { */
-
-/* 	(void)fprintf(stderr, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n", */
-/* "usage: ping [-AaDdfnoQqRrv] [-c count] [-G sweepmaxsize] [-g sweepminsize]", */
-/* "            [-h sweepincrsize] [-i wait] [-l preload] [-M mask | time] [-m ttl]", */
-/* "           " SECOPT " [-p pattern] [-S src_addr] [-s packetsize] [-t timeout]", */
-/* "            [-W waittime] [-z tos] host", */
-/* "       ping [-AaDdfLnoQqRrv] [-c count] [-I iface] [-i wait] [-l preload]", */
-/* "            [-M mask | time] [-m ttl]" SECOPT " [-p pattern] [-S src_addr]", */
-/* "            [-s packetsize] [-T ttl] [-t timeout] [-W waittime]", */
-/* "            [-z tos] mcast-group"); */
-/* 	exit(EX_USAGE); */
-/* } */
-
-	/* PING6 USAGE */
-/* static void */
-/* usage(void) */
-/* { */
-/* 	(void)fprintf(stderr, */
-/* 	    "usage: ping6 [-" */
-/* 	    "AaDd" */
-/* #if defined(IPSEC) && !defined(IPSEC_POLICY_IPSEC) */
-/* 	    "E" */
-/* #endif */
-/* 	    "fHnNoq" */
-/* #ifdef IPV6_USE_MIN_MTU */
-/* 	    "u" */
-/* #endif */
-/* 	    "vwYy" */
-/* #if defined(IPSEC) && !defined(IPSEC_POLICY_IPSEC) */
-/* 	    "Z" */
-/* #endif */
-/* 	    "] " */
-/* 	    "[-b bufsiz] [-c count] [-e gateway]\n" */
-/* 	    "             [-I interface] [-i wait] [-j hoplimit] [-k addrtype] [-l preload]" */
-/* #if defined(IPSEC) && defined(IPSEC_POLICY_IPSEC) */
-/* 	    " [-P policy]" */
-/* #endif */
-/* 	    "\n" */
-/* 	    "             [-p pattern] [-S sourceaddr] [-s packetsize]\n" */
-/* 	    "[-x waittime] [-X timeout] [hops ...] host\n"); */
-/* 	exit(1); */
-/* } */
-
-	exit(EX_USAGE);
+       exit(EX_USAGE);
 }
