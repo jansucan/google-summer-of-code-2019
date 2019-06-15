@@ -207,9 +207,6 @@ static double tmax = 0.0;	/* maximum round trip time */
 static double tsum = 0.0;	/* sum of all times, for doing average */
 static double tsumsq = 0.0;	/* sum of all times squared, for std. dev. */
 
-/* for node addresses */
-static u_short naflags;
-
 /* for ancillary data(advanced API) */
 static struct msghdr smsghdr;
 static struct iovec smsgiov;
@@ -249,6 +246,7 @@ static void	 tvsub(struct timeval *, struct timeval *);
 static int	 setpolicy(int, char *);
 static char	*nigroup(char *, int);
 static void      check_options(struct options *const, struct timeval *const);
+static u_short   get_node_address_flags(const struct options *const);
 
 int
 ping6(struct options *const options, int argc, char *argv[])
@@ -1020,7 +1018,7 @@ pinger(struct options *const options)
 		icp->icmp6_type = ICMP6_NI_QUERY;
 		icp->icmp6_code = ICMP6_NI_SUBJ_IPV6;
 		nip->ni_qtype = htons(NI_QTYPE_NODEADDR);
-		nip->ni_flags = naflags;
+		nip->ni_flags = get_node_address_flags(options);
 
 		memcpy(nip->icmp6_ni_nonce, nonce,
 		    sizeof(nip->icmp6_ni_nonce));
@@ -2535,4 +2533,27 @@ check_options(struct options *const options, struct timeval *const intvl)
 			errx(EX_USAGE, "invalid timeout: `%lu' > %d", options->n_alarm_timeout, MAXALARM);
 		alarm((unsigned int) options->n_alarm_timeout);
 	}
+}
+
+static u_short
+get_node_address_flags(const struct options *const options)
+{
+	u_short naflags = 0;
+
+	if (options->f_nodeaddr_flag_all)
+		naflags |= NI_NODEADDR_FLAG_ALL;
+	if (options->f_nodeaddr_flag_compat)
+		naflags |= NI_NODEADDR_FLAG_COMPAT;
+	if (options->f_nodeaddr_flag_linklocal)
+		naflags |= NI_NODEADDR_FLAG_LINKLOCAL;
+	if (options->f_nodeaddr_flag_sitelocal)
+		naflags |= NI_NODEADDR_FLAG_SITELOCAL;
+	if (options->f_nodeaddr_flag_global)
+		naflags |= NI_NODEADDR_FLAG_GLOBAL;
+#ifdef NI_NODEADDR_FLAG_ANYCAST
+	if (options->f_nodeaddr_flag_anycast)
+		naflags |= NI_NODEADDR_FLAG_ANYCAST;
+#endif
+
+	return naflags;
 }
