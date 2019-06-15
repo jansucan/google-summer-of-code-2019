@@ -291,6 +291,7 @@ options_parse(int *const argc, char ***argv, struct options *const options)
 			options->c_nigroup++;
 			break;
 		case 'u':
+			/* TODO: should -u be recognized when it is not supported? */
 #ifdef IPV6_USE_MIN_MTU
 			options->c_use_min_mtu++;
 #else
@@ -516,6 +517,7 @@ options_has_ipv6_only(const struct options *const options)
 }
 #endif /* INET6 */
 
+/* TODO: rename to options_usage()? */
 void
 usage(void)
 {
