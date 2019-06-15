@@ -125,7 +125,6 @@ struct options {
 	char *s_policy_in;
 	char *s_policy_out;
 #if defined(INET6) && !defined(IPSEC_POLICY_IPSEC)
-	/* TODO: authhdr and encrypt have to make f_policy = false */
 	bool f_authhdr;
 	bool f_encrypt;
 #endif /* INET6 && IPSEC_POLICY_IPSEC */
