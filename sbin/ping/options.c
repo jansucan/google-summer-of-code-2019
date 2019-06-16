@@ -379,6 +379,9 @@ options_check(int argc, char **argv, struct options *const options)
 	else if (options->f_protocol_ipv6 && (options->target_type == TARGET_HOSTNAME_IPV4))
 		errx(EX_USAGE, "IPv6 requested but the hostname has been resolved to IPv4");
 #endif
+
+	if (options->f_flood && options->f_interval)
+		errx(EX_USAGE, "-f and -i are incompatible options");
 }
 
 static void

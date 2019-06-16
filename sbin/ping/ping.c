@@ -347,9 +347,6 @@ ping(struct options *const options, int argc, char *const *argv)
 	if (connect(ssend, (struct sockaddr *)&whereto, sizeof(whereto)) != 0)
 		err(1, "connect");
 
-	if (options->f_flood && options->f_interval)
-		errx(EX_USAGE, "-f and -i: incompatible options");
-
 	if (options->f_flood && IN_MULTICAST(ntohl(to->sin_addr.s_addr)))
 		errx(EX_USAGE,
 		    "-f flag cannot be used with multicast destination");

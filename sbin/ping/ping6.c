@@ -430,9 +430,6 @@ ping6(struct options *const options, int argc, char *argv[])
 	if (setuid(getuid()) != 0)
 		err(1, "setuid() failed");
 
-	if (options->f_flood && options->f_interval)
-		errx(1, "-f and -i incompatible options");
-	
 	if (!options->f_nodeaddr && !options->f_fqdn && !options->f_fqdn_old && !options->f_subtypes) {
 		if (options->n_packet_size >= (long)sizeof(struct tv32)) {
 			/* we can time transfer */
