@@ -58,6 +58,7 @@ struct options {
 	 *   n_ - number argument
 	 *   s_ - string argument
 	 *   c_ - occurence count of the option
+	 *   a_ - array argument
 	 */
 	
 	/* TODO: ordering of the variables vs. number of #ifdef directives */
@@ -77,7 +78,9 @@ struct options {
 
 	/* Fill buffer with user pattern  */
 	bool f_ping_filled;
-	const char *s_ping_filled;
+	int  a_ping_filled[16];
+	/* Number of bytes of the pattern */
+	size_t ping_filled_size;
 	
 	bool f_somewhat_quiet;
 	bool f_quiet;

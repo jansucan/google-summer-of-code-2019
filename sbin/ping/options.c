@@ -33,6 +33,7 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
+#include <ctype.h>
 #include <err.h>
 #include <errno.h>
 #include <limits.h>
@@ -135,7 +136,20 @@ options_parse(int *const argc, char ***argv, struct options *const options)
 			break;
 		case 'p':
 			options->f_ping_filled = true;
-			options->s_ping_filled = optarg;
+			for (const char *cp = optarg; *cp; cp++) {
+				if (!isxdigit(*cp))
+					errx(EX_USAGE, "patterns must be specified as hex digits");
+			}
+			options->ping_filled_size = sscanf(optarg,
+			    "%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x",
+			    &options->a_ping_filled[0], &options->a_ping_filled[1],
+			    &options->a_ping_filled[2], &options->a_ping_filled[3],
+			    &options->a_ping_filled[4], &options->a_ping_filled[5],
+			    &options->a_ping_filled[6], &options->a_ping_filled[7],
+			    &options->a_ping_filled[8], &options->a_ping_filled[9],
+			    &options->a_ping_filled[10], &options->a_ping_filled[11],
+			    &options->a_ping_filled[12], &options->a_ping_filled[13],
+			    &options->a_ping_filled[14], &options->a_ping_filled[15]);
 			break;
 		case 'q':
 			options->f_quiet = true;

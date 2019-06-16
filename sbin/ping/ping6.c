@@ -138,6 +138,7 @@ __FBSDID("$FreeBSD$");
 #include <md5.h>
 
 #include "ping6.h"
+#include "utils.h"
 
 struct tv32 {
 	u_int32_t tv32_sec;
@@ -218,7 +219,6 @@ static volatile sig_atomic_t seenint;
 static volatile sig_atomic_t seeninfo;
 #endif
 
-static void	 fill(char *, const char *, bool);
 static int	 get_hoplim(struct msghdr *);
 static int	 get_pathmtu(struct msghdr *, const struct options *const);
 static struct in6_pktinfo *get_rcvpktinfo(struct msghdr *);
@@ -278,7 +278,8 @@ ping6(struct options *const options, int argc, char *argv[])
 	check_options(options, &intvl);
 
 	if (options->f_ping_filled)
-		fill((char *)datap, options->s_ping_filled, options->f_quiet);
+		fill((char *)datap, MAXDATALEN - 8 + sizeof(struct tv32) + options->ping_filled_size,
+		    options);
 
 	if (options->s_source != NULL) {
 		memset(&hints, 0, sizeof(struct addrinfo));
@@ -2339,37 +2340,6 @@ pr_retip(struct ip6_hdr *ip6, u_char *end)
   trunc:
 	printf("...\n");
 	return;
-}
-
-static void
-fill(char *bp, const char *patp, bool quiet)
-{
-	int ii, jj, kk;
-	int pat[16];
-	const char *cp;
-
-	for (cp = patp; *cp; cp++)
-		if (!isxdigit(*cp))
-			errx(1, "patterns must be specified as hex digits");
-	ii = sscanf(patp,
-	    "%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x",
-	    &pat[0], &pat[1], &pat[2], &pat[3], &pat[4], &pat[5], &pat[6],
-	    &pat[7], &pat[8], &pat[9], &pat[10], &pat[11], &pat[12],
-	    &pat[13], &pat[14], &pat[15]);
-
-/* xxx */
-	if (ii > 0)
-		for (kk = 0;
-		    (size_t)kk <= MAXDATALEN - 8 + sizeof(struct tv32) + ii;
-		    kk += ii)
-			for (jj = 0; jj < ii; ++jj)
-				bp[jj + kk] = pat[jj];
-	if (!quiet) {
-		(void)printf("PATTERN: 0x");
-		for (jj = 0; jj < ii; ++jj)
-			(void)printf("%02x", bp[jj] & 0xFF);
-		(void)printf("\n");
-	}
 }
 
 #ifdef IPSEC

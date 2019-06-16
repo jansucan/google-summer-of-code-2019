@@ -98,6 +98,7 @@ __FBSDID("$FreeBSD$");
 #include <sysexits.h>
 
 #include "ping.h"
+#include "utils.h"
 
 #define	INADDR_LEN	((int)sizeof(in_addr_t))
 #define	TIMEVAL_LEN	((int)sizeof(struct tv32))
@@ -173,7 +174,6 @@ static volatile sig_atomic_t siginfo_p;
 
 static cap_channel_t *capdns;
 
-static void fill(char *, const char *const, bool);
 static u_short in_cksum(u_short *, int);
 static cap_channel_t *capdns_setup(void);
 static void check_status(void);
@@ -283,7 +283,8 @@ ping(struct options *const options, int argc, char *const *argv)
 	send_len = icmp_len + options->n_packet_size;
 	datap = &outpack[ICMP_MINLEN + phdr_len + TIMEVAL_LEN];
 	if (options->f_ping_filled) {
-		fill((char *)datap, options->s_ping_filled, options->f_quiet);
+		fill((char *)datap, maxpayload - (TIMEVAL_LEN + options->ping_filled_size),
+		    options);
 	}
 	capdns = capdns_setup();
 	if (options->s_source) {
@@ -1448,37 +1449,6 @@ pr_ntime(n_time timestamp)
 	(void)snprintf(buf, sizeof(buf), "%02d:%02d:%02d", hour, min, sec);
 
 	return (buf);
-}
-
-static void
-fill(char *bp, const char *const patp, bool quiet)
-{
-	const char *cp;
-	int pat[16];
-	u_int ii, jj, kk;
-
-	for (cp = patp; *cp; cp++) {
-		if (!isxdigit(*cp))
-			errx(EX_USAGE,
-			    "patterns must be specified as hex digits");
-
-	}
-	ii = sscanf(patp,
-	    "%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x",
-	    &pat[0], &pat[1], &pat[2], &pat[3], &pat[4], &pat[5], &pat[6],
-	    &pat[7], &pat[8], &pat[9], &pat[10], &pat[11], &pat[12],
-	    &pat[13], &pat[14], &pat[15]);
-
-	if (ii > 0)
-		for (kk = 0; kk <= maxpayload - (TIMEVAL_LEN + ii); kk += ii)
-			for (jj = 0; jj < ii; ++jj)
-				bp[jj + kk] = pat[jj];
-	if (!quiet) {
-		(void)printf("PATTERN: 0x");
-		for (jj = 0; jj < ii; ++jj)
-			(void)printf("%02x", bp[jj] & 0xFF);
-		(void)printf("\n");
-	}
 }
 
 static cap_channel_t *
