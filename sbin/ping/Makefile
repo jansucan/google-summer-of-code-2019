@@ -5,16 +5,18 @@
 
 PACKAGE=runtime
 PROG=	ping
-SRCS=	main.c options.c ping.c ping6.c
-MAN=	ping.8 ping6.8
+SRCS=	main.c options.c ping.c
+MAN=	ping.8
 BINOWN=	root
 BINMODE=4555
 WARNS?=	3
-LIBADD=	ipsec m md
-CFLAGS+=-DIPSEC -DKAME_SCOPEID -DUSE_RFC2292BIS
+LIBADD=	m
 
 .if ${MK_INET6_SUPPORT} != "no"
-CFLAGS+= -DINET6
+CFLAGS+= -DINET6 -DKAME_SCOPEID -DUSE_RFC2292BIS
+SRCS+= ping6.c
+MAN+= ping6.8
+LIBADD=	md
 .endif
 
 .if ${MK_DYNAMICROOT} == "no"
@@ -25,7 +27,7 @@ LIBADD+=	cap_dns
 CFLAGS+=-DWITH_CASPER
 .endif
 
-.if !defined(RELEASE_CRUNCH)
+.if !defined(RELEASE_CRUNCH) || ${MK_INET6_SUPPORT} != "no"
 CFLAGS+=-DIPSEC
 LIBADD+=	ipsec
 .endif
