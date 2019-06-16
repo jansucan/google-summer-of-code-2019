@@ -382,6 +382,8 @@ options_check(int argc, char **argv, struct options *const options)
 
 	if (options->f_flood && options->f_interval)
 		errx(EX_USAGE, "-f and -i are incompatible options");
+	if (options->f_mask && options->f_time)
+		errx(EX_USAGE, "ICMP_TSTAMP and ICMP_MASKREQ are exclusive");
 }
 
 static void

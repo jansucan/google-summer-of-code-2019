@@ -258,9 +258,7 @@ ping(struct options *const options, int argc, char *const *argv)
 		usage();
 	target = argv[0];
 
-	if (options->f_mask && options->f_time)
-		errx(EX_USAGE, "ICMP_TSTAMP and ICMP_MASKREQ are exclusive.");
-	else if (options->f_mask) {
+	if (options->f_mask) {
 		icmp_type = ICMP_MASKREQ;
 		icmp_type_rsp = ICMP_MASKREPLY;
 		phdr_len = MASK_LEN;
