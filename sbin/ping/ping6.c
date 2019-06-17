@@ -186,7 +186,6 @@ static int mx_dup_ck = MAX_DUP_CHK;
 static char rcvd_tbl[MAX_DUP_CHK / 8];
 
 static struct sockaddr_in6 dst;	/* who to ping6 */
-static struct sockaddr_in6 src;	/* src addr of this packet */
 static socklen_t srclen;
 static int s;			/* socket file descriptor */
 static u_char outpack[MAXPACKETLEN];
@@ -260,7 +259,7 @@ int
 ping6(struct options *const options, int argc, char *argv[])
 {
 	struct timeval last, intvl;
-	struct sockaddr_in6 from, *sin6;
+	struct sockaddr_in6 from, *sin6, src;
 	struct addrinfo hints, *res;
 	struct sigaction si_sa;
 	struct counters counters;
