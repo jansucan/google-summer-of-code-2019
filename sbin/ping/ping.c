@@ -161,7 +161,7 @@ static long sntransmitted;	/* # of packets we sent in this sweep */
 static long nrcvtimeout = 0;	/* # of packets we got back after waittime */
 
 /* timing */
-static int timing;		/* flag to do timing */
+static bool timing;		/* flag to do timing */
 static double tmin = 999999999.0;	/* minimum round trip time */
 static double tmax = 0.0;	/* maximum round trip time */
 static double tsum = 0.0;	/* sum of all times, for doing average */
@@ -355,7 +355,7 @@ ping(struct options *const options, int argc, char *const *argv)
 		    "-I, -L, -T flags cannot be used with unicast destination");
 
 	if (options->n_packet_size >= TIMEVAL_LEN)	/* can we time transfer */
-		timing = 1;
+		timing = true;
 
 	if (!options->f_ping_filled)
 		for (i = TIMEVAL_LEN; i < options->n_packet_size; ++i)
@@ -851,7 +851,7 @@ pr_pack(char *buf, int cc, struct sockaddr_in *from, struct timeval *tv, const s
 				if (triptime > tmax)
 					tmax = triptime;
 			} else
-				timing = 0;
+				timing = false;
 		}
 
 		seq = ntohs(icp->icmp_seq);
