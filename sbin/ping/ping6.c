@@ -203,10 +203,10 @@ static long nrcvtimeout = 0;	/* # of packets we got back after waittime */
 
 struct timing {
 	bool   enabled;	/* flag to do timing */
-	double tmin;	/* minimum round trip time */
-	double tmax;	/* maximum round trip time */
-	double tsum;	/* sum of all times, for doing average */
-	double tsumsq;	/* sum of all times squared, for std. dev. */
+	double min;	/* minimum round trip time */
+	double max;	/* maximum round trip time */
+	double sum;	/* sum of all times, for doing average */
+	double sumsq;	/* sum of all times squared, for std. dev. */
 };
 
 /* for ancillary data(advanced API) */
@@ -272,10 +272,10 @@ ping6(struct options *const options, int argc, char *argv[])
 	size_t rthlen;
 
 	timing.enabled = false;
-	timing.tmin = 999999999.0;
-	timing.tmax = 0.0;
-	timing.tsum = 0.0;
-	timing.tsumsq = 0.0;
+	timing.min = 999999999.0;
+	timing.max = 0.0;
+	timing.sum = 0.0;
+	timing.sumsq = 0.0;
 
 	/* just to be sure */
 	memset(&smsghdr, 0, sizeof(smsghdr));
@@ -901,7 +901,7 @@ ping6(struct options *const options, int argc, char *argv[])
 			 */
 				intvl.tv_usec = 0;
 				if (nreceived) {
-					intvl.tv_sec = 2 * timing.tmax / 1000;
+					intvl.tv_sec = 2 * timing.max / 1000;
 					if (intvl.tv_sec == 0)
 						intvl.tv_sec = 1;
 				} else {
@@ -1241,12 +1241,12 @@ pr_pack(u_char *buf, int cc, struct msghdr *mhdr, const struct options *const op
 			tvsub(&tv, &tp);
 			triptime = ((double)tv.tv_sec) * 1000.0 +
 			    ((double)tv.tv_usec) / 1000.0;
-			timing->tsum += triptime;
-			timing->tsumsq += triptime * triptime;
-			if (triptime < timing->tmin)
-				timing->tmin = triptime;
-			if (triptime > timing->tmax)
-				timing->tmax = triptime;
+			timing->sum += triptime;
+			timing->sumsq += triptime * triptime;
+			if (triptime < timing->min)
+				timing->min = triptime;
+			if (triptime > timing->max)
+				timing->max = triptime;
 		}
 
 		if (TST(seq % mx_dup_ck)) {
@@ -1967,11 +1967,11 @@ summary(const struct timing *const timing)
 	if (nreceived && timing->enabled) {
 		/* Only display average to microseconds */
 		double num = nreceived + nrepeats;
-		double avg = timing->tsum / num;
-		double dev = sqrt(timing->tsumsq / num - avg * avg);
+		double avg = timing->sum / num;
+		double dev = sqrt(timing->sumsq / num - avg * avg);
 		(void)printf(
 		    "round-trip min/avg/max/std-dev = %.3f/%.3f/%.3f/%.3f ms\n",
-		    timing->tmin, avg, timing->tmax, dev);
+		    timing->min, avg, timing->max, dev);
 		(void)fflush(stdout);
 	}
 	(void)fflush(stdout);
