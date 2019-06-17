@@ -162,10 +162,10 @@ static long nrcvtimeout = 0;	/* # of packets we got back after waittime */
 
 struct timing {
 	bool   enabled;	/* flag to do timing */
-	double tmin;	/* minimum round trip time */
-	double tmax;	/* maximum round trip time */
-	double tsum;	/* sum of all times, for doing average */
-	double tsumsq;	/* sum of all times squared, for std. dev. */
+	double min;	/* minimum round trip time */
+	double max;	/* maximum round trip time */
+	double sum;	/* sum of all times, for doing average */
+	double sumsq;	/* sum of all times squared, for std. dev. */
 };
 
 /* nonzero if we've been told to finish up */
@@ -220,10 +220,10 @@ ping(struct options *const options, int argc, char *const *argv)
 	cap_rights_t rights;
 
 	timing.enabled = false;
-	timing.tmin = 999999999.0;
-	timing.tmax = 0.0;
-	timing.tsum = 0.0;
-	timing.tsumsq = 0.0;
+	timing.min = 999999999.0;
+	timing.max = 0.0;
+	timing.sum = 0.0;
+	timing.sumsq = 0.0;
 
 	/*
 	 * Do the stuff that we need root priv's for *first*, and
@@ -682,7 +682,7 @@ ping(struct options *const options, int argc, char *const *argv)
 				almost_done = 1;
 				intvl.tv_usec = 0;
 				if (nreceived) {
-					intvl.tv_sec = 2 * timing.tmax / 1000;
+					intvl.tv_sec = 2 * timing.max / 1000;
 					if (!intvl.tv_sec)
 						intvl.tv_sec = 1;
 				} else {
@@ -854,12 +854,12 @@ pr_pack(char *buf, int cc, struct sockaddr_in *from, struct timeval *tv, const s
 				tvsub(tv, &tv1);
  				triptime = ((double)tv->tv_sec) * 1000.0 +
  				    ((double)tv->tv_usec) / 1000.0;
-				timing->tsum += triptime;
-				timing->tsumsq += triptime * triptime;
-				if (triptime < timing->tmin)
-					timing->tmin = triptime;
-				if (triptime > timing->tmax)
-					timing->tmax = triptime;
+				timing->sum += triptime;
+				timing->sumsq += triptime * triptime;
+				if (triptime < timing->min)
+					timing->min = triptime;
+				if (triptime > timing->max)
+					timing->max = triptime;
 			} else
 				timing->enabled = false;
 		}
@@ -1146,8 +1146,8 @@ check_status(const struct timing *const timing)
 		    ntransmitted ? nreceived * 100.0 / ntransmitted : 0.0);
 		if (nreceived && timing->enabled)
 			(void)fprintf(stderr, " %.3f min / %.3f avg / %.3f max",
-			    timing->tmin, timing->tsum / (nreceived + nrepeats),
-			    timing->tmax);
+			    timing->min, timing->sum / (nreceived + nrepeats),
+			    timing->max);
 		(void)fprintf(stderr, "\n");
 	}
 }
@@ -1182,11 +1182,11 @@ finish(const struct timing *const timing)
 	(void)putchar('\n');
 	if (nreceived && timing->enabled) {
 		double n = nreceived + nrepeats;
-		double avg = timing->tsum / n;
-		double vari = timing->tsumsq / n - avg * avg;
+		double avg = timing->sum / n;
+		double vari = timing->sumsq / n - avg * avg;
 		(void)printf(
 		    "round-trip min/avg/max/stddev = %.3f/%.3f/%.3f/%.3f ms\n",
-		    timing->tmin, avg, timing->tmax, sqrt(vari));
+		    timing->min, avg, timing->max, sqrt(vari));
 	}
 
 	if (nreceived)
