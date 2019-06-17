@@ -142,7 +142,6 @@ static struct sockaddr_in whereto;	/* who to ping */
 static int ssend;		/* send socket file descriptor */
 static u_char outpackhdr[IP_MAXPACKET], *outpack;
 static char *hostname;
-static const char *shostname;
 static int ident;		/* process id to identify our packets */
 static u_char icmp_type = ICMP_ECHO;
 static u_char icmp_type_rsp = ICMP_ECHOREPLY;
@@ -213,6 +212,7 @@ ping(struct options *const options, int argc, char *const *argv)
 	size_t sz;
 	u_char *datap, packet[IP_MAXPACKET] __aligned(4);
 	char *target;
+	const char *shostname;
 	struct hostent *hp;
 	struct sockaddr_in *to;
 	int almost_done, hold, i, icmp_len, maxpayload, mib[4];
