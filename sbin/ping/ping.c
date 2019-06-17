@@ -146,7 +146,6 @@ static u_char outpackhdr[IP_MAXPACKET], *outpack;
 static char *hostname;
 static const char *shostname;
 static int ident;		/* process id to identify our packets */
-static int uid;			/* cached uid for micro-optimization */
 static u_char icmp_type = ICMP_ECHO;
 static u_char icmp_type_rsp = ICMP_ECHOREPLY;
 static int phdr_len = 0;
@@ -257,7 +256,6 @@ ping(struct options *const options, int argc, char *const *argv)
 
 	if (setuid(getuid()) != 0)
 		err(EX_NOPERM, "setuid() failed");
-	uid = getuid();
 
 	if (ssend < 0) {
 		errno = ssend_errno;
@@ -538,7 +536,7 @@ ping(struct options *const options, int argc, char *const *argv)
 	cap_rights_init(&rights, CAP_RECV, CAP_EVENT);
 	if (caph_rights_limit(srecv, &rights) < 0)
 		err(1, "cap_rights_limit srecv setsockopt");
-	if (uid == 0)
+	if (getuid() == 0)
 		(void)setsockopt(ssend, SOL_SOCKET, SO_SNDBUF, (char *)&hold,
 		    sizeof(hold));
 	/* CAP_SETSOCKOPT removed */
@@ -975,7 +973,7 @@ pr_pack(char *buf, int cc, struct sockaddr_in *from, struct timeval *tv, const s
 #endif
 		struct icmp *oicmp = (struct icmp *)(oip + 1);
 
-		if (((options->f_verbose) && uid == 0) ||
+		if (((options->f_verbose) && getuid() == 0) ||
 		    (!(options->f_somewhat_quiet) &&
 		     (oip->ip_dst.s_addr == whereto.sin_addr.s_addr) &&
 		     (oip->ip_p == IPPROTO_ICMP) &&
