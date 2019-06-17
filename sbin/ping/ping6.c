@@ -166,6 +166,10 @@ struct tv32 {
 #define	CLR(bit)	(A(bit) &= (~B(bit)))
 #define	TST(bit)	(A(bit) & B(bit))
 
+#define BBELL   '\a'  /* characters written for MISSED and AUDIBLE */
+#define BSPACE  '\b'  /* characters written for flood */
+#define DOT     '.'
+
 #define IN6LEN		sizeof(struct in6_addr)
 #define SA6LEN		sizeof(struct sockaddr_in6)
 #define DUMMY_PORT	10101
@@ -186,9 +190,6 @@ static struct sockaddr_in6 src;	/* src addr of this packet */
 static socklen_t srclen;
 static int s;			/* socket file descriptor */
 static u_char outpack[MAXPACKETLEN];
-static char BSPACE = '\b';	/* characters written for flood */
-static char BBELL = '\a';	/* characters written for AUDIBLE */
-static char DOT = '.';
 static char *hostname;
 static int ident;		/* process id to identify our packets */
 static u_int8_t nonce[8];	/* nonce field for node information */
@@ -925,7 +926,7 @@ ping6(struct options *const options, int argc, char *argv[])
 			if (counters.ntransmitted - counters.nreceived - 1 > counters.nmissedmax) {
 				counters.nmissedmax = counters.ntransmitted - counters.nreceived - 1;
 				if (options->f_missed)
-					(void)write(STDOUT_FILENO, &BBELL, 1);
+					write_char(STDOUT_FILENO, BBELL);
 			}
 		}
 	}
@@ -1096,7 +1097,7 @@ pinger(struct options *const options, struct counters *const counters ,struct ti
 		    hostname, cc, i);
 	}
 	if (!options->f_quiet && options->f_flood)
-		(void)write(STDOUT_FILENO, &DOT, 1);
+		write_char(STDOUT_FILENO, DOT);
 
 	return(0);
 }
@@ -1279,10 +1280,10 @@ pr_pack(u_char *buf, int cc, struct msghdr *mhdr, const struct options *const op
 		}
 
 		if (options->f_flood)
-			(void)write(STDOUT_FILENO, &BSPACE, 1);
+			write_char(STDOUT_FILENO, BSPACE);
 		else {
 			if (options->f_audible)
-				(void)write(STDOUT_FILENO, &BBELL, 1);
+				write_char(STDOUT_FILENO, BBELL);
 			(void)printf("%d bytes from %s, icmp_seq=%u", cc,
 			    pr_addr(from, fromlen, options->f_hostname), seq);
 			(void)printf(" hlim=%d", hoplim);
