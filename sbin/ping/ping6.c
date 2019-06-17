@@ -186,7 +186,6 @@ static int mx_dup_ck = MAX_DUP_CHK;
 static char rcvd_tbl[MAX_DUP_CHK / 8];
 
 static struct sockaddr_in6 dst;	/* who to ping6 */
-static socklen_t srclen;
 static int s;			/* socket file descriptor */
 static u_char outpack[MAXPACKETLEN];
 static char *hostname;
@@ -277,6 +276,7 @@ ping6(struct options *const options, int argc, char *argv[])
 #ifdef USE_RFC2292BIS
 	struct ip6_rthdr *rthdr = NULL;
 #endif
+	socklen_t srclen;
 	size_t rthlen;
 
 	memset(&counters, 0, sizeof(counters));
