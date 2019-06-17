@@ -160,12 +160,13 @@ static long snpackets;			/* max packets to transmit in one sweep */
 static long sntransmitted;	/* # of packets we sent in this sweep */
 static long nrcvtimeout = 0;	/* # of packets we got back after waittime */
 
-/* timing */
-static bool timing;		/* flag to do timing */
-static double tmin = 999999999.0;	/* minimum round trip time */
-static double tmax = 0.0;	/* maximum round trip time */
-static double tsum = 0.0;	/* sum of all times, for doing average */
-static double tsumsq = 0.0;	/* sum of all times squared, for std. dev. */
+struct timing {
+	bool   enabled;	/* flag to do timing */
+	double tmin;	/* minimum round trip time */
+	double tmax;	/* maximum round trip time */
+	double tsum;	/* sum of all times, for doing average */
+	double tsumsq;	/* sum of all times squared, for std. dev. */
+};
 
 /* nonzero if we've been told to finish up */
 static bool sig_option_f_numeric;
@@ -176,14 +177,15 @@ static cap_channel_t *capdns;
 
 static u_short in_cksum(u_short *, int);
 static cap_channel_t *capdns_setup(void);
-static void check_status(void);
-static void finish(void) __dead2;
-static void pinger(const struct options *const);
+static void check_status(const struct timing *const);
+static void finish(const struct timing *const) __dead2;
+static void pinger(const struct options *const, struct timing *const);
 static char *pr_addr(struct in_addr, bool);
 static char *pr_ntime(n_time);
 static void pr_icmph(struct icmp *);
 static void pr_iph(struct ip *);
-static void pr_pack(char *, int, struct sockaddr_in *, struct timeval *, const struct options *const);
+static void pr_pack(char *, int, struct sockaddr_in *, struct timeval *, const struct options *const,
+                    struct timing *const);
 static void pr_retip(struct ip *);
 static void status(int);
 static void stopit(int);
@@ -201,6 +203,7 @@ ping(struct options *const options, int argc, char *const *argv)
 	struct ip *ip;
 	struct msghdr msg;
 	struct sigaction si_sa;
+	struct timing timing;
 	size_t sz;
 	u_char *datap, packet[IP_MAXPACKET] __aligned(4);
 	char *target;
@@ -215,6 +218,12 @@ ping(struct options *const options, int argc, char *const *argv)
 #endif
 	unsigned char loop;
 	cap_rights_t rights;
+
+	timing.enabled = false;
+	timing.tmin = 999999999.0;
+	timing.tmax = 0.0;
+	timing.tsum = 0.0;
+	timing.tsumsq = 0.0;
 
 	/*
 	 * Do the stuff that we need root priv's for *first*, and
@@ -355,7 +364,7 @@ ping(struct options *const options, int argc, char *const *argv)
 		    "-I, -L, -T flags cannot be used with unicast destination");
 
 	if (options->n_packet_size >= TIMEVAL_LEN)	/* can we time transfer */
-		timing = true;
+		timing.enabled = true;
 
 	if (!options->f_ping_filled)
 		for (i = TIMEVAL_LEN; i < options->n_packet_size; ++i)
@@ -579,12 +588,12 @@ ping(struct options *const options, int argc, char *const *argv)
 	iov.iov_len = IP_MAXPACKET;
 
 	if (options->n_preload == 0)
-		pinger(options);		/* send the first ping */
+		pinger(options, &timing);	/* send the first ping */
 	else {
 		if (options->n_packets != 0 && options->n_preload > options->n_packets)
 			options->n_preload = options->n_packets;
 		while (options->n_preload--)	/* fire off them quickies */
-			pinger(options);
+			pinger(options, &timing);
 	}
 	(void)gettimeofday(&last, NULL);
 
@@ -602,7 +611,7 @@ ping(struct options *const options, int argc, char *const *argv)
 		fd_set rfds;
 		int cc, n;
 
-		check_status();
+		check_status(&timing);
 		if ((unsigned)srecv >= FD_SETSIZE)
 			errx(EX_OSERR, "descriptor too large");
 		FD_ZERO(&rfds);
@@ -650,7 +659,7 @@ ping(struct options *const options, int argc, char *const *argv)
 				(void)gettimeofday(&now, NULL);
 				tv = &now;
 			}
-			pr_pack((char *)packet, cc, &from, tv, options);
+			pr_pack((char *)packet, cc, &from, tv, options, &timing);
 			if ((options->f_once && nreceived) ||
 			    (options->n_packets && nreceived >= options->n_packets))
 				break;
@@ -666,14 +675,14 @@ ping(struct options *const options, int argc, char *const *argv)
 				sntransmitted = 0;
 			}
 			if (!options->n_packets || ntransmitted < options->n_packets)
-				pinger(options);
+				pinger(options, &timing);
 			else {
 				if (almost_done)
 					break;
 				almost_done = 1;
 				intvl.tv_usec = 0;
 				if (nreceived) {
-					intvl.tv_sec = 2 * tmax / 1000;
+					intvl.tv_sec = 2 * timing.tmax / 1000;
 					if (!intvl.tv_sec)
 						intvl.tv_sec = 1;
 				} else {
@@ -689,7 +698,7 @@ ping(struct options *const options, int argc, char *const *argv)
 			}
 		}
 	}
-	finish();
+	finish(&timing);
 	/* NOTREACHED */
 	exit(0);	/* Make the compiler happy */
 }
@@ -722,7 +731,7 @@ stopit(int sig __unused)
  * host byte-order, to compute the round-trip time.
  */
 static void
-pinger(const struct options *const options)
+pinger(const struct options *const options, struct timing *const timing)
 {
 	struct timeval now;
 	struct tv32 tv32;
@@ -741,7 +750,7 @@ pinger(const struct options *const options)
 
 	CLR(ntransmitted % mx_dup_ck);
 
-	if (options->f_time || timing) {
+	if (options->f_time || timing->enabled) {
 		(void)gettimeofday(&now, NULL);
 
 		tv32.tv32_sec = htonl(now.tv_sec);
@@ -749,7 +758,7 @@ pinger(const struct options *const options)
 		if (options->f_time)
 			icp->icmp_otime = htonl((now.tv_sec % (24*60*60))
 				* 1000 + now.tv_usec / 1000);
-		if (timing)
+		if (timing->enabled)
 			bcopy((void *)&tv32,
 			    (void *)&outpack[ICMP_MINLEN + phdr_len],
 			    sizeof(tv32));
@@ -794,7 +803,8 @@ pinger(const struct options *const options)
  * program to be run without having intermingled output (or statistics!).
  */
 static void
-pr_pack(char *buf, int cc, struct sockaddr_in *from, struct timeval *tv, const struct options *const options)
+pr_pack(char *buf, int cc, struct sockaddr_in *from, struct timeval *tv, const struct options *const options,
+	struct timing *const timing)
 {
 	struct in_addr ina;
 	u_char *cp, *dp;
@@ -825,7 +835,7 @@ pr_pack(char *buf, int cc, struct sockaddr_in *from, struct timeval *tv, const s
 			return;			/* 'Twas not our ECHO */
 		++nreceived;
 		triptime = 0.0;
-		if (timing) {
+		if (timing->enabled) {
 			struct timeval tv1;
 			struct tv32 tv32;
 #ifndef icmp_data
@@ -844,14 +854,14 @@ pr_pack(char *buf, int cc, struct sockaddr_in *from, struct timeval *tv, const s
 				tvsub(tv, &tv1);
  				triptime = ((double)tv->tv_sec) * 1000.0 +
  				    ((double)tv->tv_usec) / 1000.0;
-				tsum += triptime;
-				tsumsq += triptime * triptime;
-				if (triptime < tmin)
-					tmin = triptime;
-				if (triptime > tmax)
-					tmax = triptime;
+				timing->tsum += triptime;
+				timing->tsumsq += triptime * triptime;
+				if (triptime < timing->tmin)
+					timing->tmin = triptime;
+				if (triptime > timing->tmax)
+					timing->tmax = triptime;
 			} else
-				timing = false;
+				timing->enabled = false;
 		}
 
 		seq = ntohs(icp->icmp_seq);
@@ -880,7 +890,7 @@ pr_pack(char *buf, int cc, struct sockaddr_in *from, struct timeval *tv, const s
 			   inet_ntoa(*(struct in_addr *)&from->sin_addr.s_addr),
 			   seq);
 			(void)printf(" ttl=%d", ip->ip_ttl);
-			if (timing)
+			if (timing->enabled)
 				(void)printf(" time=%.3f ms", triptime);
 			if (dupflag)
 				(void)printf(" (DUP!)");
@@ -906,7 +916,7 @@ pr_pack(char *buf, int cc, struct sockaddr_in *from, struct timeval *tv, const s
 			dp = &outpack[ICMP_MINLEN + phdr_len];
 			cc -= ICMP_MINLEN + phdr_len;
 			i = 0;
-			if (timing) {   /* don't check variable timestamp */
+			if (timing->enabled) {   /* don't check variable timestamp */
 				cp += TIMEVAL_LEN;
 				dp += TIMEVAL_LEN;
 				cc -= TIMEVAL_LEN;
@@ -1126,7 +1136,7 @@ status(int sig __unused)
 }
 
 static void
-check_status(void)
+check_status(const struct timing *const timing)
 {
 
 	if (siginfo_p) {
@@ -1134,9 +1144,10 @@ check_status(void)
 		(void)fprintf(stderr, "\r%ld/%ld packets received (%.1f%%)",
 		    nreceived, ntransmitted,
 		    ntransmitted ? nreceived * 100.0 / ntransmitted : 0.0);
-		if (nreceived && timing)
+		if (nreceived && timing->enabled)
 			(void)fprintf(stderr, " %.3f min / %.3f avg / %.3f max",
-			    tmin, tsum / (nreceived + nrepeats), tmax);
+			    timing->tmin, timing->tsum / (nreceived + nrepeats),
+			    timing->tmax);
 		(void)fprintf(stderr, "\n");
 	}
 }
@@ -1146,7 +1157,7 @@ check_status(void)
  *	Print out statistics, and give up.
  */
 static void
-finish(void)
+finish(const struct timing *const timing)
 {
 
 	(void)signal(SIGINT, SIG_IGN);
@@ -1169,13 +1180,13 @@ finish(void)
 	if (nrcvtimeout)
 		(void)printf(", %ld packets out of wait time", nrcvtimeout);
 	(void)putchar('\n');
-	if (nreceived && timing) {
+	if (nreceived && timing->enabled) {
 		double n = nreceived + nrepeats;
-		double avg = tsum / n;
-		double vari = tsumsq / n - avg * avg;
+		double avg = timing->tsum / n;
+		double vari = timing->tsumsq / n - avg * avg;
 		(void)printf(
 		    "round-trip min/avg/max/stddev = %.3f/%.3f/%.3f/%.3f ms\n",
-		    tmin, avg, tmax, sqrt(vari));
+		    timing->tmin, avg, timing->tmax, sqrt(vari));
 	}
 
 	if (nreceived)
