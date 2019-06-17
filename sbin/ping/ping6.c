@@ -213,7 +213,6 @@ struct timing {
 
 /* for ancillary data(advanced API) */
 static struct msghdr smsghdr;
-static struct iovec smsgiov;
 static char *scmsg = 0;
 
 static bool sig_option_f_hostname;
@@ -292,7 +291,6 @@ ping6(struct options *const options, int argc, char *argv[])
 
 	/* just to be sure */
 	memset(&smsghdr, 0, sizeof(smsghdr));
-	memset(&smsgiov, 0, sizeof(smsgiov));
 
 	datap = &outpack[ICMP6ECHOLEN + ICMP6ECHOTMLEN];
 
