@@ -488,7 +488,7 @@ ping(struct options *const options, int argc, char *const *argv)
 		err(EX_OSERR, "setsockopt SO_TIMESTAMP");
 	}
 #endif
-	if (options->n_sweep_max) {
+	if (options->f_sweep_max) {
 		if (options->n_sweep_min > options->n_sweep_max)
 			errx(EX_USAGE, "Maximum packet size must be no less than the minimum packet size");
 
