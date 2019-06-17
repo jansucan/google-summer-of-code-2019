@@ -489,12 +489,6 @@ ping(struct options *const options, int argc, char *const *argv)
 	}
 #endif
 	if (options->f_sweep_max) {
-		if (options->n_sweep_min > options->n_sweep_max)
-			errx(EX_USAGE, "Maximum packet size must be no less than the minimum packet size");
-
-		if (options->n_packet_size != DEFDATALEN)
-			errx(EX_USAGE, "Packet size and ping sweep are mutually exclusive");
-
 		if (options->n_packets > 0) {
 			snpackets = options->n_packets;
 			options->n_packets = 0;
@@ -503,8 +497,6 @@ ping(struct options *const options, int argc, char *const *argv)
 		options->n_packet_size = options->n_sweep_min;
 		send_len = icmp_len + options->n_sweep_min;
 	}
-	if ((options->f_sweep_max || options->f_sweep_min || options->f_sweep_incr) && !options->n_sweep_max)
-		errx(EX_USAGE, "Maximum sweep size must be specified");
 
 	/*
 	 * When pinging the broadcast address, you can get a lot of answers.

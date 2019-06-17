@@ -398,6 +398,15 @@ options_check(int argc, char **argv, struct options *const options)
 		errx(EX_USAGE, "-f and -i are incompatible options");
 	if (options->f_mask && options->f_time)
 		errx(EX_USAGE, "ICMP_TSTAMP and ICMP_MASKREQ are exclusive");
+	if (options->f_sweep_max) {
+		if (options->n_sweep_min > options->n_sweep_max)
+			errx(EX_USAGE, "Maximum packet size must be no less than the minimum packet size");
+		if (options->f_packet_size)
+			errx(EX_USAGE, "Packet size and ping sweep are mutually exclusive");
+	}
+	if ((options->f_sweep_max || options->f_sweep_min || options->f_sweep_incr) &&
+	    (options->n_sweep_max != 0))
+		errx(EX_USAGE, "Maximum sweep size must be specified");
 }
 
 static void
