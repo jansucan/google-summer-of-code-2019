@@ -139,7 +139,6 @@ static int mx_dup_ck = MAX_DUP_CHK;
 static char rcvd_tbl[MAX_DUP_CHK / 8];
 
 static struct sockaddr_in whereto;	/* who to ping */
-static int maxpayload;
 static int ssend;		/* send socket file descriptor */
 static int srecv;		/* receive socket file descriptor */
 static u_char outpackhdr[IP_MAXPACKET], *outpack;
@@ -217,7 +216,7 @@ ping(struct options *const options, int argc, char *const *argv)
 	char *target;
 	struct hostent *hp;
 	struct sockaddr_in *to;
-	int almost_done, hold, i, icmp_len, mib[4];
+	int almost_done, hold, i, icmp_len, maxpayload, mib[4];
 	int ssend_errno, srecv_errno;
 	char ctrl[CMSG_SPACE(sizeof(struct timeval))];
 	char hnamebuf[MAXHOSTNAMELEN], snamebuf[MAXHOSTNAMELEN];
