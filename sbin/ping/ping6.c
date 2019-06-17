@@ -1968,19 +1968,6 @@ summary(void)
 	(void)fflush(stdout);
 }
 
-/*subject type*/
-static const char *niqcode[] = {
-	"IPv6 address",
-	"DNS label",	/*or empty*/
-	"IPv4 address",
-};
-
-/*result code*/
-static const char *nircode[] = {
-	"Success", "Refused", "Unknown",
-};
-
-
 /*
  * pr_icmph --
  *	Print a descriptive string about an ICMP header.
@@ -1988,6 +1975,18 @@ static const char *nircode[] = {
 static void
 pr_icmph(struct icmp6_hdr *icp, u_char *end, bool verbose)
 {
+	/* subject type */
+	const char *niqcode[] = {
+		"IPv6 address",
+		"DNS label",	/*or empty*/
+		"IPv4 address",
+	};
+
+	/* result code */
+	const char *nircode[] = {
+		"Success", "Refused", "Unknown",
+	};
+
 	char ntop_buf[INET6_ADDRSTRLEN];
 	struct nd_redirect *red;
 	struct icmp6_nodeinfo *ni;
