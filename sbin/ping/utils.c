@@ -27,6 +27,7 @@
  */
 
 #include <stdio.h>
+#include <unistd.h>
 
 #include "utils.h"
 
@@ -45,4 +46,10 @@ fill(char *bp, size_t bp_size, const struct options *const options)
 			(void)printf("%02x", bp[jj] & 0xFF);
 		(void)printf("\n");
 	}
+}
+
+void
+write_char(int fd, char c)
+{
+	(void)write(fd, &c, sizeof(c));
 }

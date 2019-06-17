@@ -34,5 +34,6 @@
 #include "options.h"
 
 void fill(char *bp, size_t bp_size, const struct options *const options);
+void write_char(int fd, char c);
 
 #endif

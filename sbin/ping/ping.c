@@ -120,6 +120,10 @@ __FBSDID("$FreeBSD$");
 #define	CLR(bit)	(A(bit) &= (~B(bit)))
 #define	TST(bit)	(A(bit) & B(bit))
 
+#define BBELL   '\a'  /* characters written for MISSED and AUDIBLE */
+#define BSPACE  '\b'  /* characters written for flood */
+#define DOT     '.'
+
 struct tv32 {
 	int32_t tv32_sec;
 	int32_t tv32_usec;
@@ -139,9 +143,6 @@ static int maxpayload;
 static int ssend;		/* send socket file descriptor */
 static int srecv;		/* receive socket file descriptor */
 static u_char outpackhdr[IP_MAXPACKET], *outpack;
-static char BBELL = '\a';	/* characters written for MISSED and AUDIBLE */
-static char BSPACE = '\b';	/* characters written for flood */
-static char DOT = '.';
 static char *hostname;
 static const char *shostname;
 static int ident;		/* process id to identify our packets */
@@ -705,7 +706,7 @@ ping(struct options *const options, int argc, char *const *argv)
 			if (counters.ntransmitted - counters.nreceived - 1 > counters.nmissedmax) {
 				counters.nmissedmax = counters.ntransmitted - counters.nreceived - 1;
 				if (options->f_missed)
-					(void)write(STDOUT_FILENO, &BBELL, 1);
+					write_char(STDOUT_FILENO, BBELL);
 			}
 		}
 	}
@@ -804,7 +805,7 @@ pinger(const struct options *const options, struct counters *const counters,
 	counters->ntransmitted++;
 	counters->sntransmitted++;
 	if (!options->f_quiet && options->f_flood)
-		(void)write(STDOUT_FILENO, &DOT, 1);
+		write_char(STDOUT_FILENO, DOT);
 }
 
 /*
@@ -896,7 +897,7 @@ pr_pack(char *buf, int cc, struct sockaddr_in *from, struct timeval *tv, const s
 		}
 
 		if (options->f_flood)
-			(void)write(STDOUT_FILENO, &BSPACE, 1);
+			write_char(STDOUT_FILENO, BSPACE);
 		else {
 			(void)printf("%d bytes from %s: icmp_seq=%u", cc,
 			   inet_ntoa(*(struct in_addr *)&from->sin_addr.s_addr),
@@ -907,7 +908,7 @@ pr_pack(char *buf, int cc, struct sockaddr_in *from, struct timeval *tv, const s
 			if (dupflag)
 				(void)printf(" (DUP!)");
 			if (options->f_audible)
-				(void)write(STDOUT_FILENO, &BBELL, 1);
+				write_char(STDOUT_FILENO, BBELL);
 			if (options->f_mask) {
 				/* Just prentend this cast isn't ugly */
 				(void)printf(" mask=%s",
