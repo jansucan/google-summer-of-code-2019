@@ -202,7 +202,7 @@ static long ntransmitted;	/* sequence # for outbound packets = #sent */
 static long nrcvtimeout = 0;	/* # of packets we got back after waittime */
 
 /* timing */
-static int timing;		/* flag to do timing */
+static bool timing;		/* flag to do timing */
 static double tmin = 999999999.0;	/* minimum round trip time */
 static double tmax = 0.0;	/* maximum round trip time */
 static double tsum = 0.0;	/* sum of all times, for doing average */
@@ -434,9 +434,9 @@ ping6(struct options *const options, int argc, char *argv[])
 	if (!options->f_nodeaddr && !options->f_fqdn && !options->f_fqdn_old && !options->f_subtypes) {
 		if (options->n_packet_size >= (long)sizeof(struct tv32)) {
 			/* we can time transfer */
-			timing = 1;
+			timing = true;
 		} else
-			timing = 0;
+			timing = false;
 		/* in F_VERBOSE case, we may get non-echoreply packets*/
 		if (options->f_verbose)
 			packlen = 2048 + IP6LEN + ICMP6ECHOLEN + EXTRA;
@@ -444,7 +444,7 @@ ping6(struct options *const options, int argc, char *argv[])
 			packlen = options->n_packet_size + IP6LEN + ICMP6ECHOLEN + EXTRA;
 	} else {
 		/* suppress timing for node information query */
-		timing = 0;
+		timing = false;
 		options->n_packet_size = 2048;
 		packlen = 2048 + IP6LEN + ICMP6ECHOLEN + EXTRA;
 	}
