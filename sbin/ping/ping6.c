@@ -213,7 +213,6 @@ struct timing {
 
 /* for ancillary data(advanced API) */
 static struct msghdr smsghdr;
-static char *scmsg = 0;
 
 static bool sig_option_f_hostname;
 static volatile sig_atomic_t seenint;
@@ -269,6 +268,7 @@ ping6(struct options *const options, int argc, char *argv[])
 	int cc, i;
 	int almost_done, hold, packlen, optval, error;
 	u_char *datap;
+	char *scmsg = 0;
 	char *target;
 	int ip6optlen = 0;
 	struct cmsghdr *scmsgp = NULL;
