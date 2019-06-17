@@ -151,14 +151,15 @@ static u_char icmp_type_rsp = ICMP_ECHOREPLY;
 static int phdr_len = 0;
 static int send_len;
 
-/* counters */
-static long nmissedmax;		/* max value of ntransmitted - nreceived - 1 */
-static long nreceived;		/* # of packets we got back */
-static long nrepeats;		/* number of duplicates */
-static long ntransmitted;	/* sequence # for outbound packets = #sent */
-static long snpackets;			/* max packets to transmit in one sweep */
-static long sntransmitted;	/* # of packets we sent in this sweep */
-static long nrcvtimeout = 0;	/* # of packets we got back after waittime */
+struct counters {
+	long nmissedmax;	/* max value of ntransmitted - nreceived - 1 */
+	long nreceived;		/* # of packets we got back */
+	long nrepeats;		/* number of duplicates */
+	long ntransmitted;	/* sequence # for outbound packets = #sent */
+	long snpackets;		/* max packets to transmit in one sweep */
+	long sntransmitted;	/* # of packets we sent in this sweep */
+	long nrcvtimeout;	/* # of packets we got back after waittime */
+};
 
 struct timing {
 	bool   enabled;	/* flag to do timing */
@@ -172,20 +173,26 @@ struct timing {
 static bool sig_option_f_numeric;
 static volatile sig_atomic_t finish_up;
 static volatile sig_atomic_t siginfo_p;
+/* 
+ * This pointer is used in the signal handler for accessing nreceived
+ * member variable of the local 'struct counters' variable. Thus, the
+ * nreceived variable does not have to be global.
+ */
+static const long *sig_counters_nreceived;
 
 static cap_channel_t *capdns;
 
 static u_short in_cksum(u_short *, int);
 static cap_channel_t *capdns_setup(void);
-static void check_status(const struct timing *const);
-static void finish(const struct timing *const) __dead2;
-static void pinger(const struct options *const, struct timing *const);
+static void check_status(const struct counters *const, const struct timing *const);
+static void finish(const struct counters *const, const struct timing *const) __dead2;
+static void pinger(const struct options *const, struct counters *const, struct timing *const);
 static char *pr_addr(struct in_addr, bool);
 static char *pr_ntime(n_time);
 static void pr_icmph(struct icmp *);
 static void pr_iph(struct ip *);
 static void pr_pack(char *, int, struct sockaddr_in *, struct timeval *, const struct options *const,
-                    struct timing *const);
+    struct counters *const, struct timing *const);
 static void pr_retip(struct ip *);
 static void status(int);
 static void stopit(int);
@@ -203,6 +210,7 @@ ping(struct options *const options, int argc, char *const *argv)
 	struct ip *ip;
 	struct msghdr msg;
 	struct sigaction si_sa;
+	struct counters counters;
 	struct timing timing;
 	size_t sz;
 	u_char *datap, packet[IP_MAXPACKET] __aligned(4);
@@ -218,6 +226,9 @@ ping(struct options *const options, int argc, char *const *argv)
 #endif
 	unsigned char loop;
 	cap_rights_t rights;
+
+	memset(&counters, 0, sizeof(counters));
+	sig_counters_nreceived = &counters.nreceived;
 
 	timing.enabled = false;
 	timing.min = 999999999.0;
@@ -499,10 +510,10 @@ ping(struct options *const options, int argc, char *const *argv)
 #endif
 	if (options->f_sweep_max) {
 		if (options->n_packets > 0) {
-			snpackets = options->n_packets;
+			counters.snpackets = options->n_packets;
 			options->n_packets = 0;
 		} else
-			snpackets = 1;
+			counters.snpackets = 1;
 		options->n_packet_size = options->n_sweep_min;
 		send_len = icmp_len + options->n_sweep_min;
 	}
@@ -588,12 +599,12 @@ ping(struct options *const options, int argc, char *const *argv)
 	iov.iov_len = IP_MAXPACKET;
 
 	if (options->n_preload == 0)
-		pinger(options, &timing);	/* send the first ping */
+		pinger(options, &counters, &timing);	/* send the first ping */
 	else {
 		if (options->n_packets != 0 && options->n_preload > options->n_packets)
 			options->n_preload = options->n_packets;
 		while (options->n_preload--)	/* fire off them quickies */
-			pinger(options, &timing);
+			pinger(options, &counters, &timing);
 	}
 	(void)gettimeofday(&last, NULL);
 
@@ -611,7 +622,7 @@ ping(struct options *const options, int argc, char *const *argv)
 		fd_set rfds;
 		int cc, n;
 
-		check_status(&timing);
+		check_status(&counters, &timing);
 		if ((unsigned)srecv >= FD_SETSIZE)
 			errx(EX_OSERR, "descriptor too large");
 		FD_ZERO(&rfds);
@@ -659,29 +670,29 @@ ping(struct options *const options, int argc, char *const *argv)
 				(void)gettimeofday(&now, NULL);
 				tv = &now;
 			}
-			pr_pack((char *)packet, cc, &from, tv, options, &timing);
-			if ((options->f_once && nreceived) ||
-			    (options->n_packets && nreceived >= options->n_packets))
+			pr_pack((char *)packet, cc, &from, tv, options, &counters, &timing);
+			if ((options->f_once && counters.nreceived) ||
+			    (options->n_packets && counters.nreceived >= options->n_packets))
 				break;
 		}
 		if (n == 0 || options->f_flood) {
-			if (options->n_sweep_max && sntransmitted == snpackets) {
+			if (options->n_sweep_max && counters.sntransmitted == counters.snpackets) {
 				for (i = 0; i < options->n_sweep_incr ; ++i)
 					*datap++ = i;
 				options->n_packet_size += options->n_sweep_incr;
 				if (options->n_packet_size > options->n_sweep_max)
 					break;
 				send_len = icmp_len + options->n_packet_size;
-				sntransmitted = 0;
+				counters.sntransmitted = 0;
 			}
-			if (!options->n_packets || ntransmitted < options->n_packets)
-				pinger(options, &timing);
+			if (!options->n_packets || counters.ntransmitted < options->n_packets)
+				pinger(options, &counters, &timing);
 			else {
 				if (almost_done)
 					break;
 				almost_done = 1;
 				intvl.tv_usec = 0;
-				if (nreceived) {
+				if (counters.nreceived) {
 					intvl.tv_sec = 2 * timing.max / 1000;
 					if (!intvl.tv_sec)
 						intvl.tv_sec = 1;
@@ -691,14 +702,14 @@ ping(struct options *const options, int argc, char *const *argv)
 				}
 			}
 			(void)gettimeofday(&last, NULL);
-			if (ntransmitted - nreceived - 1 > nmissedmax) {
-				nmissedmax = ntransmitted - nreceived - 1;
+			if (counters.ntransmitted - counters.nreceived - 1 > counters.nmissedmax) {
+				counters.nmissedmax = counters.ntransmitted - counters.nreceived - 1;
 				if (options->f_missed)
 					(void)write(STDOUT_FILENO, &BBELL, 1);
 			}
 		}
 	}
-	finish(&timing);
+	finish(&counters, &timing);
 	/* NOTREACHED */
 	exit(0);	/* Make the compiler happy */
 }
@@ -718,7 +729,7 @@ stopit(int sig __unused)
 	 * be noticed for a while.  Just exit if we get a second SIGINT.
 	 */
 	if (sig_option_f_numeric && finish_up)
-		_exit(nreceived ? 0 : 2);
+		_exit(((sig_counters_nreceived != NULL) && (*sig_counters_nreceived != 0)) ? 0 : 2);
 	finish_up = 1;
 }
 
@@ -731,7 +742,8 @@ stopit(int sig __unused)
  * host byte-order, to compute the round-trip time.
  */
 static void
-pinger(const struct options *const options, struct timing *const timing)
+pinger(const struct options *const options, struct counters *const counters,
+    struct timing *const timing)
 {
 	struct timeval now;
 	struct tv32 tv32;
@@ -745,10 +757,10 @@ pinger(const struct options *const options, struct timing *const timing)
 	icp->icmp_type = icmp_type;
 	icp->icmp_code = 0;
 	icp->icmp_cksum = 0;
-	icp->icmp_seq = htons(ntransmitted);
+	icp->icmp_seq = htons(counters->ntransmitted);
 	icp->icmp_id = ident;			/* ID */
 
-	CLR(ntransmitted % mx_dup_ck);
+	CLR(counters->ntransmitted % mx_dup_ck);
 
 	if (options->f_time || timing->enabled) {
 		(void)gettimeofday(&now, NULL);
@@ -789,8 +801,8 @@ pinger(const struct options *const options, struct timing *const timing)
 			     hostname, i, cc);
 		}
 	}
-	ntransmitted++;
-	sntransmitted++;
+	counters->ntransmitted++;
+	counters->sntransmitted++;
 	if (!options->f_quiet && options->f_flood)
 		(void)write(STDOUT_FILENO, &DOT, 1);
 }
@@ -804,7 +816,7 @@ pinger(const struct options *const options, struct timing *const timing)
  */
 static void
 pr_pack(char *buf, int cc, struct sockaddr_in *from, struct timeval *tv, const struct options *const options,
-	struct timing *const timing)
+    struct counters *const counters, struct timing *const timing)
 {
 	struct in_addr ina;
 	u_char *cp, *dp;
@@ -833,7 +845,7 @@ pr_pack(char *buf, int cc, struct sockaddr_in *from, struct timeval *tv, const s
 	if (icp->icmp_type == icmp_type_rsp) {
 		if (icp->icmp_id != ident)
 			return;			/* 'Twas not our ECHO */
-		++nreceived;
+		++(counters->nreceived);
 		triptime = 0.0;
 		if (timing->enabled) {
 			struct timeval tv1;
@@ -867,8 +879,8 @@ pr_pack(char *buf, int cc, struct sockaddr_in *from, struct timeval *tv, const s
 		seq = ntohs(icp->icmp_seq);
 
 		if (TST(seq % mx_dup_ck)) {
-			++nrepeats;
-			--nreceived;
+			++(counters->nrepeats);
+			--(counters->nreceived);
 			dupflag = 1;
 		} else {
 			SET(seq % mx_dup_ck);
@@ -879,7 +891,7 @@ pr_pack(char *buf, int cc, struct sockaddr_in *from, struct timeval *tv, const s
 			return;
 
 		if (options->f_wait_time && triptime > options->n_wait_time) {
-			++nrcvtimeout;
+			++(counters->nrcvtimeout);
 			return;
 		}
 
@@ -1136,17 +1148,17 @@ status(int sig __unused)
 }
 
 static void
-check_status(const struct timing *const timing)
+check_status(const struct counters *const counters, const struct timing *const timing)
 {
 
 	if (siginfo_p) {
 		siginfo_p = 0;
 		(void)fprintf(stderr, "\r%ld/%ld packets received (%.1f%%)",
-		    nreceived, ntransmitted,
-		    ntransmitted ? nreceived * 100.0 / ntransmitted : 0.0);
-		if (nreceived && timing->enabled)
+		    counters->nreceived, counters->ntransmitted,
+		    counters->ntransmitted ? counters->nreceived * 100.0 / counters->ntransmitted : 0.0);
+		if (counters->nreceived && timing->enabled)
 			(void)fprintf(stderr, " %.3f min / %.3f avg / %.3f max",
-			    timing->min, timing->sum / (nreceived + nrepeats),
+			    timing->min, timing->sum / (counters->nreceived + counters->nrepeats),
 			    timing->max);
 		(void)fprintf(stderr, "\n");
 	}
@@ -1157,7 +1169,7 @@ check_status(const struct timing *const timing)
  *	Print out statistics, and give up.
  */
 static void
-finish(const struct timing *const timing)
+finish(const struct counters *const counters, const struct timing *const timing)
 {
 
 	(void)signal(SIGINT, SIG_IGN);
@@ -1165,23 +1177,23 @@ finish(const struct timing *const timing)
 	(void)putchar('\n');
 	(void)fflush(stdout);
 	(void)printf("--- %s ping statistics ---\n", hostname);
-	(void)printf("%ld packets transmitted, ", ntransmitted);
-	(void)printf("%ld packets received, ", nreceived);
-	if (nrepeats)
-		(void)printf("+%ld duplicates, ", nrepeats);
-	if (ntransmitted) {
-		if (nreceived > ntransmitted)
+	(void)printf("%ld packets transmitted, ", counters->ntransmitted);
+	(void)printf("%ld packets received, ", counters->nreceived);
+	if (counters->nrepeats)
+		(void)printf("+%ld duplicates, ", counters->nrepeats);
+	if (counters->ntransmitted) {
+		if (counters->nreceived > counters->ntransmitted)
 			(void)printf("-- somebody's printing up packets!");
 		else
 			(void)printf("%.1f%% packet loss",
-			    ((ntransmitted - nreceived) * 100.0) /
-			    ntransmitted);
+			    ((counters->ntransmitted - counters->nreceived) * 100.0) /
+			    counters->ntransmitted);
 	}
-	if (nrcvtimeout)
-		(void)printf(", %ld packets out of wait time", nrcvtimeout);
+	if (counters->nrcvtimeout)
+		(void)printf(", %ld packets out of wait time", counters->nrcvtimeout);
 	(void)putchar('\n');
-	if (nreceived && timing->enabled) {
-		double n = nreceived + nrepeats;
+	if (counters->nreceived && timing->enabled) {
+		double n = counters->nreceived + counters->nrepeats;
 		double avg = timing->sum / n;
 		double vari = timing->sumsq / n - avg * avg;
 		(void)printf(
@@ -1189,7 +1201,7 @@ finish(const struct timing *const timing)
 		    timing->min, avg, timing->max, sqrt(vari));
 	}
 
-	if (nreceived)
+	if (counters->nreceived)
 		exit(0);
 	else
 		exit(2);
