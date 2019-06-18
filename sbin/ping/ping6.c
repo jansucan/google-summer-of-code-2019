@@ -250,7 +250,7 @@ static void      check_options(struct options *const, struct timeval *const);
 static u_short   get_node_address_flags(const struct options *const);
 
 int
-ping6(struct options *const options, int argc, char *argv[])
+ping6(struct options *const options)
 {
 	struct timeval last, intvl;
 	struct sockaddr_in6 from, *sin6, src;
@@ -263,7 +263,6 @@ ping6(struct options *const options, int argc, char *argv[])
 	int almost_done, hold, packlen, optval, error;
 	u_char *datap;
 	char *scmsg = 0;
-	char *target;
 	int ip6optlen = 0;
 	struct cmsghdr *scmsgp = NULL;
 	/* For control (ancillary) data received from recvmsg() */
@@ -297,6 +296,7 @@ ping6(struct options *const options, int argc, char *argv[])
 		fill((char *)datap, MAXDATALEN - 8 + sizeof(struct tv32) + options->ping_filled_size,
 		    options);
 
+	/* TODO: Move gettaddrinfo() of the source to options.c? */
 	if (options->s_source != NULL) {
 		memset(&hints, 0, sizeof(struct addrinfo));
 		hints.ai_flags = AI_NUMERICHOST; /* allow hostname? */
@@ -318,17 +318,12 @@ ping6(struct options *const options, int argc, char *argv[])
 		freeaddrinfo(res);
 	}
 
-	if (argc < 1) {
-		usage();
-		/*NOTREACHED*/
-	}
-
-	if (argc > 1) {
+	if (options->hop_count != 0) {
 #ifdef IPV6_RECVRTHDR	/* 2292bis */
 		rthlen = CMSG_SPACE(inet6_rth_space(IPV6_RTHDR_TYPE_0,
-		    argc - 1));
+		    options->hop_count));
 #else  /* RFC2292 */
-		rthlen = inet6_rthdr_space(IPV6_RTHDR_TYPE_0, argc - 1);
+		rthlen = inet6_rthdr_space(IPV6_RTHDR_TYPE_0, options->hop_count);
 #endif
 		if (rthlen == 0) {
 			errx(1, "too many intermediate hops");
@@ -338,38 +333,31 @@ ping6(struct options *const options, int argc, char *argv[])
 	}
 
 	if (options->f_nigroup) {
-		target = nigroup(argv[argc - 1], options->c_nigroup);
-		if (target == NULL) {
+		options->target = nigroup(options->target, options->c_nigroup);
+		if (options->target == NULL) {
 			usage();
 			/*NOTREACHED*/
 		}
-	} else
-		target = argv[argc - 1];
+	}
 
-	/* getaddrinfo */
-	memset(&hints, 0, sizeof(struct addrinfo));
-	hints.ai_flags = AI_CANONNAME;
-	hints.ai_family = AF_INET6;
-	hints.ai_socktype = SOCK_RAW;
-	hints.ai_protocol = IPPROTO_ICMPV6;
-
-	error = getaddrinfo(target, NULL, &hints, &res);
-	if (error)
-		errx(1, "%s", gai_strerror(error));
-	if (res->ai_canonname)
-		vars.hostname = strdup(res->ai_canonname);
+	/* Create socket for the ping target. */
+	if (options->target_addrinfo->ai_canonname)
+		vars.hostname = strdup(options->target_addrinfo->ai_canonname);
 	else
-		vars.hostname = target;
+		vars.hostname = options->target;
 
-	if (!res->ai_addr)
+	if (!options->target_addrinfo->ai_addr)
 		errx(1, "getaddrinfo failed");
 
-	(void)memcpy(&vars.dst, res->ai_addr, res->ai_addrlen);
+	(void)memcpy(&vars.dst, options->target_addrinfo->ai_addr,
+	    options->target_addrinfo->ai_addrlen);
 
-	if ((vars.s = socket(res->ai_family, res->ai_socktype,
-	    res->ai_protocol)) < 0)
+	if ((vars.s = socket(options->target_addrinfo->ai_family,
+		    options->target_addrinfo->ai_socktype,
+		    options->target_addrinfo->ai_protocol)) < 0)
 		err(1, "socket");
-	freeaddrinfo(res);
+	freeaddrinfo(options->target_addrinfo);
+	options->target_addrinfo = NULL;
 
 	/* set the source address if specified. */
 	if (options->s_source != NULL) {
@@ -386,6 +374,7 @@ ping6(struct options *const options, int argc, char *argv[])
 		if (bind(vars.s, (struct sockaddr *)&src, srclen) != 0)
 			err(1, "bind");
 	}
+	/* TODO: Move gettaddrinfo() of the source to options.c? */
 	/* set the gateway (next hop) if specified */
 	if (options->s_gateway) {
 		memset(&hints, 0, sizeof(hints));
@@ -622,20 +611,20 @@ ping6(struct options *const options, int argc, char *argv[])
 		scmsgp = CMSG_NXTHDR(&vars.smsghdr, scmsgp);
 	}
 
-	if (argc > 1) {	/* some intermediate addrs are specified */
-		int hops;
+	if (options->hop_count != 0) {	/* some intermediate addrs are specified */
+		unsigned hops;
 #ifdef USE_RFC2292BIS
 		int rthdrlen;
 #endif
 
 #ifdef USE_RFC2292BIS
-		rthdrlen = inet6_rth_space(IPV6_RTHDR_TYPE_0, argc - 1);
+		rthdrlen = inet6_rth_space(IPV6_RTHDR_TYPE_0, options->hop_count);
 		scmsgp->cmsg_len = CMSG_LEN(rthdrlen);
 		scmsgp->cmsg_level = IPPROTO_IPV6;
 		scmsgp->cmsg_type = IPV6_RTHDR;
 		rthdr = (struct ip6_rthdr *)CMSG_DATA(scmsgp);
 		rthdr = inet6_rth_init((void *)rthdr, rthdrlen,
-		    IPV6_RTHDR_TYPE_0, argc - 1);
+		    IPV6_RTHDR_TYPE_0, options->hop_count);
 		if (rthdr == NULL)
 			errx(1, "can't initialize rthdr");
 #else  /* old advanced API */
@@ -644,17 +633,8 @@ ping6(struct options *const options, int argc, char *argv[])
 			errx(1, "can't initialize rthdr");
 #endif /* USE_RFC2292BIS */
 
-		for (hops = 0; hops < argc - 1; hops++) {
-			memset(&hints, 0, sizeof(hints));
-			hints.ai_family = AF_INET6;
-
-			if ((error = getaddrinfo(argv[hops], NULL, &hints,
-			    &res)))
-				errx(1, "%s", gai_strerror(error));
-			if (res->ai_addr->sa_family != AF_INET6)
-				errx(1,
-				    "bad addr family of an intermediate addr");
-			sin6 = (struct sockaddr_in6 *)(void *)res->ai_addr;
+		for (hops = 0; hops < options->hop_count; hops++) {
+			sin6 = (struct sockaddr_in6 *)(void *)options->hops_addrinfo[hops]->ai_addr;
 #ifdef USE_RFC2292BIS
 			if (inet6_rth_add(rthdr, &sin6->sin6_addr))
 				errx(1, "can't add an intermediate node");
@@ -663,7 +643,8 @@ ping6(struct options *const options, int argc, char *argv[])
 			    IPV6_RTHDR_LOOSE))
 				errx(1, "can't add an intermediate node");
 #endif /* USE_RFC2292BIS */
-			freeaddrinfo(res);
+			freeaddrinfo(options->hops_addrinfo[hops]);
+			options->hops_addrinfo[hops] = NULL;
 		}
 
 #ifndef USE_RFC2292BIS

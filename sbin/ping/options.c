@@ -69,16 +69,38 @@ __FBSDID("$FreeBSD$");
 #define OPSTR  OPSTR_COMMON OPSTR_IPV4 OPSTR_IPSEC
 #endif	/* INET6 */
 
-static void options_check(int argc, char **argv, struct options *const options);
-static void options_get_target_type(struct options *const options, const char *const target);
+static void options_check(int argc, char **argv, const struct options *const options);
+static void options_get_target_type(struct options *const options);
+static void options_getaddrinfo(const char *const hostname,
+    const struct addrinfo *const hints, struct addrinfo **const res);
 static bool options_has_ipv4_only(const struct options *const options);
 #ifdef INET6
 static bool options_has_ipv6_only(const struct options *const options);
 #endif
+static void options_parse_hosts(int argc, char **argv, struct options *const options);
 static bool options_strtol(const char *const str, long *const val);
 static bool options_strtoi(const char *const str, int *const val);
 static bool options_strtoul(const char *const str, unsigned long *const val);
 static bool options_strtod(const char *const str, double *const val);
+
+void
+options_free(struct options *const options)
+{
+	if (options->target_addrinfo != NULL) {
+		freeaddrinfo(options->target_addrinfo);
+		options->target_addrinfo = NULL;
+	}
+
+	if (options->hops_addrinfo != NULL) {
+		for (unsigned i = 0; i < options->hop_count; ++i) {
+			if (options->hops_addrinfo[i] != NULL)
+				freeaddrinfo(options->hops_addrinfo[i]);
+		}
+		options->hop_count = 0;
+		free(options->hops_addrinfo);
+		options->hops_addrinfo = NULL;
+	}
+}
 
 void
 options_parse(int *const argc, char ***argv, struct options *const options)
@@ -364,29 +386,18 @@ options_parse(int *const argc, char ***argv, struct options *const options)
 	*argc -= optind;
 	*argv += optind;
 
+	options_parse_hosts(*argc, *argv, options);
 	options_check(*argc, *argv, options);
 }
 
 static void
-options_check(int argc, char **argv, struct options *const options)
+options_check(int argc, char **argv, const struct options *const options)
 {
 #ifdef INET6
 	if (options->f_protocol_ipv6 && options_has_ipv4_only(options))
 		errx(EX_USAGE, "IPv6 requested but IPv4 option provided");
 	else if (options->f_protocol_ipv4 && options_has_ipv6_only(options))
 		errx(EX_USAGE, "IPv4 requested but IPv6 option provided");
-#endif /* INET6 */
-
-	const char *const target = (argc > 0) ? argv[argc - 1] : NULL;
-
-	if (target == NULL)
-		usage();
-
-	options_get_target_type(options, target);
-
-	if (options->target_type == TARGET_UNKNOWN)
-		errx(EX_USAGE, "invalid ping target: `%s'", target);
-#ifdef INET6
 	else if (options->f_protocol_ipv4 && (options->target_type == TARGET_ADDRESS_IPV6))
 		errx(EX_USAGE, "IPv4 requested but IPv6 target address provided");
 	else if (options->f_protocol_ipv6 && (options->target_type == TARGET_ADDRESS_IPV4))
@@ -410,23 +421,24 @@ options_check(int argc, char **argv, struct options *const options)
 	if ((options->f_sweep_max || options->f_sweep_min || options->f_sweep_incr) &&
 	    (options->n_sweep_max != 0))
 		errx(EX_USAGE, "Maximum sweep size must be specified");
+
 }
 
 static void
-options_get_target_type(struct options *const options, const char *const target)
+options_get_target_type(struct options *const options)
 {
 	struct in_addr a;
 #ifdef INET6
 	struct in6_addr a6;
 #endif
-	struct addrinfo hints, *res;
+	struct addrinfo hints;
 
 	options->target_type = TARGET_UNKNOWN;
 
-	if (inet_pton(AF_INET, target, &a) == 1)
+	if (inet_pton(AF_INET, options->target, &a) == 1)
 		options->target_type = TARGET_ADDRESS_IPV4;
 #ifdef INET6
-	else if (inet_pton(AF_INET6, target, &a6) == 1)
+	else if (inet_pton(AF_INET6, options->target, &a6) == 1)
 		options->target_type = TARGET_ADDRESS_IPV6;
 #endif
 	else {
@@ -436,22 +448,76 @@ options_get_target_type(struct options *const options, const char *const target)
 		if (options->f_protocol_ipv4)
 			hints.ai_family = AF_INET;
 #ifdef INET6
-		else if (options->f_protocol_ipv6)
+		else if (options->f_protocol_ipv6) {
+			hints.ai_flags = AI_CANONNAME;
 			hints.ai_family = AF_INET6;
+			hints.ai_socktype = SOCK_RAW;
+			hints.ai_protocol = IPPROTO_ICMPV6;
+		}
 #endif
 		else
 			hints.ai_family = AF_UNSPEC;
 
-		getaddrinfo(target, NULL, &hints, &res);
+		options_getaddrinfo(options->target, &hints, &options->target_addrinfo);
 
-		if (res != NULL) {
-			if (res[0].ai_family == AF_INET)
-				options->target_type = TARGET_HOSTNAME_IPV4;
+		if (options->target_addrinfo->ai_family == AF_INET)
+			options->target_type = TARGET_HOSTNAME_IPV4;
 #ifdef INET6
-			else if (res[0].ai_family == AF_INET6)
-				options->target_type = TARGET_HOSTNAME_IPV6;
+		else if (options->target_addrinfo->ai_family == AF_INET6)
+			options->target_type = TARGET_HOSTNAME_IPV6;
 #endif
-			freeaddrinfo(res);
+	}
+}
+
+static void
+options_getaddrinfo(const char *const hostname, const struct addrinfo *const hints,
+    struct addrinfo **const res)
+{
+	const int r = getaddrinfo(hostname, NULL, hints, res);
+	if (r != 0)
+		/* TODO: Which sysexits(3) code to use? */
+		errx(1, "getaddrinfo for `%s': %s", hostname, gai_strerror(r));
+	else if (res == NULL)
+		errx(1, "getaddrinfo for `%s'", hostname);
+}
+
+static void
+options_parse_hosts(int argc, char **argv, struct options *const options)
+{
+	/* The last argument is a target. */
+	if (argc == 0)
+		usage();
+
+	options->target = argv[argc - 1];
+	options_get_target_type(options);
+
+	if (options->target_type == TARGET_UNKNOWN)
+		errx(EX_USAGE, "invalid ping target: `%s'", options->target);
+
+	--argc;
+	++argv;
+
+	/* Everything else are IPv6 hops. */
+	if (argc != 0) {
+		/* Ping to IPv4 host cannot have any hops specified. */
+		if ((options->target_type == TARGET_ADDRESS_IPV4) ||
+		    (options->target_type == TARGET_HOSTNAME_IPV4))
+			usage();
+
+		options->hop_count = argc;
+		options->hops = malloc(argc * sizeof(char *));
+		options->hops_addrinfo = malloc(argc * sizeof(struct addrinfo *));
+
+		for (int i = 0; i < argc; ++i) {
+			struct addrinfo hints;
+
+			memset(&hints, 0, sizeof(hints));
+			hints.ai_family = AF_INET6;
+
+			options_getaddrinfo(argv[i], &hints, &(options->hops_addrinfo[i]));
+
+			if (options->hops_addrinfo[i]->ai_addr->sa_family != AF_INET6)
+				errx(1, "bad addr family of an intermediate addr");
 		}
 	}
 }

@@ -135,7 +135,7 @@ struct shared_variables {
 	struct sockaddr_in whereto;	/* who to ping */
 	int ssend;		/* send socket file descriptor */
 	u_char outpackhdr[IP_MAXPACKET], *outpack;
-	char *hostname;
+	const char *hostname;
 	int ident;		/* process id to identify our packets */
 	u_char icmp_type;
 	u_char icmp_type_rsp;
@@ -195,7 +195,7 @@ static void check_options(struct options *const, struct in_addr *const);
 static void check_packet_size(int, int);
 
 int
-ping(struct options *const options, int argc, char *const *argv)
+ping(struct options *const options)
 {
 	struct sockaddr_in from, sock_in;
 	struct in_addr ifaddr;
@@ -209,7 +209,6 @@ ping(struct options *const options, int argc, char *const *argv)
 	struct timing timing;
 	size_t sz;
 	u_char *datap, packet[IP_MAXPACKET] __aligned(4);
-	char *target;
 	const char *shostname;
 	struct hostent *hp;
 	struct sockaddr_in *to;
@@ -223,6 +222,13 @@ ping(struct options *const options, int argc, char *const *argv)
 #endif
 	unsigned char loop;
 	cap_rights_t rights;
+
+	/*
+	 * Ping to IPv6 does use target_addrinfo but this ping to IPv4
+	 * host does not use it.
+	 */
+	freeaddrinfo(options->target_addrinfo);
+	options->target_addrinfo = NULL;
 
 	memset(&vars, 0, sizeof(vars));
 	vars.icmp_type = ICMP_ECHO;
@@ -274,10 +280,6 @@ ping(struct options *const options, int argc, char *const *argv)
 
 	check_options(options, &ifaddr);
 	
-	if (argc != 1)
-		usage();
-	target = argv[0];
-
 	if (options->f_mask) {
 		vars.icmp_type = ICMP_MASKREQ;
 		vars.icmp_type_rsp = ICMP_MASKREPLY;
@@ -338,13 +340,13 @@ ping(struct options *const options, int argc, char *const *argv)
 	to = &vars.whereto;
 	to->sin_family = AF_INET;
 	to->sin_len = sizeof *to;
-	if (inet_aton(target, &to->sin_addr) != 0) {
-		vars.hostname = target;
+	if (inet_aton(options->target, &to->sin_addr) != 0) {
+		vars.hostname = options->target;
 	} else {
-		hp = cap_gethostbyname2(vars.capdns, target, AF_INET);
+		hp = cap_gethostbyname2(vars.capdns, options->target, AF_INET);
 		if (!hp)
 			errx(EX_NOHOST, "cannot resolve %s: %s",
-			    target, hstrerror(h_errno));
+			    options->target, hstrerror(h_errno));
 
 		if ((unsigned)hp->h_length > sizeof(to->sin_addr))
 			errx(1, "gethostbyname2 returned an illegal address");

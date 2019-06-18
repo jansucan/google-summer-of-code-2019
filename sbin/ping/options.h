@@ -186,9 +186,19 @@ struct options {
 	bool f_nodeaddr_flag_anycast;
 #endif
 
+	/* TODO: restrict numbre of IPv6 hops? */
+#ifdef INET6
+	const char **hops;
+	struct addrinfo **hops_addrinfo;
+	unsigned hop_count;
+#endif
+	/* TODO: cannot be const becuse of nigroup() in ping6 */
+	char *target;
+	struct addrinfo *target_addrinfo;
 	enum target_type target_type;
 };
 
+void options_free(struct options *const options);
 void options_parse(int *const argc, char ***argv, struct options *const options);
 void usage(void) __dead2;
 

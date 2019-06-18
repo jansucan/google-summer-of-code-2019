@@ -33,6 +33,6 @@
 
 #include "options.h"
 
-int ping(struct options *const options, int argc, char *const *argv);
+int ping(struct options *const options);
 
 #endif
