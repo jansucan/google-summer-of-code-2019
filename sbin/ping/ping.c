@@ -194,7 +194,7 @@ static void tvsub(struct timeval *, const struct timeval *);
 static void check_options(struct options *const, struct in_addr *const);
 static void check_packet_size(int, int);
 
-int
+void
 ping(struct options *const options)
 {
 	struct sockaddr_in from, sock_in;

@@ -249,7 +249,7 @@ static char	*nigroup(char *, int);
 static void      check_options(struct options *const, struct timeval *const);
 static u_short   get_node_address_flags(const struct options *const);
 
-int
+void
 ping6(struct options *const options)
 {
 	struct timeval last, intvl;

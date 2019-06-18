@@ -33,6 +33,6 @@
 
 #include "options.h"
 
-int ping6(struct options *const options);
+void ping6(struct options *const options);
 
 #endif

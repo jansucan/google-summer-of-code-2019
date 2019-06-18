@@ -42,7 +42,7 @@ main(int argc, char *argv[])
 
 	if ((options.target_type == TARGET_ADDRESS_IPV4) ||
 	    (options.target_type == TARGET_HOSTNAME_IPV4))
-		return ping(&options);
+		ping(&options);
 	else
-		return ping6(&options);
+		ping6(&options);
 }
