@@ -26,6 +26,9 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/cdefs.h>
+__FBSDID("$FreeBSD$");
+
 #include "options.h"
 #include "ping.h"
 #include "ping6.h"
