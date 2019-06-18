@@ -674,7 +674,7 @@ ping6(struct options *const options, int argc, char *argv[])
 		scmsgp = CMSG_NXTHDR(&vars.smsghdr, scmsgp);
 	}
 
-	if (options->s_source != NULL) {
+	if (options->s_source == NULL) {
 		/*
 		 * get the source address. XXX since we revoked the root
 		 * privilege, we cannot use a raw socket for this.
