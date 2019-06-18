@@ -1414,7 +1414,7 @@ pr_pack(u_char *buf, int cc, struct msghdr *mhdr, const struct options *const op
 				if ((end - (u_char *)ni) < ICMP6_NIRLEN) {
 					/* case of refusion, unknown */
 					/*(*/
-					putchar(')');
+					printf(")");
 					goto fqdnend;
 				}
 				ttl = (int32_t)ntohl(*(u_long *)&buf[off+ICMP6ECHOLEN+8]);
@@ -1457,7 +1457,7 @@ pr_pack(u_char *buf, int cc, struct msghdr *mhdr, const struct options *const op
 					comma++;
 				}
 				/*(*/
-				putchar(')');
+				printf("\n");
 			}
 		fqdnend:
 			;
@@ -1471,7 +1471,7 @@ pr_pack(u_char *buf, int cc, struct msghdr *mhdr, const struct options *const op
 	}
 
 	if (!options->f_flood) {
-		(void)putchar('\n');
+		(void)printf("\n");
 		if (options->f_verbose)
 			pr_exthdrs(mhdr);
 		(void)fflush(stdout);
@@ -1583,7 +1583,7 @@ pr_ip6opt(void *extbuf, size_t bufsize)
 static void
 pr_ip6opt(void *extbuf, size_t bufsize __unused)
 {
-	putchar('\n');
+	printf("\n");
 	return;
 }
 #endif /* USE_RFC2292BIS */
@@ -1649,7 +1649,7 @@ pr_rthdr(void *extbuf, size_t bufsize)
 static void
 pr_rthdr(void *extbuf, size_t bufsize __unused)
 {
-	putchar('\n');
+	printf("\n");
 	return;
 }
 #endif /* USE_RFC2292BIS */
@@ -1788,7 +1788,7 @@ pr_nodeaddr(struct icmp6_nodeinfo *ni, int nilen, bool verbose)
 		if (ni->ni_flags & NI_NODEADDR_FLAG_TRUNCATE)
 			(void)printf(" truncated");
 	}
-	putchar('\n');
+	printf("\n");
 	if (nilen <= 0)
 		printf("  no address\n");
 
@@ -1825,7 +1825,7 @@ pr_nodeaddr(struct icmp6_nodeinfo *ni, int nilen, bool verbose)
 			else
 				printf("(TTL=%u)", ttl);
 		}
-		putchar('\n');
+		printf("\n");
 
 		nilen -= sizeof(struct in6_addr);
 		cp += sizeof(struct in6_addr);
@@ -1979,7 +1979,7 @@ summary(const struct counters *const counters, const struct timing *const timing
 	}
 	if (counters->nrcvtimeout)
 		printf(", %ld packets out of wait time", counters->nrcvtimeout);
-	(void)putchar('\n');
+	(void)printf("\n");
 	if (counters->nreceived && timing->enabled) {
 		/* Only display average to microseconds */
 		double num = counters->nreceived + counters->nrepeats;
@@ -2358,7 +2358,7 @@ pr_retip(struct ip6_hdr *ip6, u_char *end)
 	if (end - cp < 8)
 		goto trunc;
 
-	putchar('\n');
+	printf("\n");
 	return;
 
   trunc:

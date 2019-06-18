@@ -1023,7 +1023,7 @@ pr_pack(char *buf, int cc, struct sockaddr_in *from, struct timeval *tv,
 					j -= INADDR_LEN;
 					if (j < INADDR_LEN)
 						break;
-					(void)putchar('\n');
+					(void)printf("\n");
 				}
 			} else
 				(void)printf("\t(truncated route)\n");
@@ -1065,7 +1065,7 @@ pr_pack(char *buf, int cc, struct sockaddr_in *from, struct timeval *tv,
 					i -= INADDR_LEN;
 					if (i < INADDR_LEN)
 						break;
-					(void)putchar('\n');
+					(void)printf("\n");
 				}
 			} else
 				(void)printf("\t(truncated route)");
@@ -1078,7 +1078,7 @@ pr_pack(char *buf, int cc, struct sockaddr_in *from, struct timeval *tv,
 			break;
 		}
 	if (!options->f_flood) {
-		(void)putchar('\n');
+		(void)printf("\n");
 		(void)fflush(stdout);
 	}
 }
@@ -1182,7 +1182,7 @@ finish(const struct shared_variables *const vars, const struct counters *const c
 
 	(void)signal(SIGINT, SIG_IGN);
 	(void)signal(SIGALRM, SIG_IGN);
-	(void)putchar('\n');
+	(void)printf("\n");
 	(void)fflush(stdout);
 	(void)printf("--- %s ping statistics ---\n", vars->hostname);
 	(void)printf("%ld packets transmitted, ", counters->ntransmitted);
@@ -1199,7 +1199,7 @@ finish(const struct shared_variables *const vars, const struct counters *const c
 	}
 	if (counters->nrcvtimeout)
 		(void)printf(", %ld packets out of wait time", counters->nrcvtimeout);
-	(void)putchar('\n');
+	(void)printf("\n");
 	if (counters->nreceived && timing->enabled) {
 		double n = counters->nreceived + counters->nrepeats;
 		double avg = timing->sum / n;
@@ -1409,7 +1409,7 @@ pr_iph(struct ip *ip)
 	while (hlen-- > 20) {
 		(void)printf("%02x", *cp++);
 	}
-	(void)putchar('\n');
+	(void)printf("\n");
 }
 
 /*
