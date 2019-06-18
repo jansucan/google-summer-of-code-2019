@@ -35,6 +35,16 @@
 
 #include "options.h"
 
+/*
+ * Macros for keeping track of received sequence numbers in a bit
+ * array. N-th bit of the array represents sequence number N.
+ */
+#define	BIT_ARRAY_BYTE(array, bit)	array[(bit)>>3]
+#define	BIT_ARRAY_BIT_MASK(bit)		(1 << ((bit) & 0x07))
+#define	BIT_ARRAY_SET(array, bit)	(BIT_ARRAY_BYTE(array, bit) |= BIT_ARRAY_BIT_MASK(bit))
+#define	BIT_ARRAY_CLR(array, bit)	(BIT_ARRAY_BYTE(array, bit) &= (~BIT_ARRAY_BIT_MASK(bit)))
+#define	BIT_ARRAY_IS_SET(array, bit)	(BIT_ARRAY_BYTE(array, bit) & BIT_ARRAY_BIT_MASK(bit))
+
 void fill(char *bp, size_t bp_size, const struct options *const options);
 void write_char(int fd, char c);
 

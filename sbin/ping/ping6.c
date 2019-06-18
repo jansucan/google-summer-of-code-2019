@@ -160,12 +160,6 @@ struct tv32 {
 #define	MAXWAIT		10000		/* max ms to wait for response */
 #define	MAXALARM	(60 * 60)	/* max seconds for alarm timeout */
 
-#define	A(table, bit)	table[(bit)>>3]	/* identify byte in array */
-#define	B(bit)		(1 << ((bit) & 0x07))	/* identify bit in byte */
-#define	SET(table, bit)	(A(table, bit) |= B(bit))
-#define	CLR(table, bit)	(A(table, bit) &= (~B(bit)))
-#define	TST(table, bit)	(A(table, bit) & B(bit))
-
 #define BBELL   '\a'  /* characters written for MISSED and AUDIBLE */
 #define BSPACE  '\b'  /* characters written for flood */
 #define DOT     '.'
@@ -1006,7 +1000,7 @@ pinger(struct options *const options, struct shared_variables *const vars,
 	memset(icp, 0, sizeof(*icp));
 	icp->icmp6_cksum = 0;
 	seq = counters->ntransmitted++;
-	CLR(vars->rcvd_tbl, seq % MAX_DUP_CHK);
+	BIT_ARRAY_CLR(vars->rcvd_tbl, seq % MAX_DUP_CHK);
 
 	if (options->f_fqdn) {
 		icp->icmp6_type = ICMP6_NI_QUERY;
@@ -1265,12 +1259,12 @@ pr_pack(u_char *buf, int cc, struct msghdr *mhdr, const struct options *const op
 				timing->max = triptime;
 		}
 
-		if (TST(vars->rcvd_tbl, seq % MAX_DUP_CHK)) {
+		if (BIT_ARRAY_IS_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK)) {
 			++(counters->nrepeats);
 			--(counters->nreceived);
 			dupflag = 1;
 		} else {
-			SET(vars->rcvd_tbl, seq % MAX_DUP_CHK);
+			BIT_ARRAY_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK);
 			dupflag = 0;
 		}
 
@@ -1319,12 +1313,12 @@ pr_pack(u_char *buf, int cc, struct msghdr *mhdr, const struct options *const op
 	} else if (icp->icmp6_type == ICMP6_NI_REPLY && mynireply(ni, vars)) {
 		seq = ntohs(*(u_int16_t *)ni->icmp6_ni_nonce);
 		++(counters->nreceived);
-		if (TST(vars->rcvd_tbl, seq % MAX_DUP_CHK)) {
+		if (BIT_ARRAY_IS_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK)) {
 			++(counters->nrepeats);
 			--(counters->nreceived);
 			dupflag = 1;
 		} else {
-			SET(vars->rcvd_tbl, seq % MAX_DUP_CHK);
+			BIT_ARRAY_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK);
 			dupflag = 0;
 		}
 

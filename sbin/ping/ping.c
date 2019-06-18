@@ -114,12 +114,6 @@ __FBSDID("$FreeBSD$");
 #define	MAXTOS		255
 #define MININTERVAL     1000	        /* min ms between sending packets */
 
-#define	A(table, bit)	table[(bit)>>3]	/* identify byte in array */
-#define	B(bit)		(1 << ((bit) & 0x07))	/* identify bit in byte */
-#define	SET(table, bit)	(A(table, bit) |= B(bit))
-#define	CLR(table, bit)	(A(table, bit) &= (~B(bit)))
-#define	TST(table, bit)	(A(table, bit) & B(bit))
-
 #define BBELL   '\a'  /* characters written for MISSED and AUDIBLE */
 #define BSPACE  '\b'  /* characters written for flood */
 #define DOT     '.'
@@ -766,7 +760,7 @@ pinger(const struct options *const options, struct shared_variables *const vars,
 	icp->icmp_seq = htons(counters->ntransmitted);
 	icp->icmp_id = vars->ident;			/* ID */
 
-	CLR(vars->rcvd_tbl, counters->ntransmitted % MAX_DUP_CHK);
+	BIT_ARRAY_CLR(vars->rcvd_tbl, counters->ntransmitted % MAX_DUP_CHK);
 
 	if (options->f_time || timing->enabled) {
 		(void)gettimeofday(&now, NULL);
@@ -885,12 +879,12 @@ pr_pack(char *buf, int cc, struct sockaddr_in *from, struct timeval *tv,
 
 		seq = ntohs(icp->icmp_seq);
 
-		if (TST(vars->rcvd_tbl, seq % MAX_DUP_CHK)) {
+		if (BIT_ARRAY_IS_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK)) {
 			++(counters->nrepeats);
 			--(counters->nreceived);
 			dupflag = 1;
 		} else {
-			SET(vars->rcvd_tbl, seq % MAX_DUP_CHK);
+			BIT_ARRAY_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK);
 			dupflag = 0;
 		}
 
