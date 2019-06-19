@@ -304,7 +304,7 @@ ping6(struct options *const options)
 		hints.ai_socktype = SOCK_RAW;
 		hints.ai_protocol = IPPROTO_ICMPV6;
 
-		error = getaddrinfo(optarg, NULL, &hints, &res);
+		error = getaddrinfo(options->s_source, NULL, &hints, &res);
 		if (error) {
 			errx(1, "invalid source address: %s",
 			    gai_strerror(error));
@@ -2456,7 +2456,7 @@ check_options(struct options *const options, struct timeval *const intvl)
 		intvl->tv_usec =
 			(long)((options->n_interval - intvl->tv_sec) * 1000000);
 		if (intvl->tv_sec < 0)
-			errx(1, "illegal timing interval %s", optarg);
+			errx(1, "illegal timing interval %f", options->n_interval);
 		/* less than 1/hz does not make sense */
 		if (intvl->tv_sec == 0 && intvl->tv_usec < 1) {
 			warnx("too small interval, raised to .000001");
