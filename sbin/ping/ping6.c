@@ -403,7 +403,7 @@ ping6(struct options *const options)
 	 * for privileged socket options
 	 */
 	if (options->f_verbose) {
-		int opton = 1;
+		const int opton = 1;
 
 #ifdef IPV6_RECVHOPOPTS
 		if (setsockopt(vars.s, IPPROTO_IPV6, IPV6_RECVHOPOPTS, &opton,
