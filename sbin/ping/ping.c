@@ -216,11 +216,6 @@ ping(struct options *const options)
 	int ssend_errno, srecv_errno;
 	int srecv; /* receive socket file descriptor */
 	char ctrl[CMSG_SPACE(sizeof(struct timeval))];
-	char hnamebuf[MAXHOSTNAMELEN], snamebuf[MAXHOSTNAMELEN];
-#ifdef IP_OPTIONS
-	char rspace[MAX_IPOPTLEN];	/* record route space */
-#endif
-	unsigned char loop;
 	cap_rights_t rights;
 
 	/*
@@ -274,8 +269,6 @@ ping(struct options *const options)
 		err(EX_OSERR, "srecv socket");
 	}
 
-	loop = 0;
-
 	vars.outpack = vars.outpackhdr + sizeof(struct ip);
 
 	check_options(options, &ifaddr);
@@ -315,6 +308,8 @@ ping(struct options *const options)
 		if (inet_aton(options->s_source, &sock_in.sin_addr) != 0) {
 			shostname = options->s_source;
 		} else {
+			char snamebuf[MAXHOSTNAMELEN];
+
 			hp = cap_gethostbyname2(vars.capdns, options->s_source, AF_INET);
 			if (!hp)
 				errx(EX_NOHOST, "cannot resolve %s: %s",
@@ -343,6 +338,8 @@ ping(struct options *const options)
 	if (inet_aton(options->target, &to->sin_addr) != 0) {
 		vars.hostname = options->target;
 	} else {
+		char hnamebuf[MAXHOSTNAMELEN];
+
 		hp = cap_gethostbyname2(vars.capdns, options->target, AF_INET);
 		if (!hp)
 			errx(EX_NOHOST, "cannot resolve %s: %s",
@@ -466,6 +463,8 @@ ping(struct options *const options)
 	/* record route option */
 	if (options->f_rroute) {
 #ifdef IP_OPTIONS
+		char rspace[MAX_IPOPTLEN];	/* record route space */
+
 		bzero(rspace, sizeof(rspace));
 		rspace[IPOPT_OPTVAL] = IPOPT_RR;
 		rspace[IPOPT_OLEN] = sizeof(rspace) - 1;
@@ -487,6 +486,8 @@ ping(struct options *const options)
 		}
 	}
 	if (options->f_no_loop) {
+		const unsigned char loop = 0;
+
 		if (setsockopt(vars.ssend, IPPROTO_IP, IP_MULTICAST_LOOP, &loop,
 		    sizeof(loop)) < 0) {
 			err(EX_OSERR, "setsockopt IP_MULTICAST_LOOP");
