@@ -207,12 +207,11 @@ ping(struct options *const options)
 	struct shared_variables vars;
 	struct counters counters;
 	struct timing timing;
-	size_t sz;
 	u_char *datap, packet[IP_MAXPACKET] __aligned(4);
 	const char *shostname;
 	struct hostent *hp;
 	struct sockaddr_in *to;
-	int almost_done, hold, i, icmp_len, maxpayload, mib[4];
+	int almost_done, hold, i, icmp_len;
 	int ssend_errno, srecv_errno;
 	int srecv; /* receive socket file descriptor */
 	char ctrl[CMSG_SPACE(sizeof(struct timeval))];
@@ -291,7 +290,9 @@ ping(struct options *const options)
 	icmp_len = sizeof(struct ip) + ICMP_MINLEN + vars.phdr_len;
 	if (options->f_rroute)
 		icmp_len += MAX_IPOPTLEN;
-	maxpayload = IP_MAXPACKET - icmp_len;
+
+	const int maxpayload = IP_MAXPACKET - icmp_len;
+
 	if (options->n_packet_size > maxpayload)
 		errx(EX_USAGE, "packet size too large: %ld > %d", options->n_packet_size,
 		    maxpayload);
@@ -424,6 +425,9 @@ ping(struct options *const options)
 	if (options->f_dont_fragment || options->f_tos) {
 		ip = (struct ip*)vars.outpackhdr;
 		if (!options->f_ttl && !options->f_multicast_ttl) {
+			int mib[4];
+			size_t sz;
+
 			mib[0] = CTL_NET;
 			mib[1] = PF_INET;
 			mib[2] = IPPROTO_IP;
