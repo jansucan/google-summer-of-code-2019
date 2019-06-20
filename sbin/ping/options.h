@@ -160,8 +160,6 @@ struct options {
 
 	const char *s_gateway;
 
-	bool f_hostname;
-
 	bool f_nigroup;
 	int  c_nigroup;
 	

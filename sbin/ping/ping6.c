@@ -206,7 +206,7 @@ struct timing {
 	double sumsq;	/* sum of all times squared, for std. dev. */
 };
 
-static bool sig_option_f_hostname;
+static bool sig_option_f_numeric;
 static volatile sig_atomic_t seenint;
 #ifdef SIGINFO
 static volatile sig_atomic_t seeninfo;
@@ -757,8 +757,8 @@ ping6(struct options *const options)
 
 	printf("PING6(%lu=40+8+%lu bytes) ", (unsigned long)(40 + pingerlen(options, sizeof(vars.dst.sin6_addr))),
 	    (unsigned long)(pingerlen(options, sizeof(vars.dst.sin6_addr)) - 8));
-	printf("%s --> ", pr_addr((struct sockaddr *)&src, sizeof(src), options->f_hostname));
-	printf("%s\n", pr_addr((struct sockaddr *)&vars.dst, sizeof(vars.dst), options->f_hostname));
+	printf("%s --> ", pr_addr((struct sockaddr *)&src, sizeof(src), options->f_numeric));
+	printf("%s\n", pr_addr((struct sockaddr *)&vars.dst, sizeof(vars.dst), options->f_numeric));
 
 	if (options->n_preload == 0)
 		pinger(options, &vars, &counters, &timing);
@@ -1200,7 +1200,7 @@ pr_pack(u_char *buf, int cc, struct msghdr *mhdr, const struct options *const op
 	if (cc < (int)sizeof(struct icmp6_hdr)) {
 		if (options->f_verbose)
 			warnx("packet too short (%d bytes) from %s", cc,
-			    pr_addr(from, fromlen, options->f_hostname));
+			    pr_addr(from, fromlen, options->f_numeric));
 		return;
 	}
 	if (((mhdr->msg_flags & MSG_CTRUNC) != 0) &&
@@ -1260,7 +1260,7 @@ pr_pack(u_char *buf, int cc, struct msghdr *mhdr, const struct options *const op
 			if (options->f_audible)
 				write_char(STDOUT_FILENO, BBELL);
 			(void)printf("%d bytes from %s, icmp_seq=%u", cc,
-			    pr_addr(from, fromlen, options->f_hostname), seq);
+			    pr_addr(from, fromlen, options->f_numeric), seq);
 			(void)printf(" hlim=%d", hoplim);
 			if (options->f_verbose) {
 				struct sockaddr_in6 dstsa;
@@ -1272,7 +1272,7 @@ pr_pack(u_char *buf, int cc, struct msghdr *mhdr, const struct options *const op
 				dstsa.sin6_addr = pktinfo->ipi6_addr;
 				(void)printf(" dst=%s",
 				    pr_addr((struct sockaddr *)&dstsa,
-					sizeof(dstsa), options->f_hostname));
+					sizeof(dstsa), options->f_numeric));
 			}
 			if (timing->enabled)
 				(void)printf(" time=%.3f ms", triptime);
@@ -1303,7 +1303,7 @@ pr_pack(u_char *buf, int cc, struct msghdr *mhdr, const struct options *const op
 		if (options->f_quiet)
 			return;
 
-		(void)printf("%d bytes from %s: ", cc, pr_addr(from, fromlen, options->f_hostname));
+		(void)printf("%d bytes from %s: ", cc, pr_addr(from, fromlen, options->f_numeric));
 
 		switch (ntohs(ni->ni_code)) {
 		case ICMP6_NI_SUCCESS:
@@ -1438,7 +1438,7 @@ pr_pack(u_char *buf, int cc, struct msghdr *mhdr, const struct options *const op
 		/* We've got something other than an ECHOREPLY */
 		if (!options->f_verbose)
 			return;
-		(void)printf("%d bytes from %s: ", cc, pr_addr(from, fromlen, options->f_hostname));
+		(void)printf("%d bytes from %s: ", cc, pr_addr(from, fromlen, options->f_numeric));
 		pr_icmph(icp, end, options->f_verbose);
 	}
 
@@ -1877,7 +1877,7 @@ get_pathmtu(struct msghdr *mhdr, const struct options *const options, const stru
 					printf("path MTU for %s is notified. "
 					       "(ignored)\n",
 					   pr_addr((struct sockaddr *)&mtuctl->ip6m_addr,
-					       sizeof(mtuctl->ip6m_addr), options->f_hostname));
+					       sizeof(mtuctl->ip6m_addr), options->f_numeric));
 				}
 				return(0);
 			}
@@ -1924,7 +1924,7 @@ onint(int notused __unused)
 	 * When doing reverse DNS lookups, the seenint flag might not
 	 * be noticed for a while.  Just exit if we get a second SIGINT.
 	 */
-	if (sig_option_f_hostname && seenint != 0)
+	if (!sig_option_f_numeric && seenint != 0)
 		_exit(((sig_counters_nreceived != NULL) && (*sig_counters_nreceived != 0)) ? 0 : 2);
 }
 
@@ -2240,12 +2240,12 @@ pr_iph(struct ip6_hdr *ip6)
  * a hostname.
  */
 static const char *
-pr_addr(struct sockaddr *addr, int addrlen, bool hostname)
+pr_addr(struct sockaddr *addr, int addrlen, bool numeric)
 {
 	static char buf[NI_MAXHOST];
 	int flag = 0;
 
-	if (!hostname)
+	if (numeric)
 		flag |= NI_NUMERICHOST;
 
 	if (getnameinfo(addr, addrlen, buf, sizeof(buf), NULL, 0, flag) == 0)
@@ -2424,7 +2424,7 @@ static void
 check_options(struct options *const options)
 {
 	/* Globalize information needed by the signal handler */
-	sig_option_f_hostname = options->f_hostname;
+	sig_option_f_numeric = options->f_numeric;
 	
 	if (options->f_flood) {
 		if (getuid() != 0) {
@@ -2449,12 +2449,8 @@ check_options(struct options *const options)
 			
 	}
 
-	if (options->f_numeric)
-		options->f_hostname = false;
-
 	options->c_nigroup -= 1;
-		
-	
+
 	if (options->f_packet_size) {
 		if (options->n_packet_size <= 0)
 			errx(1, "illegal datalen value -- %ld", options->n_packet_size);

@@ -51,7 +51,7 @@ __FBSDID("$FreeBSD$");
 
 #define OPSTR_COMMON        "Aac:DdfI:i:l:nop:qS:s:t:vW:"
 #define OPSTR_IPV4          "4G:g:h:LM:m:QRrT:z:"
-#define OPSTR_IPV6          "6b:e:Hj:k:NuwYy"
+#define OPSTR_IPV6          "6b:e:j:k:NuwYy"
 #define OPSTR_IPSEC_COMMON  "P:"
 
 #ifdef IPSEC
@@ -287,9 +287,6 @@ options_parse(int *const argc, char ***argv, struct options *const options)
 			break;
 		case 'e':
 			options->s_gateway = optarg;
-			break;
-		case 'H':
-			options->f_hostname = true;
 			break;
 		case 'j':
 			if (options_strtoi(optarg, &options->n_hoplimit))
@@ -629,7 +626,6 @@ options_has_ipv6_only(const struct options *const options)
 	    options->f_sock_buff_size ||
 #endif
 	    options->s_gateway != NULL ||
-	    options->f_hostname ||
 	    options->f_hoplimit ||
 	    options->f_nodeaddr ||
 	    options->f_nigroup ||
