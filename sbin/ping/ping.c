@@ -1157,14 +1157,14 @@ check_status(const struct counters *const counters, const struct timing *const t
 
 	if (siginfo_p) {
 		siginfo_p = 0;
-		(void)fprintf(stderr, "\r%ld/%ld packets received (%.1f%%)",
+		(void)printf("\r%ld/%ld packets received (%.1f%%)",
 		    counters->nreceived, counters->ntransmitted,
 		    counters->ntransmitted ? counters->nreceived * 100.0 / counters->ntransmitted : 0.0);
 		if (counters->nreceived && timing->enabled)
-			(void)fprintf(stderr, " %.3f min / %.3f avg / %.3f max",
+			(void)printf(" %.3f min / %.3f avg / %.3f max",
 			    timing->min, timing->sum / (counters->nreceived + counters->nrepeats),
 			    timing->max);
-		(void)fprintf(stderr, "\n");
+		(void)printf("\n");
 	}
 }
 
