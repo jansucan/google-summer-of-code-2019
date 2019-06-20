@@ -40,6 +40,7 @@ __FBSDID("$FreeBSD$");
 #include <err.h>
 #include <errno.h>
 #include <limits.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -69,7 +70,7 @@ __FBSDID("$FreeBSD$");
 #define OPSTR  OPSTR_COMMON OPSTR_IPV4 OPSTR_IPSEC
 #endif	/* INET6 */
 
-static void options_check(int argc, char **argv, const struct options *const options);
+static void options_check(int argc, char **argv, struct options *const options);
 static void options_get_target_type(struct options *const options);
 static void options_getaddrinfo(const char *const hostname,
     const struct addrinfo *const hints, struct addrinfo **const res);
@@ -78,6 +79,7 @@ static bool options_has_ipv4_only(const struct options *const options);
 static bool options_has_ipv6_only(const struct options *const options);
 #endif
 static void options_parse_hosts(int argc, char **argv, struct options *const options);
+static void options_set_defaults(struct options *const options);
 static bool options_strtol(const char *const str, long *const val);
 static bool options_strtoi(const char *const str, int *const val);
 static bool options_strtoul(const char *const str, unsigned long *const val);
@@ -106,10 +108,11 @@ void
 options_parse(int *const argc, char ***argv, struct options *const options)
 {
 	int ch;
+	double dbl, dbl_integer_part;
 #ifdef INET6
 	char *cp;
 #endif
-	memset(options, 0, sizeof(*options));
+	options_set_defaults(options);
 	
 	while ((ch = getopt(*argc, *argv, OPSTR)) != -1) {
 		switch (ch) {
@@ -144,8 +147,15 @@ options_parse(int *const argc, char ***argv, struct options *const options)
 #endif
 			break;
 		case 'i':
-			if (options_strtod(optarg, &options->n_interval))
+			/*
+			 * The interval is in seconds and may be
+			 * fractional.
+			 */
+			if (options_strtod(optarg, &dbl) || (dbl <= 0))
 				errx(EX_USAGE, "invalid timing interval: `%s'", optarg);
+			/* 1 second = 1000 ms = 1000 * 1000 microseconds */
+			options->n_interval.tv_usec = (suseconds_t) (modf(dbl, &dbl_integer_part) * 1000 * 1000);
+			options->n_interval.tv_sec = (time_t) dbl_integer_part;
 			options->f_interval = true;
 			break;
 		case 'l':
@@ -198,7 +208,7 @@ options_parse(int *const argc, char ***argv, struct options *const options)
 		case 'W':
 			if (options_strtoi(optarg, &options->n_wait_time))
 				errx(EX_USAGE, "invalid timing interval: `%s'", optarg);
-			options->f_wait_time = true;				
+			options->f_wait_time = true;
 			break;
 			/* IPV4 options */
 		case '4':
@@ -391,7 +401,7 @@ options_parse(int *const argc, char ***argv, struct options *const options)
 }
 
 static void
-options_check(int argc, char **argv, const struct options *const options)
+options_check(int argc, char **argv, struct options *const options)
 {
 #ifdef INET6
 	if (options->f_protocol_ipv6 && options_has_ipv4_only(options))
@@ -410,6 +420,18 @@ options_check(int argc, char **argv, const struct options *const options)
 
 	if (options->f_flood && options->f_interval)
 		errx(EX_USAGE, "-f and -i are incompatible options");
+
+	/* Check interval between sending each packet */
+	if ((getuid() != 0) && (options->n_interval.tv_sec < 1)) {
+		errno = EPERM;
+		err(EX_NOPERM, "only root may use interval < 1s");
+	}
+	/* The interval less than 1 microsecond does not make sense */
+	if (options->n_interval.tv_sec == 0 && options->n_interval.tv_usec < 1) {
+		options->n_interval.tv_usec = 1;
+		warnx("too small interval, raised to .000001");
+	}
+
 	if (options->f_mask && options->f_time)
 		errx(EX_USAGE, "ICMP_TSTAMP and ICMP_MASKREQ are exclusive");
 	if (options->f_sweep_max) {
@@ -520,6 +542,15 @@ options_parse_hosts(int argc, char **argv, struct options *const options)
 				errx(1, "bad addr family of an intermediate addr");
 		}
 	}
+}
+
+static void
+options_set_defaults(struct options *const options)
+{
+	memset(options, 0, sizeof(*options));
+
+	options->n_interval.tv_sec = 1;
+	options->n_interval.tv_usec = 0;
 }
 
 static bool

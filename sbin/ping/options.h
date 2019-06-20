@@ -143,7 +143,7 @@ struct options {
 	
 	/* Wait between sending packets */
 	bool    f_interval;
-	double  n_interval;
+	struct timeval n_interval;
 	
 	/* Size of packet to send */
 	bool f_packet_size;

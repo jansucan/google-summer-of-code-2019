@@ -246,13 +246,13 @@ static void	 summary(const struct counters *const, const struct timing *const, c
 static void	 tvsub(struct timeval *, struct timeval *);
 static int	 setpolicy(int, char *);
 static char	*nigroup(char *, int);
-static void      check_options(struct options *const, struct timeval *const);
+static void      check_options(struct options *const);
 static u_short   get_node_address_flags(const struct options *const);
 
 void
 ping6(struct options *const options)
 {
-	struct timeval last, intvl;
+	struct timeval last;
 	struct sockaddr_in6 from, *sin6, src;
 	struct addrinfo hints, *res;
 	struct sigaction si_sa;
@@ -290,7 +290,7 @@ ping6(struct options *const options)
 
 	datap = &vars.outpack[ICMP6ECHOLEN + ICMP6ECHOTMLEN];
 
-	check_options(options, &intvl);
+	check_options(options);
 
 	if (options->f_ping_filled)
 		fill((char *)datap, MAXDATALEN - 8 + sizeof(struct tv32) + options->ping_filled_size,
@@ -786,11 +786,8 @@ ping6(struct options *const options)
 			err(EX_OSERR, "sigaction SIGALRM");
 	}
 	if (options->f_flood) {
-		intvl.tv_sec = 0;
-		intvl.tv_usec = 10000;
-	} else if (!options->f_interval) {
-		intvl.tv_sec = options->n_interval / 1000;
-		intvl.tv_usec = (int)options->n_interval % 1000 * 1000;
+		options->n_interval.tv_sec = 0;
+		options->n_interval.tv_usec = 10000;
 	}
 
 	almost_done = 0;
@@ -814,8 +811,8 @@ ping6(struct options *const options)
 		FD_ZERO(&rfds);
 		FD_SET(vars.s, &rfds);
 		gettimeofday(&now, NULL);
-		timeout.tv_sec = last.tv_sec + intvl.tv_sec - now.tv_sec;
-		timeout.tv_usec = last.tv_usec + intvl.tv_usec - now.tv_usec;
+		timeout.tv_sec = last.tv_sec + options->n_interval.tv_sec - now.tv_sec;
+		timeout.tv_usec = last.tv_usec + options->n_interval.tv_usec - now.tv_usec;
 		while (timeout.tv_usec < 0) {
 			timeout.tv_usec += 1000000;
 			timeout.tv_sec--;
@@ -888,14 +885,14 @@ ping6(struct options *const options)
 			 * if we've received any packets or (options->n_wait_time)
 			 * milliseconds if we haven't.
 			 */
-				intvl.tv_usec = 0;
+				options->n_interval.tv_usec = 0;
 				if (counters.nreceived) {
-					intvl.tv_sec = 2 * timing.max / 1000;
-					if (intvl.tv_sec == 0)
-						intvl.tv_sec = 1;
+					options->n_interval.tv_sec = 2 * timing.max / 1000;
+					if (options->n_interval.tv_sec == 0)
+						options->n_interval.tv_sec = 1;
 				} else {
-					intvl.tv_sec = options->n_wait_time / 1000;
-					intvl.tv_usec = options->n_wait_time % 1000 * 1000;
+					options->n_interval.tv_sec = options->n_wait_time / 1000;
+					options->n_interval.tv_usec = options->n_wait_time % 1000 * 1000;
 				}
 			}
 			gettimeofday(&last, NULL);
@@ -2424,7 +2421,7 @@ nigroup(char *name, int nig_oldmcprefix)
 }
 
 static void
-check_options(struct options *const options, struct timeval *const intvl)
+check_options(struct options *const options)
 {
 	/* Globalize information needed by the signal handler */
 	sig_option_f_hostname = options->f_hostname;
@@ -2442,27 +2439,6 @@ check_options(struct options *const options, struct timeval *const intvl)
 
 	if ((options->f_hoplimit) && ((options->n_hoplimit < 0) || (options->n_hoplimit > 255)))
 		errx(1, "illegal hoplimit -- %d", options->n_hoplimit);
-
-	if (!options->f_interval)
-		options->n_interval = 1000;
-	else {
-		if (options->n_interval > (double)INT_MAX)
-			errx(EX_USAGE, "invalid timing interval: `%f'", options->n_interval);
-		else if ((getuid() != 0) && (options->n_interval < 1)) {
-			errno = EPERM;
-			err(EX_NOPERM, "only root may use interval < 1s");
-		}
-		intvl->tv_sec = (long)options->n_interval;
-		intvl->tv_usec =
-			(long)((options->n_interval - intvl->tv_sec) * 1000000);
-		if (intvl->tv_sec < 0)
-			errx(1, "illegal timing interval %f", options->n_interval);
-		/* less than 1/hz does not make sense */
-		if (intvl->tv_sec == 0 && intvl->tv_usec < 1) {
-			warnx("too small interval, raised to .000001");
-			intvl->tv_usec = 1;
-		}
-	}
 	
 	if (options->f_preload) {
 		if (getuid() != 0) {

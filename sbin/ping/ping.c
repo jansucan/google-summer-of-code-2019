@@ -112,7 +112,6 @@ __FBSDID("$FreeBSD$");
 #define	MAXWAIT		10000		/* max ms to wait for response */
 #define	MAXALARM	(60 * 60)	/* max seconds for alarm timeout */
 #define	MAXTOS		255
-#define MININTERVAL     1000	        /* min ms between sending packets */
 
 #define BBELL   '\a'  /* characters written for MISSED and AUDIBLE */
 #define BSPACE  '\b'  /* characters written for flood */
@@ -199,7 +198,7 @@ ping(struct options *const options)
 {
 	struct sockaddr_in from, sock_in;
 	struct in_addr ifaddr;
-	struct timeval last, intvl;
+	struct timeval last;
 	struct iovec iov;
 	struct ip *ip;
 	struct msghdr msg;
@@ -616,11 +615,8 @@ ping(struct options *const options)
 	(void)gettimeofday(&last, NULL);
 
 	if (options->f_flood) {
-		intvl.tv_sec = 0;
-		intvl.tv_usec = 10000;
-	} else {
-		intvl.tv_sec = options->n_interval / 1000;
-		intvl.tv_usec = (int)options->n_interval % 1000 * 1000;
+		options->n_interval.tv_sec = 0;
+		options->n_interval.tv_usec = 10000;
 	}
 
 	almost_done = 0;
@@ -635,8 +631,8 @@ ping(struct options *const options)
 		FD_ZERO(&rfds);
 		FD_SET(srecv, &rfds);
 		(void)gettimeofday(&now, NULL);
-		timeout.tv_sec = last.tv_sec + intvl.tv_sec - now.tv_sec;
-		timeout.tv_usec = last.tv_usec + intvl.tv_usec - now.tv_usec;
+		timeout.tv_sec = last.tv_sec + options->n_interval.tv_sec - now.tv_sec;
+		timeout.tv_usec = last.tv_usec + options->n_interval.tv_usec - now.tv_usec;
 		while (timeout.tv_usec < 0) {
 			timeout.tv_usec += 1000000;
 			timeout.tv_sec--;
@@ -698,14 +694,14 @@ ping(struct options *const options)
 				if (almost_done)
 					break;
 				almost_done = 1;
-				intvl.tv_usec = 0;
+				options->n_interval.tv_usec = 0;
 				if (counters.nreceived) {
-					intvl.tv_sec = 2 * timing.max / 1000;
-					if (!intvl.tv_sec)
-						intvl.tv_sec = 1;
+					options->n_interval.tv_sec = 2 * timing.max / 1000;
+					if (!options->n_interval.tv_sec)
+						options->n_interval.tv_sec = 1;
 				} else {
-					intvl.tv_sec = options->n_wait_time / 1000;
-					intvl.tv_usec = options->n_wait_time % 1000 * 1000;
+					options->n_interval.tv_sec = options->n_wait_time / 1000;
+					options->n_interval.tv_usec = options->n_wait_time % 1000 * 1000;
 				}
 			}
 			(void)gettimeofday(&last, NULL);
@@ -1528,18 +1524,6 @@ check_options(struct options *const options, struct in_addr *const ifaddr)
 
 	if ((options->f_interface) && (inet_aton(options->s_interface, ifaddr) == 0))
 		errx(EX_USAGE, "invalid multicast interface: `%s'", options->s_interface);
-
-	if (!options->f_interval)
-		options->n_interval = MININTERVAL;
-	else {
-		options->n_interval *= 1000;
-		if (options->n_interval > (double)INT_MAX)
-			errx(EX_USAGE, "invalid timing interval: `%f'", options->n_interval);
-		else if ((getuid() != 0) && (options->n_interval < 1000)) {
-			errno = EPERM;
-			err(EX_NOPERM, "-i interval too short");
-		}
-	}
 
 	if (options->f_preload) {
 		if (getuid() != 0) {
