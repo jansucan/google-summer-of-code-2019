@@ -646,7 +646,6 @@ options_has_ipv6_only(const struct options *const options)
 void
 usage(void)
 {
-	/* TODO: Why (void)? */
 	(void)fprintf(stderr,
 	    "usage: ping [-4AaDdfnoQqRrv] [-c count] [-G sweepmaxsize] [-g sweepminsize]\n"
 	    "            [-h sweepincrsize] [-i wait] [-l preload] [-M mask | time] [-m ttl]\n"
