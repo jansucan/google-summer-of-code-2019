@@ -157,8 +157,6 @@ struct tv32 {
 #define	DEFDATALEN	ICMP6ECHOTMLEN
 #define MAXDATALEN	MAXPACKETLEN - IP6LEN - ICMP6ECHOLEN
 #define	NROUTES		9		/* number of record route slots */
-#define	MAXWAIT		10000		/* max ms to wait for response */
-#define	MAXALARM	(60 * 60)	/* max seconds for alarm timeout */
 
 #define BBELL   '\a'  /* characters written for MISSED and AUDIBLE */
 #define BSPACE  '\b'  /* characters written for flood */
@@ -246,7 +244,6 @@ static void	 summary(const struct counters *const, const struct timing *const, c
 static void	 tvsub(struct timeval *, struct timeval *);
 static int	 setpolicy(int, char *);
 static char	*nigroup(char *, int);
-static void      check_options(struct options *const);
 static u_short   get_node_address_flags(const struct options *const);
 
 void
@@ -290,7 +287,15 @@ ping6(struct options *const options)
 
 	datap = &vars.outpack[ICMP6ECHOLEN + ICMP6ECHOTMLEN];
 
-	check_options(options);
+	/* Globalize information needed by the signal handler */
+	sig_option_f_numeric = options->f_numeric;
+
+	if (options->f_flood)
+		setbuf(stdout, (char *)NULL);
+
+	/* TODO: alarm is obsoletet by setitimer(2) */
+	if (options->f_alarm_timeout)
+		alarm((unsigned int) options->n_alarm_timeout);
 
 	if (options->f_ping_filled)
 		fill((char *)datap, MAXDATALEN - 8 + sizeof(struct tv32) + options->ping_filled_size,
@@ -2418,59 +2423,6 @@ nigroup(char *name, int nig_oldmcprefix)
 		return NULL;
 
 	return strdup(hbuf);
-}
-
-static void
-check_options(struct options *const options)
-{
-	/* Globalize information needed by the signal handler */
-	sig_option_f_numeric = options->f_numeric;
-	
-	if (options->f_flood) {
-		if (getuid() != 0) {
-			errno = EPERM;
-			errx(EX_NOPERM, "Must be superuser to flood ping");
-		}
-		setbuf(stdout, (char *)NULL);
-	}
-
-	if (options->f_sock_buff_size && (options->n_sock_buff_size > INT_MAX))
-		errx(1, "invalid socket buffer size");
-
-	if ((options->f_hoplimit) && ((options->n_hoplimit < 0) || (options->n_hoplimit > 255)))
-		errx(1, "illegal hoplimit -- %d", options->n_hoplimit);
-	
-	if (options->f_preload) {
-		if (getuid() != 0) {
-			errno = EPERM;
-			errx(EX_NOPERM, "Must be superuser to preload");
-		} else if (options->n_preload < 0)
-			errx(EX_USAGE, "invalid preload value: `%d'", options->n_preload);
-			
-	}
-
-	options->c_nigroup -= 1;
-
-	if (options->f_packet_size) {
-		if (options->n_packet_size <= 0)
-			errx(1, "illegal datalen value -- %ld", options->n_packet_size);
-		else if (options->n_packet_size > MAXDATALEN)
-			errx(1,
-			    "datalen value too large, maximum is %d",
-			    MAXDATALEN);
-		
-	} else
-		options->n_packet_size = DEFDATALEN;
-	
-	if (!options->f_wait_time)
-		options->n_wait_time = MAXWAIT;
-	
-	/* TODO: alarm is obsoletet by setitimer(2) */
-	if (options->f_alarm_timeout) {
-		if (options->n_alarm_timeout > MAXALARM)
-			errx(EX_USAGE, "invalid timeout: `%lu' > %d", options->n_alarm_timeout, MAXALARM);
-		alarm((unsigned int) options->n_alarm_timeout);
-	}
 }
 
 static u_short

@@ -34,6 +34,7 @@ __FBSDID("$FreeBSD$");
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <netinet/ip.h>
 #include <netdb.h>
 
 #include <ctype.h>
@@ -48,6 +49,23 @@ __FBSDID("$FreeBSD$");
 #include <unistd.h>
 
 #include "options.h"
+
+/* TODO: This is duplicated from ping6.c */
+struct tv32 {
+	int32_t tv32_sec;
+	int32_t tv32_usec;
+};
+#define MAXPACKETLEN	131072
+#define	IP6LEN		40
+#define ICMP6ECHOLEN	8	/* icmp echo header len excluding time */
+#define ICMP6ECHOTMLEN  sizeof(struct tv32)
+#define MAXDATALEN	MAXPACKETLEN - IP6LEN - ICMP6ECHOLEN
+
+#define DEFAULT_DATALEN_IPV6   ICMP6ECHOTMLEN
+#define	DEFAULT_DATALEN_IPV4   56
+
+#define MAX_ALARM (60 * 60)
+#define	MAX_TOS		255
 
 #define OPSTR_COMMON        "Aac:DdfI:i:l:nop:qS:s:t:vW:"
 #define OPSTR_IPV4          "4G:g:h:LM:m:QRrT:z:"
@@ -71,6 +89,7 @@ __FBSDID("$FreeBSD$");
 #endif	/* INET6 */
 
 static void options_check(int argc, char **argv, struct options *const options);
+static void options_check_packet_size(int, int);
 static void options_get_target_type(struct options *const options);
 static void options_getaddrinfo(const char *const hostname,
     const struct addrinfo *const hints, struct addrinfo **const res);
@@ -112,8 +131,8 @@ options_parse(int *const argc, char ***argv, struct options *const options)
 #ifdef INET6
 	char *cp;
 #endif
-	options_set_defaults(options);
-	
+	memset(options, 0, sizeof(*options));
+
 	while ((ch = getopt(*argc, *argv, OPSTR)) != -1) {
 		switch (ch) {
 		case 'A':
@@ -250,7 +269,7 @@ options_parse(int *const argc, char ***argv, struct options *const options)
 		case 'm':
 			if (options_strtoi(optarg, &options->n_ttl))
 				errx(EX_USAGE, "invalid TTL: `%s'", optarg);
-			options->f_ttl = true;		
+			options->f_ttl = true;
 			break;
 		case 'Q':
 			options->f_somewhat_quiet = true;
@@ -264,12 +283,12 @@ options_parse(int *const argc, char ***argv, struct options *const options)
 		case 'T':
 			if (options_strtoi(optarg, &options->n_multicast_ttl))
 				errx(EX_USAGE, "invalid multicast TTL: `%s'", optarg);
-			options->f_multicast_ttl = true;		
+			options->f_multicast_ttl = true;
 			break;
 		case 'z':
 			if (options_strtoi(optarg, &options->n_tos))
 				errx(EX_USAGE, "invalid TOS: `%s'", optarg);
-			options->f_tos = true;		
+			options->f_tos = true;
 			break;
 			/* IPv6 options */
 #ifdef INET6
@@ -361,7 +380,7 @@ options_parse(int *const argc, char ***argv, struct options *const options)
 			options->f_nodeaddr = false;
 			options->f_fqdn = false;
 			options->f_fqdn_old = false;
-			options->f_subtypes = true;			
+			options->f_subtypes = true;
 			break;
 #endif /* INET6 */
 #ifdef IPSEC
@@ -394,6 +413,7 @@ options_parse(int *const argc, char ***argv, struct options *const options)
 	*argv += optind;
 
 	options_parse_hosts(*argc, *argv, options);
+	options_set_defaults(options);
 	options_check(*argc, *argv, options);
 }
 
@@ -414,33 +434,94 @@ options_check(int argc, char **argv, struct options *const options)
 	else if (options->f_protocol_ipv6 && (options->target_type == TARGET_HOSTNAME_IPV4))
 		errx(EX_USAGE, "IPv6 requested but the hostname has been resolved to IPv4");
 #endif
-
+	/*
+	 * Check options common to both IPv4 and IPv6 targets.
+	 */
 	if (options->f_flood && options->f_interval)
 		errx(EX_USAGE, "-f and -i are incompatible options");
-
-	/* Check interval between sending each packet */
+	if (options->f_flood && (getuid() != 0))
+		errx(EX_NOPERM, "Must be superuser to flood ping");
+	/* Check interval between sending each packet. */
 	if ((getuid() != 0) && (options->n_interval.tv_sec < 1)) {
 		errno = EPERM;
 		err(EX_NOPERM, "only root may use interval < 1s");
 	}
-	/* The interval less than 1 microsecond does not make sense */
+	/* The interval less than 1 microsecond does not make sense. */
 	if (options->n_interval.tv_sec == 0 && options->n_interval.tv_usec < 1) {
 		options->n_interval.tv_usec = 1;
 		warnx("too small interval, raised to .000001");
 	}
+	if ((options->f_alarm_timeout) && (options->n_alarm_timeout > MAX_ALARM))
+		errx(EX_USAGE, "invalid timeout: `%lu' > %d", options->n_alarm_timeout, MAX_ALARM);
 
+	if (options->f_packet_size) {
+		if (options->n_packet_size <= 0)
+			errx(1, "illegal datalen value -- %ld", options->n_packet_size);
+		if ((options->target_type == TARGET_ADDRESS_IPV4) ||
+		    (options->target_type == TARGET_HOSTNAME_IPV4))
+			options_check_packet_size(options->n_packet_size, DEFAULT_DATALEN_IPV4);
+		else if (options->n_packet_size > MAXDATALEN)
+			errx(1, "datalen value too large, maximum is %d", MAXDATALEN);
+	} else if ((options->target_type == TARGET_ADDRESS_IPV4) ||
+	    (options->target_type == TARGET_HOSTNAME_IPV4))
+		options->n_packet_size = DEFAULT_DATALEN_IPV4;
+	else
+		options->n_packet_size = DEFAULT_DATALEN_IPV6;
+
+	/*
+	 * Check options only for IPv4 target.
+	 */
 	if (options->f_mask && options->f_time)
 		errx(EX_USAGE, "ICMP_TSTAMP and ICMP_MASKREQ are exclusive");
+	if ((options->f_sweep_max || options->f_sweep_min || options->f_sweep_incr) &&
+	    (options->n_sweep_max == 0))
+		errx(EX_USAGE, "Maximum sweep size must be specified");
 	if (options->f_sweep_max) {
 		if (options->n_sweep_min > options->n_sweep_max)
 			errx(EX_USAGE, "Maximum packet size must be no less than the minimum packet size");
 		if (options->f_packet_size)
 			errx(EX_USAGE, "Packet size and ping sweep are mutually exclusive");
+		options_check_packet_size(options->f_sweep_max, DEFAULT_DATALEN_IPV4);
 	}
-	if ((options->f_sweep_max || options->f_sweep_min || options->f_sweep_incr) &&
-	    (options->n_sweep_max != 0))
-		errx(EX_USAGE, "Maximum sweep size must be specified");
+	if (options->f_sweep_min)
+		options_check_packet_size(options->f_sweep_min, DEFAULT_DATALEN_IPV4);
+	if (options->f_sweep_incr)
+		options_check_packet_size(options->f_sweep_incr, DEFAULT_DATALEN_IPV4);
 
+	if (options->f_preload) {
+		if (getuid() != 0)
+			errx(EX_NOPERM, "Must be superuser to preload");
+		else if (options->n_preload < 0)
+			errx(EX_USAGE, "invalid preload value: `%d'", options->n_preload);
+	}
+
+	if ((options->f_ttl) && (options->n_ttl > MAXTTL || options->n_ttl < 0))
+		errx(EX_USAGE, "invalid TTL: `%d'", options->n_ttl);
+	if ((options->f_multicast_ttl) && (options->n_multicast_ttl > MAXTTL || options->n_multicast_ttl < 0))
+		errx(EX_USAGE, "invalid multicast TTL: `%d'", options->n_multicast_ttl);
+	if ((options->f_tos) && (options->n_tos > MAX_TOS || options->n_tos < 0))
+		errx(EX_USAGE, "invalid TOS: `%d'", options->n_tos);
+
+	/*
+	 * Check options only for IPv6 target.
+	 */
+	if (options->f_sock_buff_size && (options->n_sock_buff_size > INT_MAX))
+		errx(1, "invalid socket buffer size");
+	if ((options->f_hoplimit) && ((options->n_hoplimit < 0) || (options->n_hoplimit > 255)))
+		errx(1, "illegal hoplimit -- %d", options->n_hoplimit);
+
+
+}
+
+static void
+options_check_packet_size(int size, int max_size)
+{
+	if (size <= 0)
+		errx(EX_USAGE, "invalid packet size: `%d'", size);
+	if ((getuid() != 0) && (size > max_size)) {
+		err(EX_NOPERM,
+		    "packet size too large: %d > %u", size, max_size);
+	}
 }
 
 static void
@@ -543,10 +624,28 @@ options_parse_hosts(int argc, char **argv, struct options *const options)
 static void
 options_set_defaults(struct options *const options)
 {
-	memset(options, 0, sizeof(*options));
-
-	options->n_interval.tv_sec = 1;
-	options->n_interval.tv_usec = 0;
+	if (!options->f_sweep_incr)
+		options->n_sweep_incr = 1;
+	if (!options->f_interval) {
+		options->n_interval.tv_sec = 1;
+		options->n_interval.tv_usec = 0;
+	}
+	if (!options->f_wait_time)
+		options->n_wait_time = 10000;
+	if (!options->f_packet_size) {
+		if ((options->target_type == TARGET_ADDRESS_IPV4) ||
+		    (options->target_type == TARGET_ADDRESS_IPV4))
+			options->n_packet_size = DEFAULT_DATALEN_IPV4;
+		else
+			options->n_packet_size = DEFAULT_DATALEN_IPV6;
+	}
+	/*
+	 * Default value is -1. By the memset(options, ...) it is
+	 * initialized to 0 and every -N option increments it. Thus,
+	 * by subtracting -1 we get the correct value for both cases
+	 * (default and non-default).
+	 */
+	options->c_nigroup -= 1;
 }
 
 static bool
@@ -554,7 +653,7 @@ options_strtol(const char *const str, long *const val)
 {
 	/* TODO: check errno */
 	char *ep;
-	
+
 	*val = strtol(str, &ep, 0);
 
 	return (*ep == '\0' && optarg != '\0');
@@ -578,10 +677,10 @@ options_strtoul(const char *const str, unsigned long *const val)
 {
 	/* TODO: check errno */
 	char *ep;
-	
+
 	*val = strtoul(optarg, &ep, 0);
 
-	return ((*ep == '\0' && optarg != '\0') && (*val != ULONG_MAX));	
+	return ((*ep == '\0' && optarg != '\0') && (*val != ULONG_MAX));
 }
 
 static bool
@@ -589,7 +688,7 @@ options_strtod(const char *const str, double *const val)
 {
 	/* TODO: check errno */
 	char *ep;
-	
+
 	*val = strtod(str, &ep);
 
 	return (*ep == '\0' && optarg != '\0');

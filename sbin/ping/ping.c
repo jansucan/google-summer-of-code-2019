@@ -104,14 +104,10 @@ __FBSDID("$FreeBSD$");
 #define	TIMEVAL_LEN	((int)sizeof(struct tv32))
 #define	MASK_LEN	(ICMP_MASKLEN - ICMP_MINLEN)
 #define	TS_LEN		(ICMP_TSLEN - ICMP_MINLEN)
-#define	DEFDATALEN	56		/* default data length */
 #define	FLOOD_BACKOFF	20000		/* usecs to back off if F_FLOOD mode */
 					/* runs out of buffer space */
 #define	MAXIPLEN	(sizeof(struct ip) + MAX_IPOPTLEN)
 #define	MAXICMPLEN	(ICMP_ADVLENMIN + MAX_IPOPTLEN)
-#define	MAXWAIT		10000		/* max ms to wait for response */
-#define	MAXALARM	(60 * 60)	/* max seconds for alarm timeout */
-#define	MAXTOS		255
 
 #define BBELL   '\a'  /* characters written for MISSED and AUDIBLE */
 #define BSPACE  '\b'  /* characters written for flood */
@@ -190,8 +186,6 @@ static void pr_retip(struct ip *);
 static void status(int);
 static void stopit(int);
 static void tvsub(struct timeval *, const struct timeval *);
-static void check_options(struct options *const, struct in_addr *const);
-static void check_packet_size(int, int);
 
 void
 ping(struct options *const options)
@@ -269,7 +263,18 @@ ping(struct options *const options)
 
 	vars.outpack = vars.outpackhdr + sizeof(struct ip);
 
-	check_options(options, &ifaddr);
+	/* Globalize information needed by the signal handler */
+	sig_option_f_numeric = options->f_numeric;
+
+	if (options->f_flood)
+		setbuf(stdout, (char *)NULL);
+
+	/* TODO: alarm is obsoletet by setitimer(2) */
+	if (options->f_alarm_timeout)
+		alarm((unsigned int) options->n_alarm_timeout);
+
+	if ((options->f_interface) && (inet_aton(options->s_interface, &ifaddr) == 0))
+		errx(EX_USAGE, "invalid multicast interface: `%s'", options->s_interface);
 	
 	if (options->f_mask) {
 		vars.icmp_type = ICMP_MASKREQ;
@@ -1495,79 +1500,4 @@ capdns_setup(void)
 		err(1, "unable to limit access to system.dns service");
 
 	return (capdnsloc);
-}
-
-static void
-check_options(struct options *const options, struct in_addr *const ifaddr)
-{
-	/* Globalize information needed by the signal handler */
-	sig_option_f_numeric = options->f_numeric;
-	
-	if (options->f_flood) {
-		if (getuid() != 0) {
-			errno = EPERM;
-			errx(EX_NOPERM, "Must be superuser to flood ping");
-		}
-		setbuf(stdout, (char *)NULL);
-	}
-
-	if (options->f_sweep_max)
-		check_packet_size(options->f_sweep_max, DEFDATALEN);
-	
-	if (options->f_sweep_min)
-		check_packet_size(options->f_sweep_min, DEFDATALEN);
-	
-	if (options->f_sweep_incr)
-		check_packet_size(options->f_sweep_incr, DEFDATALEN);
-	else
-		options->n_sweep_incr = 1;
-
-	if ((options->f_interface) && (inet_aton(options->s_interface, ifaddr) == 0))
-		errx(EX_USAGE, "invalid multicast interface: `%s'", options->s_interface);
-
-	if (options->f_preload) {
-		if (getuid() != 0) {
-			errno = EPERM;
-			errx(EX_NOPERM, "Must be superuser to preload");
-		} else if (options->n_preload < 0)
-			errx(EX_USAGE, "invalid preload value: `%d'", options->n_preload);
-			
-	}
-
-	if ((options->f_ttl) && (options->n_ttl > MAXTTL || options->n_ttl < 0))
-		errx(EX_USAGE, "invalid TTL: `%d'", options->n_ttl);
-
-	if (options->f_packet_size)
-		check_packet_size(options->n_packet_size, DEFDATALEN);
-	else
-		options->n_packet_size = DEFDATALEN;
-
-	if ((options->f_multicast_ttl) && (options->n_multicast_ttl > MAXTTL || options->n_multicast_ttl < 0))
-		errx(EX_USAGE, "invalid multicast TTL: `%d'", options->n_multicast_ttl);
-
-	/* TODO: alarm is obsoletet by setitimer(2) */
-	if (options->f_alarm_timeout) {
-		if (options->n_alarm_timeout > MAXALARM)
-			errx(EX_USAGE, "invalid timeout: `%lu' > %d", options->n_alarm_timeout, MAXALARM);
-		alarm((unsigned int) options->n_alarm_timeout);
-	}
-
-	if (!options->f_wait_time)
-		options->n_wait_time = MAXWAIT;
-
-
-	if ((options->f_tos) && (options->n_tos > MAXTOS || options->n_tos < 0))
-		errx(EX_USAGE, "invalid TOS: `%d'", options->n_tos);
-}
-
-static void
-check_packet_size(int size, int max_size)
-{
-	if (size <= 0)
-		errx(EX_USAGE, "insizeid packet size: `%d'", size);
-	if ((getuid() != 0) && (size > max_size)) {
-		errno = EPERM;
-		err(EX_NOPERM,
-		    "packet size too large: %d > %u", size, max_size);
-	}
 }
