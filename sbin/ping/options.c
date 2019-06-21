@@ -451,34 +451,33 @@ options_get_target_type(struct options *const options)
 	struct in6_addr a6;
 #endif
 	struct addrinfo hints;
+	bool is_address;
 
 	options->target_type = TARGET_UNKNOWN;
-
-	if (inet_pton(AF_INET, options->target, &a) == 1)
-		options->target_type = TARGET_ADDRESS_IPV4;
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_RAW;
+	is_address = false;
+	/* TODO: check for inet_pton() errors (retval -1) */
+	if ((is_address = (inet_pton(AF_INET, options->target, &a) == 1)) ||
+	    options->f_protocol_ipv4) {
+		if (is_address)
+			options->target_type = TARGET_ADDRESS_IPV4;
+		hints.ai_family = AF_INET;
+	}
 #ifdef INET6
-	else if (inet_pton(AF_INET6, options->target, &a6) == 1)
-		options->target_type = TARGET_ADDRESS_IPV6;
+	else if ((is_address = (inet_pton(AF_INET6, options->target, &a6) == 1)) ||
+	    options->f_protocol_ipv6) {
+		if (is_address)
+			options->target_type = TARGET_ADDRESS_IPV6;
+		hints.ai_flags = AI_CANONNAME;
+		hints.ai_family = AF_INET6;
+		hints.ai_protocol = IPPROTO_ICMPV6;
+	}
 #endif
-	else {
-		memset(&hints, 0, sizeof(hints));
-		hints.ai_socktype = SOCK_RAW;
+	options_getaddrinfo(options->target, &hints, &options->target_addrinfo);
 
-		if (options->f_protocol_ipv4)
-			hints.ai_family = AF_INET;
-#ifdef INET6
-		else if (options->f_protocol_ipv6) {
-			hints.ai_flags = AI_CANONNAME;
-			hints.ai_family = AF_INET6;
-			hints.ai_socktype = SOCK_RAW;
-			hints.ai_protocol = IPPROTO_ICMPV6;
-		}
-#endif
-		else
-			hints.ai_family = AF_UNSPEC;
-
-		options_getaddrinfo(options->target, &hints, &options->target_addrinfo);
-
+	if (!is_address) {
 		if (options->target_addrinfo->ai_family == AF_INET)
 			options->target_type = TARGET_HOSTNAME_IPV4;
 #ifdef INET6
