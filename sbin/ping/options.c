@@ -676,7 +676,7 @@ options_strtoul(const char *const str, unsigned long *const val)
 	/* TODO: check errno */
 	char *ep;
 
-	*val = strtoul(optarg, &ep, 0);
+	*val = strtoul(str, &ep, 0);
 
 	return ((*ep == '\0' && optarg != '\0') && (*val != ULONG_MAX));
 }
