@@ -88,7 +88,7 @@ struct tv32 {
 #define OPSTR  OPSTR_COMMON OPSTR_IPV4 OPSTR_IPSEC
 #endif	/* INET6 */
 
-static void options_check(int argc, char **argv, struct options *const options);
+static void options_check(struct options *const options);
 static void options_check_packet_size(int, int);
 static void options_get_target_type(struct options *const options);
 static void options_getaddrinfo(const char *const hostname,
@@ -412,11 +412,11 @@ options_parse(int *const argc, char ***argv, struct options *const options)
 
 	options_parse_hosts(*argc, *argv, options);
 	options_set_defaults(options);
-	options_check(*argc, *argv, options);
+	options_check(options);
 }
 
 static void
-options_check(int argc, char **argv, struct options *const options)
+options_check(struct options *const options)
 {
 #ifdef INET6
 	if (options->f_protocol_ipv6 && options_has_ipv4_only(options))
