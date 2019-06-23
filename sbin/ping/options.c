@@ -128,9 +128,7 @@ options_parse(int *const argc, char ***argv, struct options *const options)
 {
 	int ch;
 	double dbl, dbl_integer_part;
-#ifdef INET6
-	char *cp;
-#endif
+
 	memset(options, 0, sizeof(*options));
 
 	while ((ch = getopt(*argc, *argv, OPSTR)) != -1) {
@@ -313,7 +311,7 @@ options_parse(int *const argc, char ***argv, struct options *const options)
 			options->f_hoplimit = true;
 			break;
 		case 'k':
-			for (cp = optarg; *cp != '\0'; cp++) {
+			for (const char *cp = optarg; *cp != '\0'; cp++) {
 				switch (*cp) {
 				case 'a':
 					options->f_nodeaddr_flag_all = true;
