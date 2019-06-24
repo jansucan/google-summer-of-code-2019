@@ -443,8 +443,7 @@ options_check(struct options *const options)
 		errx(EX_NOPERM, "Must be superuser to flood ping");
 	/* Check interval between sending each packet. */
 	if ((getuid() != 0) && (options->n_interval.tv_sec < 1)) {
-		errno = EPERM;
-		err(EX_NOPERM, "only root may use interval < 1s");
+		errx(EX_NOPERM, "only root may use interval < 1s");
 	}
 	/* The interval less than 1 microsecond does not make sense. */
 	if (options->n_interval.tv_sec == 0 && options->n_interval.tv_usec < 1) {
@@ -519,7 +518,7 @@ options_check_packet_size(int size, int max_size)
 	if (size <= 0)
 		errx(EX_USAGE, "invalid packet size: `%d'", size);
 	if ((getuid() != 0) && (size > max_size)) {
-		err(EX_NOPERM,
+		errx(EX_NOPERM,
 		    "packet size too large: %d > %u", size, max_size);
 	}
 }
