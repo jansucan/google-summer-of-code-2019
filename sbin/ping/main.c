@@ -38,7 +38,7 @@ main(int argc, char *argv[])
 {
 	struct options options;
 
-	options_parse(&argc, &argv, &options);
+	options_parse(argc, argv, &options);
 
 	if ((options.target_type == TARGET_ADDRESS_IPV4) ||
 	    (options.target_type == TARGET_HOSTNAME_IPV4))

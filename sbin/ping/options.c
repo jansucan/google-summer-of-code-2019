@@ -124,14 +124,14 @@ options_free(struct options *const options)
 }
 
 void
-options_parse(int *const argc, char ***argv, struct options *const options)
+options_parse(int argc, char **argv, struct options *const options)
 {
 	int ch;
 	double dbl, dbl_integer_part;
 
 	memset(options, 0, sizeof(*options));
 
-	while ((ch = getopt(*argc, *argv, OPSTR)) != -1) {
+	while ((ch = getopt(argc, argv, OPSTR)) != -1) {
 		switch (ch) {
 		case 'A':
 			options->f_missed = true;
@@ -407,10 +407,10 @@ options_parse(int *const argc, char ***argv, struct options *const options)
 		}
 	}
 
-	*argc -= optind;
-	*argv += optind;
+	argc -= optind;
+	argv += optind;
 
-	options_parse_hosts(*argc, *argv, options);
+	options_parse_hosts(argc, argv, options);
 	options_set_defaults(options);
 	options_check(options);
 }
