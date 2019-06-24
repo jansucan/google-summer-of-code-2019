@@ -152,7 +152,6 @@ options_parse(int argc, char **argv, struct options *const options)
 			break;
 		case 'f':
 			if (getuid() != 0) {
-				errno = EPERM;
 				errx(EX_NOPERM, "Must be superuser to flood ping");
 			}
 			options->f_flood = true;
