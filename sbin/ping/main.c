@@ -29,6 +29,9 @@
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
+#include <stdlib.h>
+#include <sysexits.h>
+
 #include "options.h"
 #include "ping.h"
 #include "ping6.h"
@@ -38,7 +41,9 @@ main(int argc, char *argv[])
 {
 	struct options options;
 
-	options_parse(argc, argv, &options);
+	const int r = options_parse(argc, argv, &options);
+	if (r != EX_OK)
+		exit(r);
 
 	if ((options.target_type == TARGET_ADDRESS_IPV4) ||
 	    (options.target_type == TARGET_HOSTNAME_IPV4))

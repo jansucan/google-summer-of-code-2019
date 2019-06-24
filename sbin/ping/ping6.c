@@ -341,7 +341,7 @@ ping6(struct options *const options)
 		options->target = nigroup(options->target, options->c_nigroup);
 		if (options->target == NULL) {
 			usage();
-			/*NOTREACHED*/
+			exit(EX_USAGE);
 		}
 	}
 

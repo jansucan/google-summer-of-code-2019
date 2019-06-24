@@ -197,7 +197,7 @@ struct options {
 };
 
 void options_free(struct options *const options);
-void options_parse(int argc, char **argv, struct options *const options);
-void usage(void) __dead2;
+int  options_parse(int argc, char **argv, struct options *const options);
+void usage(void);
 
 #endif	/* OPTIONS_H */
