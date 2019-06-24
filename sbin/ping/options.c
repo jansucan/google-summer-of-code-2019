@@ -504,9 +504,9 @@ options_check(struct options *const options)
 	 * Check options only for IPv6 target.
 	 */
 	if (options->f_sock_buff_size && (options->n_sock_buff_size > INT_MAX))
-		errx(1, "invalid socket buffer size");
+		errx(EX_USAGE, "invalid socket buffer size");
 	if ((options->f_hoplimit) && ((options->n_hoplimit < 0) || (options->n_hoplimit > 255)))
-		errx(1, "illegal hoplimit -- %d", options->n_hoplimit);
+		errx(EX_USAGE, "illegal hoplimit -- %d", options->n_hoplimit);
 
 
 }
