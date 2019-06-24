@@ -360,9 +360,8 @@ ping(struct options *const options)
 
 	/* From now on we will use only reverse DNS lookups. */
 	if (vars.capdns != NULL) {
-		const char *types[1];
+		const char *const types[1] = { "ADDR2NAME" };
 
-		types[0] = "ADDR2NAME";
 		if (cap_dns_type_limit(vars.capdns, types, 1) < 0)
 			err(1, "unable to limit access to system.dns service");
 	}
