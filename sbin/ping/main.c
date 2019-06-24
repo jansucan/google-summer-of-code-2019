@@ -45,4 +45,5 @@ main(int argc, char *argv[])
 		ping(&options);
 	else
 		ping6(&options);
+	/* NOTREACHED */
 }
