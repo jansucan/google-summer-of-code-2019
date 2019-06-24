@@ -435,6 +435,8 @@ options_check(struct options *const options)
 	/*
 	 * Check options common to both IPv4 and IPv6 targets.
 	 */
+	if (options->f_packets && options->n_packets <= 0)
+		errx(EX_USAGE, "invalid count of packets to transmit: `%ld'", options->n_packets);
 	if (options->f_flood && options->f_interval)
 		errx(EX_USAGE, "-f and -i are incompatible options");
 	if (options->f_flood && (getuid() != 0))
