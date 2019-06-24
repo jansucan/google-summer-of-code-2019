@@ -172,7 +172,7 @@ options_parse(int argc, char **argv, struct options *const options)
 			 */
 			if (options_strtod(optarg, &dbl) || (dbl <= 0)) {
 				fprintf(stderr, "invalid timing interval: `%s'", optarg);
-				return(EX_USAGE);
+				return (EX_USAGE);
 			}
 			/* 1 second = 1000 ms = 1000 * 1000 microseconds */
 			options->n_interval.tv_usec = (suseconds_t) (modf(dbl, &dbl_integer_part) * 1000 * 1000);
