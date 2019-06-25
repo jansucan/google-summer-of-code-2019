@@ -781,7 +781,6 @@ options_strtol(const char *const str, long *const val)
 static bool
 options_strtoi(const char *const str, int *const val)
 {
-	/* TODO: check errno */
 	long ltmp;
 	if (!options_strtol(str, &ltmp) || ltmp > INT_MAX || ltmp < INT_MIN)
 		return (false);
