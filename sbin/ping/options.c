@@ -170,7 +170,7 @@ options_parse(int argc, char **argv, struct options *const options)
 			 * The interval is in seconds and may be
 			 * fractional.
 			 */
-			if (options_strtod(optarg, &dbl) || (dbl <= 0)) {
+			if (!options_strtod(optarg, &dbl) || (dbl <= 0)) {
 				fprintf(stderr, "invalid timing interval: `%s'", optarg);
 				return (EX_USAGE);
 			}
@@ -218,14 +218,14 @@ options_parse(int argc, char **argv, struct options *const options)
 			options->s_source = optarg;
 			break;
 		case 's':
-			if (options_strtol(optarg, &options->n_packet_size)) {
+			if (!options_strtol(optarg, &options->n_packet_size)) {
 				fprintf(stderr, "invalid packet size: `%s'", optarg);
 				return (EX_USAGE);
 			}
 			options->f_packet_size = true;
 			break;
 		case 't':
-			if (options_strtoul(optarg, &options->n_alarm_timeout)) {
+			if (!options_strtoul(optarg, &options->n_alarm_timeout)) {
 				fprintf(stderr, "invalid timeout: `%s'", optarg);
 				return (EX_USAGE);
 			}
@@ -235,7 +235,7 @@ options_parse(int argc, char **argv, struct options *const options)
 			options->f_verbose = true;
 			break;
 		case 'W':
-			if (options_strtoi(optarg, &options->n_wait_time)) {
+			if (!options_strtoi(optarg, &options->n_wait_time)) {
 				fprintf(stderr, "invalid timing interval: `%s'", optarg);
 				return (EX_USAGE);
 			}
@@ -246,21 +246,21 @@ options_parse(int argc, char **argv, struct options *const options)
 			options->f_protocol_ipv4 = true;
 			break;
 		case 'G':
-			if (options_strtoi(optarg, &options->n_sweep_max)) {
+			if (!options_strtoi(optarg, &options->n_sweep_max)) {
 				fprintf(stderr, "invalid packet size: `%s'", optarg);
 				return (EX_USAGE);
 			}
 			options->f_sweep_max = true;
 			break;
 		case 'g':
-			if (options_strtoi(optarg, &options->n_sweep_min)) {
+			if (!options_strtoi(optarg, &options->n_sweep_min)) {
 				fprintf(stderr, "invalid packet size: `%s'", optarg);
 				return (EX_USAGE);
 			}
 			options->f_sweep_min = true;
 			break;
 		case 'h':
-			if (options_strtoi(optarg, &options->n_sweep_incr)) {
+			if (!options_strtoi(optarg, &options->n_sweep_incr)) {
 				fprintf(stderr, "invalid increment size: `%s'", optarg);
 				return (EX_USAGE);
 			}
@@ -285,7 +285,7 @@ options_parse(int argc, char **argv, struct options *const options)
 			}
 			break;
 		case 'm':
-			if (options_strtoi(optarg, &options->n_ttl)) {
+			if (!options_strtoi(optarg, &options->n_ttl)) {
 				fprintf(stderr, "invalid TTL: `%s'", optarg);
 				return (EX_USAGE);
 			}
@@ -301,14 +301,14 @@ options_parse(int argc, char **argv, struct options *const options)
 			options->f_so_dontroute = true;
 			break;
 		case 'T':
-			if (options_strtoi(optarg, &options->n_multicast_ttl)) {
+			if (!options_strtoi(optarg, &options->n_multicast_ttl)) {
 				fprintf(stderr, "invalid multicast TTL: `%s'", optarg);
 				return (EX_USAGE);
 			}
 			options->f_multicast_ttl = true;
 			break;
 		case 'z':
-			if (options_strtoi(optarg, &options->n_tos)) {
+			if (!options_strtoi(optarg, &options->n_tos)) {
 				fprintf(stderr, "invalid TOS: `%s'", optarg);
 				return (EX_USAGE);
 			}
@@ -321,7 +321,7 @@ options_parse(int argc, char **argv, struct options *const options)
 			break;
 		case 'b':
 #if defined(SO_SNDBUF) && defined(SO_RCVBUF)
-			if (options_strtoul(optarg, &options->n_sock_buff_size)) {
+			if (!options_strtoul(optarg, &options->n_sock_buff_size)) {
 				fprintf(stderr, "invalid socket buffer size: `%s'", optarg);
 				return (EX_USAGE);
 			}
@@ -335,7 +335,7 @@ options_parse(int argc, char **argv, struct options *const options)
 			options->s_gateway = optarg;
 			break;
 		case 'j':
-			if (options_strtoi(optarg, &options->n_hoplimit)) {
+			if (!options_strtoi(optarg, &options->n_hoplimit)) {
 				fprintf(stderr, "illegal hoplimit %s", optarg);
 				return (EX_USAGE);
 			}
