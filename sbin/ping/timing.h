@@ -49,8 +49,7 @@ struct tv32 {
 	int32_t tv32_usec;
 };
 
-/* TODO: constify parameters */
-void tvsub(struct timeval *, const struct timeval *);
-void timing_init(struct timing *timing);
+void tvsub(struct timeval *const, const struct timeval *const);
+void timing_init(struct timing *const timing);
 
 #endif

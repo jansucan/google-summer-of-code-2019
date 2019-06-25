@@ -37,7 +37,7 @@ __FBSDID("$FreeBSD$");
  * be >= in.
  */
 void
-tvsub(struct timeval *out, const struct timeval *in)
+tvsub(struct timeval *const out, const struct timeval *const in)
 {
 	if ((out->tv_usec -= in->tv_usec) < 0) {
 		--out->tv_sec;
@@ -47,7 +47,7 @@ tvsub(struct timeval *out, const struct timeval *in)
 }
 
 void
-timing_init(struct timing *timing)
+timing_init(struct timing *const timing)
 {
 	timing->enabled = false;
 	timing->min = 999999999.0;
