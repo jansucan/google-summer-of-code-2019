@@ -202,7 +202,6 @@ ping(struct options *const options)
 	struct timing timing;
 	u_char *datap, packet[IP_MAXPACKET] __aligned(4);
 	const char *shostname;
-	struct hostent *hp;
 	struct sockaddr_in *to;
 	int almost_done, hold, i, icmp_len;
 	int ssend_errno, srecv_errno;
@@ -315,7 +314,9 @@ ping(struct options *const options)
 		} else {
 			char snamebuf[MAXHOSTNAMELEN];
 
-			hp = cap_gethostbyname2(vars.capdns, options->s_source, AF_INET);
+			const struct hostent *const hp =
+				cap_gethostbyname2(vars.capdns, options->s_source, AF_INET);
+
 			if (!hp)
 				errx(EX_NOHOST, "cannot resolve %s: %s",
 				    options->s_source, hstrerror(h_errno));
@@ -345,7 +346,9 @@ ping(struct options *const options)
 	} else {
 		char hnamebuf[MAXHOSTNAMELEN];
 
-		hp = cap_gethostbyname2(vars.capdns, options->target, AF_INET);
+		const struct hostent *const hp =
+			cap_gethostbyname2(vars.capdns, options->target, AF_INET);
+
 		if (!hp)
 			errx(EX_NOHOST, "cannot resolve %s: %s",
 			    options->target, hstrerror(h_errno));
