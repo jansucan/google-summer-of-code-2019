@@ -775,7 +775,7 @@ options_strtol(const char *const str, long *const val)
 
 	return (!((*val == 0) && (errno == EINVAL)) &&
 	    !(((*val == LONG_MIN) || (*val == LONG_MAX)) && (errno == ERANGE)) &&
-	    (*ep == '\0' && str != '\0'));
+	    (*ep == '\0' && *str != '\0'));
 }
 
 static bool
