@@ -805,12 +805,13 @@ options_strtoul(const char *const str, unsigned long *const val)
 static bool
 options_strtod(const char *const str, double *const val)
 {
-	/* TODO: check errno */
 	char *ep;
 
 	*val = strtod(str, &ep);
 
-	return (*ep == '\0' && *str != '\0');
+	return (!((*val == 0) && (errno == EINVAL)) &&
+	    !(((*val == HUGE_VAL) || (*val == -HUGE_VAL)) && (errno == ERANGE)) &&
+	    (*ep == '\0' && *str != '\0'));
 }
 
 #ifdef INET6
