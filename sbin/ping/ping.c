@@ -203,7 +203,7 @@ ping(struct options *const options)
 	u_char *datap, packet[IP_MAXPACKET] __aligned(4);
 	const char *shostname;
 	struct sockaddr_in *to;
-	int almost_done, hold, i, icmp_len;
+	int almost_done, hold, icmp_len;
 	int ssend_errno, srecv_errno;
 	int srecv; /* receive socket file descriptor */
 	char ctrl[CMSG_SPACE(sizeof(struct timeval))];
@@ -384,7 +384,7 @@ ping(struct options *const options)
 		timing.enabled = true;
 
 	if (!options->f_ping_filled)
-		for (i = TIMEVAL_LEN; i < options->n_packet_size; ++i)
+		for (int i = TIMEVAL_LEN; i < options->n_packet_size; ++i)
 			*datap++ = i;
 
 	vars.ident = getpid() & 0xFFFF;
@@ -687,7 +687,7 @@ ping(struct options *const options)
 		}
 		if (n == 0 || options->f_flood) {
 			if (options->n_sweep_max && counters.sntransmitted == counters.snpackets) {
-				for (i = 0; i < options->n_sweep_incr ; ++i)
+				for (int i = 0; i < options->n_sweep_incr ; ++i)
 					*datap++ = i;
 				options->n_packet_size += options->n_sweep_incr;
 				if (options->n_packet_size > options->n_sweep_max)
