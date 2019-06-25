@@ -774,7 +774,7 @@ options_strtol(const char *const str, long *const val)
 
 	*val = strtol(str, &ep, 0);
 
-	return (*ep == '\0' && optarg != '\0');
+	return (*ep == '\0' && str != '\0');
 }
 
 static bool
@@ -798,7 +798,7 @@ options_strtoul(const char *const str, unsigned long *const val)
 
 	*val = strtoul(str, &ep, 0);
 
-	return ((*ep == '\0' && optarg != '\0') && (*val != ULONG_MAX));
+	return ((*ep == '\0' && str != '\0') && (*val != ULONG_MAX));
 }
 
 static bool
@@ -809,7 +809,7 @@ options_strtod(const char *const str, double *const val)
 
 	*val = strtod(str, &ep);
 
-	return (*ep == '\0' && optarg != '\0');
+	return (*ep == '\0' && str != '\0');
 }
 
 #ifdef INET6
