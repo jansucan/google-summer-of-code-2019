@@ -203,7 +203,7 @@ ping(struct options *const options)
 	u_char *datap, packet[IP_MAXPACKET] __aligned(4);
 	const char *shostname;
 	struct sockaddr_in *to;
-	int almost_done, hold, icmp_len;
+	int hold, icmp_len;
 	int ssend_errno, srecv_errno;
 	int srecv; /* receive socket file descriptor */
 	char ctrl[CMSG_SPACE(sizeof(struct timeval))];
@@ -626,7 +626,7 @@ ping(struct options *const options)
 		options->n_interval.tv_usec = 10000;
 	}
 
-	almost_done = 0;
+	bool almost_done = false;
 	while (!finish_up) {
 		struct timeval now, timeout;
 		fd_set rfds;
@@ -700,7 +700,7 @@ ping(struct options *const options)
 			else {
 				if (almost_done)
 					break;
-				almost_done = 1;
+				almost_done = true;
 				options->n_interval.tv_usec = 0;
 				if (counters.nreceived) {
 					options->n_interval.tv_sec = 2 * timing.max / 1000;
