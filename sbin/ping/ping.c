@@ -68,7 +68,6 @@ __FBSDID("$FreeBSD$");
 #include <sys/capsicum.h>
 #include <sys/socket.h>
 #include <sys/sysctl.h>
-#include <sys/time.h>
 #include <sys/uio.h>
 
 #include <netinet/in.h>
@@ -98,6 +97,7 @@ __FBSDID("$FreeBSD$");
 #include <sysexits.h>
 
 #include "ping.h"
+#include "timing.h"
 #include "utils.h"
 
 #define	INADDR_LEN	((int)sizeof(in_addr_t))
@@ -108,11 +108,6 @@ __FBSDID("$FreeBSD$");
 					/* runs out of buffer space */
 #define	MAXIPLEN	(sizeof(struct ip) + MAX_IPOPTLEN)
 #define	MAXICMPLEN	(ICMP_ADVLENMIN + MAX_IPOPTLEN)
-
-struct tv32 {
-	int32_t tv32_sec;
-	int32_t tv32_usec;
-};
 
 /*
  * MAX_DUP_CHK is the number of bits in received table, i.e. the maximum
@@ -145,14 +140,6 @@ struct counters {
 	long nrcvtimeout;	/* # of packets we got back after waittime */
 };
 
-struct timing {
-	bool   enabled;	/* flag to do timing */
-	double min;	/* minimum round trip time */
-	double max;	/* maximum round trip time */
-	double sum;	/* sum of all times, for doing average */
-	double sumsq;	/* sum of all times squared, for std. dev. */
-};
-
 /* nonzero if we've been told to finish up */
 static bool sig_option_f_numeric;
 static volatile sig_atomic_t finish_up;
@@ -181,7 +168,6 @@ static void pr_pack(char *, int, struct sockaddr_in *, struct timeval *,
 static void pr_retip(struct ip *);
 static void status(int);
 static void stopit(int);
-static void tvsub(struct timeval *, const struct timeval *);
 
 void
 ping(struct options *const options)
@@ -219,11 +205,7 @@ ping(struct options *const options)
 	memset(&counters, 0, sizeof(counters));
 	sig_counters_nreceived = &counters.nreceived;
 
-	timing.enabled = false;
-	timing.min = 999999999.0;
-	timing.max = 0.0;
-	timing.sum = 0.0;
-	timing.sumsq = 0.0;
+	timing_init(&timing);
 
 	/*
 	 * Do the stuff that we need root priv's for *first*, and
@@ -1124,22 +1106,6 @@ in_cksum(u_short *addr, int len)
 	sum += (sum >> 16);			/* add carry */
 	answer = ~sum;				/* truncate to 16 bits */
 	return(answer);
-}
-
-/*
- * tvsub --
- *	Subtract 2 timeval structs:  out = out - in.  Out is assumed to
- * be >= in.
- */
-static void
-tvsub(struct timeval *out, const struct timeval *in)
-{
-
-	if ((out->tv_usec -= in->tv_usec) < 0) {
-		--out->tv_sec;
-		out->tv_usec += 1000000;
-	}
-	out->tv_sec -= in->tv_sec;
 }
 
 /*

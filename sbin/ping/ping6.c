@@ -106,7 +106,6 @@ __FBSDID("$FreeBSD$");
 #include <sys/param.h>
 #include <sys/uio.h>
 #include <sys/socket.h>
-#include <sys/time.h>
 
 #include <net/if.h>
 #include <net/route.h>
@@ -138,12 +137,8 @@ __FBSDID("$FreeBSD$");
 #include <md5.h>
 
 #include "ping6.h"
+#include "timing.h"
 #include "utils.h"
-
-struct tv32 {
-	u_int32_t tv32_sec;
-	u_int32_t tv32_usec;
-};
 
 #define MAXPACKETLEN	131072
 #define	IP6LEN		40
@@ -192,14 +187,6 @@ struct counters {
 	long nrcvtimeout;	/* # of packets we got back after waittime */
 };
 
-struct timing {
-	bool   enabled;	/* flag to do timing */
-	double min;	/* minimum round trip time */
-	double max;	/* maximum round trip time */
-	double sum;	/* sum of all times, for doing average */
-	double sumsq;	/* sum of all times squared, for std. dev. */
-};
-
 static bool sig_option_f_numeric;
 static volatile sig_atomic_t seenint;
 #ifdef SIGINFO
@@ -237,7 +224,6 @@ static void	 pr_rthdr(void *, size_t);
 static int	 pr_bitrange(u_int32_t, int, int);
 static void	 pr_retip(struct ip6_hdr *, u_char *);
 static void	 summary(const struct counters *const, const struct timing *const, const char *const);
-static void	 tvsub(struct timeval *, struct timeval *);
 static int	 setpolicy(int, char *);
 static char	*nigroup(char *, int);
 static u_short   get_node_address_flags(const struct options *const);
@@ -272,11 +258,7 @@ ping6(struct options *const options)
 	memset(&counters, 0, sizeof(counters));
 	sig_counters_nreceived = &counters.nreceived;
 
-	timing.enabled = false;
-	timing.min = 999999999.0;
-	timing.max = 0.0;
-	timing.sum = 0.0;
-	timing.sumsq = 0.0;
+	timing_init(&timing);
 
 	/* just to be sure */
 	memset(&vars.smsghdr, 0, sizeof(vars.smsghdr));
@@ -1896,21 +1878,6 @@ get_pathmtu(struct msghdr *mhdr, const struct options *const options, const stru
 	}
 #endif
 	return(0);
-}
-
-/*
- * tvsub --
- *	Subtract 2 timeval structs:  out = out - in.  Out is assumed to
- * be >= in.
- */
-static void
-tvsub(struct timeval *out, struct timeval *in)
-{
-	if ((out->tv_usec -= in->tv_usec) < 0) {
-		--out->tv_sec;
-		out->tv_usec += 1000000;
-	}
-	out->tv_sec -= in->tv_sec;
 }
 
 /*
