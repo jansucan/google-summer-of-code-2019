@@ -769,12 +769,13 @@ options_set_defaults(struct options *const options)
 static bool
 options_strtol(const char *const str, long *const val)
 {
-	/* TODO: check errno */
 	char *ep;
 
 	*val = strtol(str, &ep, 0);
 
-	return (*ep == '\0' && str != '\0');
+	return (!((*val == 0) && (errno == EINVAL)) &&
+	    !(((*val == LONG_MIN) || (*val == LONG_MAX)) && (errno == ERANGE)) &&
+	    (*ep == '\0' && str != '\0'));
 }
 
 static bool
