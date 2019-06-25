@@ -793,12 +793,13 @@ options_strtoi(const char *const str, int *const val)
 static bool
 options_strtoul(const char *const str, unsigned long *const val)
 {
-	/* TODO: check errno */
 	char *ep;
 
 	*val = strtoul(str, &ep, 0);
 
-	return ((*ep == '\0' && *str != '\0') && (*val != ULONG_MAX));
+	return (!((*val == 0) && (errno == EINVAL)) &&
+	    !((*val == ULONG_MAX) && (errno == ERANGE)) &&
+	    (*ep == '\0' && *str != '\0'));
 }
 
 static bool
