@@ -696,7 +696,7 @@ options_parse_hosts(int argc, char **argv, struct options *const options)
 	options->target = argv[argc - 1];
 	const int r = options_get_target_type(options);
 	if (r != EX_OK)
-		return r;
+		return (r);
 
 	if (options->target_type == TARGET_UNKNOWN) {
 		fprintf(stderr, "invalid ping target: `%s'", options->target);
@@ -783,10 +783,10 @@ options_strtoi(const char *const str, int *const val)
 	/* TODO: check errno */
 	long ltmp;
 	if (!options_strtol(str, &ltmp) || ltmp > INT_MAX || ltmp < INT_MIN)
-		return false;
+		return (false);
 	else {
 		*val = (int) ltmp;
-		return true;
+		return (true);
 	}
 }
 
