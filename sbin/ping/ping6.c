@@ -158,10 +158,6 @@ struct tv32 {
 #define MAXDATALEN	MAXPACKETLEN - IP6LEN - ICMP6ECHOLEN
 #define	NROUTES		9		/* number of record route slots */
 
-#define BBELL   '\a'  /* characters written for MISSED and AUDIBLE */
-#define BSPACE  '\b'  /* characters written for flood */
-#define DOT     '.'
-
 #define IN6LEN		sizeof(struct in6_addr)
 #define SA6LEN		sizeof(struct sockaddr_in6)
 #define DUMMY_PORT	10101
@@ -904,7 +900,7 @@ ping6(struct options *const options)
 			if (counters.ntransmitted - counters.nreceived - 1 > counters.nmissedmax) {
 				counters.nmissedmax = counters.ntransmitted - counters.nreceived - 1;
 				if (options->f_missed)
-					write_char(STDOUT_FILENO, BBELL);
+					write_char(STDOUT_FILENO, CHAR_BBELL);
 			}
 		}
 	}
@@ -1076,7 +1072,7 @@ pinger(struct options *const options, struct shared_variables *const vars,
 		    vars->hostname, cc, i);
 	}
 	if (!options->f_quiet && options->f_flood)
-		write_char(STDOUT_FILENO, DOT);
+		write_char(STDOUT_FILENO, CHAR_DOT);
 
 	return(0);
 }
@@ -1260,10 +1256,10 @@ pr_pack(u_char *buf, int cc, struct msghdr *mhdr, const struct options *const op
 		}
 
 		if (options->f_flood)
-			write_char(STDOUT_FILENO, BSPACE);
+			write_char(STDOUT_FILENO, CHAR_BSPACE);
 		else {
 			if (options->f_audible)
-				write_char(STDOUT_FILENO, BBELL);
+				write_char(STDOUT_FILENO, CHAR_BBELL);
 			(void)printf("%d bytes from %s, icmp_seq=%u", cc,
 			    pr_addr(from, fromlen, options->f_numeric), seq);
 			(void)printf(" hlim=%d", hoplim);

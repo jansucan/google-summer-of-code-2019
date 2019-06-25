@@ -109,10 +109,6 @@ __FBSDID("$FreeBSD$");
 #define	MAXIPLEN	(sizeof(struct ip) + MAX_IPOPTLEN)
 #define	MAXICMPLEN	(ICMP_ADVLENMIN + MAX_IPOPTLEN)
 
-#define BBELL   '\a'  /* characters written for MISSED and AUDIBLE */
-#define BSPACE  '\b'  /* characters written for flood */
-#define DOT     '.'
-
 struct tv32 {
 	int32_t tv32_sec;
 	int32_t tv32_usec;
@@ -715,7 +711,7 @@ ping(struct options *const options)
 			if (counters.ntransmitted - counters.nreceived - 1 > counters.nmissedmax) {
 				counters.nmissedmax = counters.ntransmitted - counters.nreceived - 1;
 				if (options->f_missed)
-					write_char(STDOUT_FILENO, BBELL);
+					write_char(STDOUT_FILENO, CHAR_BBELL);
 			}
 		}
 	}
@@ -814,7 +810,7 @@ pinger(const struct options *const options, struct shared_variables *const vars,
 	counters->ntransmitted++;
 	counters->sntransmitted++;
 	if (!options->f_quiet && options->f_flood)
-		write_char(STDOUT_FILENO, DOT);
+		write_char(STDOUT_FILENO, CHAR_DOT);
 }
 
 /*
@@ -907,7 +903,7 @@ pr_pack(char *buf, int cc, struct sockaddr_in *from, struct timeval *tv,
 		}
 
 		if (options->f_flood)
-			write_char(STDOUT_FILENO, BSPACE);
+			write_char(STDOUT_FILENO, CHAR_BSPACE);
 		else {
 			(void)printf("%d bytes from %s: icmp_seq=%u", cc,
 			   inet_ntoa(*(struct in_addr *)&from->sin_addr.s_addr),
@@ -918,7 +914,7 @@ pr_pack(char *buf, int cc, struct sockaddr_in *from, struct timeval *tv,
 			if (dupflag)
 				(void)printf(" (DUP!)");
 			if (options->f_audible)
-				write_char(STDOUT_FILENO, BBELL);
+				write_char(STDOUT_FILENO, CHAR_BBELL);
 			if (options->f_mask) {
 				/* Just prentend this cast isn't ugly */
 				(void)printf(" mask=%s",

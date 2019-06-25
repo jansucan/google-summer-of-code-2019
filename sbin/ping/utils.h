@@ -45,6 +45,10 @@
 #define	BIT_ARRAY_CLR(array, bit)	(BIT_ARRAY_BYTE(array, bit) &= (~BIT_ARRAY_BIT_MASK(bit)))
 #define	BIT_ARRAY_IS_SET(array, bit)	(BIT_ARRAY_BYTE(array, bit) & BIT_ARRAY_BIT_MASK(bit))
 
+#define CHAR_BBELL   '\a'  /* characters written for MISSED and AUDIBLE */
+#define CHAR_BSPACE  '\b'  /* characters written for flood */
+#define CHAR_DOT     '.'
+
 void fill(char *bp, size_t bp_size, const struct options *const options);
 void write_char(int fd, char c);
 
