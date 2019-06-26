@@ -99,7 +99,7 @@ static bool options_has_ipv4_only(const struct options *const options);
 static bool options_has_ipv6_only(const struct options *const options);
 #endif
 static int  options_parse_hosts(int argc, char **argv, struct options *const options);
-static void options_print_error(char *fmt, ...);
+static void options_print_error(const char *const fmt, ...);
 static void options_set_defaults(struct options *const options);
 static bool options_strtod(const char *const str, double *const val);
 
@@ -711,7 +711,7 @@ options_parse_hosts(int argc, char **argv, struct options *const options)
 }
 
 static void
-options_print_error(char *fmt, ...)
+options_print_error(const char *const fmt, ...)
 {
 	va_list ap;
 
