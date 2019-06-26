@@ -282,6 +282,8 @@ ping(struct options *const options)
 	if (options->f_ping_filled) {
 		fill((char *)datap, maxpayload - (TIMEVAL_LEN + options->ping_filled_size),
 		    options);
+		if (!options->f_quiet)
+			print_fill_pattern((char *)datap, options->ping_filled_size);
 	}
 	vars.capdns = capdns_setup();
 	if (options->s_source) {

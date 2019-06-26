@@ -49,7 +49,8 @@
 #define CHAR_BSPACE  '\b'  /* characters written for flood */
 #define CHAR_DOT     '.'
 
-void fill(char *bp, size_t bp_size, const struct options *const options);
+void fill(char *const bp, size_t bp_size, const struct options *const options);
+void print_fill_pattern(const char *const bp, size_t pattern_size);
 void write_char(int fd, char c);
 
 #endif

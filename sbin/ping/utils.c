@@ -35,18 +35,21 @@ __FBSDID("$FreeBSD$");
 #include "utils.h"
 
 void
-fill(char *bp, size_t bp_size, const struct options *const options)
+fill(char *const bp, size_t bp_size, const struct options *const options)
 {
 	if (options->ping_filled_size > 0)
 		for (size_t k = 0; k <= bp_size; k += options->ping_filled_size)
 			for (size_t j = 0; j < options->ping_filled_size; ++j)
 				bp[k + j] = options->a_ping_filled[j];
-	if (!options->f_quiet) {
-		(void)printf("PATTERN: 0x");
-		for (size_t j = 0; j < options->ping_filled_size; ++j)
-			(void)printf("%02x", bp[j] & 0xFF);
-		(void)printf("\n");
-	}
+}
+
+void
+print_fill_pattern(const char *const bp, size_t pattern_size)
+{
+	(void)printf("PATTERN: 0x");
+	for (size_t j = 0; j < pattern_size; ++j)
+		(void)printf("%02x", bp[j] & 0xFF);
+	(void)printf("\n");
 }
 
 void

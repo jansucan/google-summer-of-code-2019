@@ -275,9 +275,12 @@ ping6(struct options *const options)
 	if (options->f_alarm_timeout)
 		alarm((unsigned int) options->n_alarm_timeout);
 
-	if (options->f_ping_filled)
+	if (options->f_ping_filled) {
 		fill((char *)datap, MAXDATALEN - 8 + sizeof(struct tv32) + options->ping_filled_size,
 		    options);
+		if (!options->f_quiet)
+			print_fill_pattern((char *)datap, options->ping_filled_size);
+	}
 
 	/* TODO: Move gettaddrinfo() of the source to options.c? */
 	if (options->s_source != NULL) {
