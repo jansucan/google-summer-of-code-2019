@@ -110,10 +110,12 @@ ATF_TC_BODY(options_count, tc)
 	{
 		ARGC_ARGV("-c", "1", "localhost");
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.n_packets == 1);
 	}
 	{
 		ARGC_ARGV("-c", "234567", "localhost");
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.n_packets == 234567);
 	}
 	{
 		ARGC_ARGV("-c", "replaced_by_LONG_MAX", "localhost");
@@ -123,6 +125,7 @@ ATF_TC_BODY(options_count, tc)
 		test_argv[2] = long_max;
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.n_packets == LONG_MAX);
 	}
 	{
 		ARGC_ARGV("-c", "replaced_by_LONG_MAX+1", "localhost");
