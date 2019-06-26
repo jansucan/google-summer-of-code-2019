@@ -40,7 +40,7 @@ fill(char *bp, size_t bp_size, const struct options *const options)
 	if (options->ping_filled_size > 0)
 		for (size_t kk = 0; kk <= bp_size; kk += options->ping_filled_size)
 			for (size_t jj = 0; jj < options->ping_filled_size; ++jj)
-				bp[jj + kk] = options->a_ping_filled[jj];
+				bp[kk + jj] = options->a_ping_filled[jj];
 	if (!options->f_quiet) {
 		(void)printf("PATTERN: 0x");
 		for (size_t jj = 0; jj < options->ping_filled_size; ++jj)
