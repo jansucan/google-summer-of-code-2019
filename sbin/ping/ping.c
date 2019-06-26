@@ -121,7 +121,7 @@ struct shared_variables {
 	struct sockaddr_in whereto;	/* who to ping */
 	int ssend;		/* send socket file descriptor */
 	u_char outpackhdr[IP_MAXPACKET], *outpack;
-	const char *hostname;
+	char hostname[MAXHOSTNAMELEN];
 	int ident;		/* process id to identify our packets */
 	u_char icmp_type;
 	u_char icmp_type_rsp;
@@ -322,10 +322,10 @@ ping(struct options *const options)
 	to->sin_family = AF_INET;
 	to->sin_len = sizeof *to;
 	if (inet_aton(options->target, &to->sin_addr) != 0) {
-		vars.hostname = options->target;
+		/* TODO: check return the value of strncpy() */
+		(void)strncpy(vars.hostname, options->target, sizeof(vars.hostname) - 1);
+		vars.hostname[sizeof(vars.hostname) - 1] = '\0';
 	} else {
-		char hnamebuf[MAXHOSTNAMELEN];
-
 		const struct hostent *const hp =
 			cap_gethostbyname2(vars.capdns, options->target, AF_INET);
 
@@ -336,9 +336,8 @@ ping(struct options *const options)
 		if ((unsigned)hp->h_length > sizeof(to->sin_addr))
 			errx(1, "gethostbyname2 returned an illegal address");
 		memcpy(&to->sin_addr, hp->h_addr_list[0], sizeof to->sin_addr);
-		(void)strncpy(hnamebuf, hp->h_name, sizeof(hnamebuf) - 1);
-		hnamebuf[sizeof(hnamebuf) - 1] = '\0';
-		vars.hostname = hnamebuf;
+		(void)strncpy(vars.hostname, hp->h_name, sizeof(vars.hostname) - 1);
+		vars.hostname[sizeof(vars.hostname) - 1] = '\0';
 	}
 
 	/* From now on we will use only reverse DNS lookups. */
