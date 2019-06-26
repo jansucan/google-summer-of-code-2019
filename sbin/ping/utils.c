@@ -38,13 +38,13 @@ void
 fill(char *bp, size_t bp_size, const struct options *const options)
 {
 	if (options->ping_filled_size > 0)
-		for (size_t kk = 0; kk <= bp_size; kk += options->ping_filled_size)
-			for (size_t jj = 0; jj < options->ping_filled_size; ++jj)
-				bp[kk + jj] = options->a_ping_filled[jj];
+		for (size_t k = 0; k <= bp_size; k += options->ping_filled_size)
+			for (size_t j = 0; j < options->ping_filled_size; ++j)
+				bp[k + j] = options->a_ping_filled[j];
 	if (!options->f_quiet) {
 		(void)printf("PATTERN: 0x");
-		for (size_t jj = 0; jj < options->ping_filled_size; ++jj)
-			(void)printf("%02x", bp[jj] & 0xFF);
+		for (size_t j = 0; j < options->ping_filled_size; ++j)
+			(void)printf("%02x", bp[j] & 0xFF);
 		(void)printf("\n");
 	}
 }
