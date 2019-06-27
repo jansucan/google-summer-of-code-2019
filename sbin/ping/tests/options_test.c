@@ -191,6 +191,305 @@ ATF_TC_BODY(options_once, tc)
 	ATF_REQUIRE(options.f_once == true);
 }
 
+ATF_TC_WITHOUT_HEAD(options_quiet);
+ATF_TC_BODY(options_quiet, tc)
+{
+	ARGC_ARGV("-q", "localhost");
+	struct options options;
+
+	options.f_quiet = false;
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+	ATF_REQUIRE(options.f_quiet == true);
+}
+
+ATF_TC_WITHOUT_HEAD(options_verbose);
+ATF_TC_BODY(options_verbose, tc)
+{
+	ARGC_ARGV("-v", "localhost");
+	struct options options;
+
+	options.f_verbose = false;
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+	ATF_REQUIRE(options.f_verbose == true);
+}
+
+ATF_TC_WITHOUT_HEAD(options_protocol_ipv4);
+ATF_TC_BODY(options_protocol_ipv4, tc)
+{
+	ARGC_ARGV("-4", "localhost");
+	struct options options;
+
+	options.f_protocol_ipv4 = false;
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+	ATF_REQUIRE(options.f_protocol_ipv4 == true);
+}
+
+ATF_TC_WITHOUT_HEAD(options_no_loop);
+ATF_TC_BODY(options_no_loop, tc)
+{
+	ARGC_ARGV("-L", "localhost");
+	struct options options;
+
+	options.f_no_loop = false;
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+	ATF_REQUIRE(options.f_no_loop == true);
+}
+
+ATF_TC_WITHOUT_HEAD(options_somewhat_quiet);
+ATF_TC_BODY(options_somewhat_quiet, tc)
+{
+	ARGC_ARGV("-Q", "localhost");
+	struct options options;
+
+	options.f_somewhat_quiet = false;
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+	ATF_REQUIRE(options.f_somewhat_quiet == true);
+}
+
+ATF_TC_WITHOUT_HEAD(options_rroute);
+ATF_TC_BODY(options_rroute, tc)
+{
+	ARGC_ARGV("-R", "localhost");
+	struct options options;
+
+	options.f_rroute = false;
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+	ATF_REQUIRE(options.f_rroute == true);
+}
+
+ATF_TC_WITHOUT_HEAD(options_so_dontroute);
+ATF_TC_BODY(options_so_dontroute, tc)
+{
+	ARGC_ARGV("-r", "localhost");
+	struct options options;
+
+	options.f_so_dontroute = false;
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+	ATF_REQUIRE(options.f_so_dontroute == true);
+}
+
+#ifdef INET6
+ATF_TC_WITHOUT_HEAD(options_protocol_ipv6);
+ATF_TC_BODY(options_protocol_ipv6, tc)
+{
+	ARGC_ARGV("-6", "localhost");
+	struct options options;
+
+	options.f_protocol_ipv6 = false;
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+	ATF_REQUIRE(options.f_protocol_ipv6 == true);
+}
+
+ATF_TC_WITHOUT_HEAD(options_gateway);
+ATF_TC_BODY(options_gateway, tc)
+{
+	ARGC_ARGV("-e", "gateway1234", "localhost");
+	struct options options;
+
+	options.s_gateway = NULL;
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+	ATF_REQUIRE_STREQ("gateway1234", options.s_gateway);
+}
+
+ATF_TC_WITHOUT_HEAD(options_nigroup);
+ATF_TC_BODY(options_nigroup, tc)
+{
+	{
+		ARGC_ARGV("-N", "localhost");
+		struct options options;
+
+		options.f_nigroup = false;
+		options.c_nigroup = 123;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_nigroup == true);
+		/* Default value of c_nigroup is -1 and every -N
+		 * increments it. */
+		ATF_REQUIRE(options.c_nigroup == 0);
+	}
+	{
+		ARGC_ARGV("-N", "-N" ,"localhost");
+		struct options options;
+
+		options.f_nigroup = false;
+		options.c_nigroup = 123;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_nigroup == true);
+		ATF_REQUIRE(options.c_nigroup == 1);
+	}
+	{
+		ARGC_ARGV("-N", "-N", "-N", "-N", "-N", "-N", "-N", "localhost");
+		struct options options;
+
+		options.f_nigroup = false;
+		options.c_nigroup = 123;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_nigroup == true);
+		ATF_REQUIRE(options.c_nigroup == 6);
+	}
+}
+
+#ifdef IPV6_USE_MIN_MTU
+ATF_TC_WITHOUT_HEAD(options_use_min_mtu);
+ATF_TC_BODY(options_use_min_mtu, tc)
+{
+	{
+		ARGC_ARGV("-u", "localhost");
+		struct options options;
+
+		options.c_use_min_mtu = 123;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.c_use_min_mtu == 1);
+	}
+	{
+		ARGC_ARGV("-u", "-u", "localhost");
+		struct options options;
+
+		options.c_use_min_mtu = 123;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.c_use_min_mtu == 2);
+	}
+	{
+		ARGC_ARGV("-u", "-u", "-u", "-u", "-u", "-u", "-u", "localhost");
+		struct options options;
+
+		options.c_use_min_mtu = 123;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.c_use_min_mtu == 7);
+	}
+}
+#endif /* IPV6_USE_MIN_MTU */
+
+ATF_TC_WITHOUT_HEAD(options_fqdn);
+ATF_TC_BODY(options_fqdn, tc)
+{
+	ARGC_ARGV("-w", "localhost");
+	struct options options;
+
+	options.f_nodeaddr = true;
+	options.f_fqdn_old = true;
+	options.f_subtypes = true;
+	options.f_fqdn = false;
+
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+	ATF_REQUIRE(options.f_nodeaddr == false);
+	ATF_REQUIRE(options.f_fqdn_old == false);
+	ATF_REQUIRE(options.f_subtypes == false);
+	ATF_REQUIRE(options.f_fqdn == true);
+}
+
+ATF_TC_WITHOUT_HEAD(options_fqdn_old);
+ATF_TC_BODY(options_fqdn_old, tc)
+{
+	ARGC_ARGV("-Y", "localhost");
+	struct options options;
+
+	options.f_nodeaddr = true;
+	options.f_fqdn_old = false;
+	options.f_subtypes = true;
+	options.f_fqdn = true;
+
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+	ATF_REQUIRE(options.f_nodeaddr == false);
+	ATF_REQUIRE(options.f_fqdn_old == true);
+	ATF_REQUIRE(options.f_subtypes == false);
+	ATF_REQUIRE(options.f_fqdn == false);
+}
+
+ATF_TC_WITHOUT_HEAD(options_subtypes);
+ATF_TC_BODY(options_subtypes, tc)
+{
+	ARGC_ARGV("-y", "localhost");
+	struct options options;
+
+	options.f_nodeaddr = true;
+	options.f_fqdn_old = true;
+	options.f_subtypes = false;
+	options.f_fqdn = true;
+
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+	ATF_REQUIRE(options.f_nodeaddr == false);
+	ATF_REQUIRE(options.f_fqdn_old == false);
+	ATF_REQUIRE(options.f_subtypes == true);
+	ATF_REQUIRE(options.f_fqdn == false);
+}
+#endif /* INET6 */
+
+#ifdef IPSEC
+ATF_TC_WITHOUT_HEAD(options_policy);
+ATF_TC_BODY(options_policy, tc)
+{
+	{
+		ARGC_ARGV("-P", "unknown", "localhost");
+		struct options options;
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-P", "in_policy_1", "-P", "in_policy_2", "localhost");
+		struct options options;
+
+		options.f_policy = false;
+		options.s_policy_in = NULL;
+		options.s_policy_out = NULL;
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_policy == true);
+		ATF_REQUIRE_STREQ("in_policy_2", options.s_policy_in);
+		ATF_REQUIRE(options.s_policy_out == NULL);
+	}
+	{
+		ARGC_ARGV("-P", "out_policy_1", "-P", "out_policy_2", "localhost");
+		struct options options;
+
+		options.f_policy = false;
+		options.s_policy_in = NULL;
+		options.s_policy_out = NULL;
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_policy == true);
+		ATF_REQUIRE(options.s_policy_in == NULL);
+		ATF_REQUIRE_STREQ("out_policy_2", options.s_policy_out);
+
+	}
+	{
+		ARGC_ARGV("-P", "in_policy", "-P", "out_policy", "localhost");
+		struct options options;
+
+		options.f_policy = false;
+		options.s_policy_in = NULL;
+		options.s_policy_out = NULL;
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_policy == true);
+		ATF_REQUIRE_STREQ("in_policy", options.s_policy_in);
+		ATF_REQUIRE_STREQ("out_policy", options.s_policy_out);
+	}
+}
+#if defined(INET6) && !defined(IPSEC_POLICY_IPSEC)
+ATF_TC_WITHOUT_HEAD(options_authhdd);
+ATF_TC_BODY(options_authhdr, tc)
+{
+	ARGC_ARGV("-Z", "localhost");
+	struct options options;
+
+	options.f_authhdr = false;
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+	ATF_REQUIRE(options.f_authhdr == true);
+}
+
+ATF_TC_WITHOUT_HEAD(options_encrypt);
+ATF_TC_BODY(options_encrypt, tc)
+{
+	ARGC_ARGV("-E", "localhost");
+	struct options options;
+
+	options.f_encrypt = false;
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+	ATF_REQUIRE(options.f_encrypt == true);
+}
+#endif /* INET6 && IPSEC_POLICY_IPSEC */
+#endif /* IPSEC */
+
 /*
  * Main.
  */
@@ -205,6 +504,33 @@ ATF_TP_ADD_TCS(tp)
 	ATF_TP_ADD_TC(tp, options_so_debug);
 	ATF_TP_ADD_TC(tp, options_numeric);
 	ATF_TP_ADD_TC(tp, options_once);
+	ATF_TP_ADD_TC(tp, options_quiet);
+	ATF_TP_ADD_TC(tp, options_verbose);
+	ATF_TP_ADD_TC(tp, options_protocol_ipv4);
+	ATF_TP_ADD_TC(tp, options_no_loop);
+	ATF_TP_ADD_TC(tp, options_somewhat_quiet);
+	ATF_TP_ADD_TC(tp, options_rroute);
+	ATF_TP_ADD_TC(tp, options_so_dontroute);
+
+#ifdef INET6
+	ATF_TP_ADD_TC(tp, options_protocol_ipv6);
+	ATF_TP_ADD_TC(tp, options_gateway);
+	ATF_TP_ADD_TC(tp, options_nigroup);
+#ifdef IPV6_USE_MIN_MTU
+	ATF_TP_ADD_TC(tp, options_use_min_mtu);
+#endif /* IPV6_USE_MIN_MTU */
+	ATF_TP_ADD_TC(tp, options_fqdn);
+	ATF_TP_ADD_TC(tp, options_fqdn_old);
+	ATF_TP_ADD_TC(tp, options_subtypes);
+#endif /* INET6 */
+
+#ifdef IPSEC
+	ATF_TP_ADD_TC(tp, options_policy);
+#if defined(INET6) && !defined(IPSEC_POLICY_IPSEC)
+	ATF_TP_ADD_TC(tp, options_authhdr);
+	ATF_TP_ADD_TC(tp, options_encrypt);
+#endif /* INET6 && IPSEC_POLICY_IPSEC */
+#endif /* IPSEC */
 
 	return (atf_no_error());
 }
