@@ -43,6 +43,9 @@ __FBSDID("$FreeBSD$");
  * Helper macros.
  */
 
+#define STRINGIFY(s) #s
+#define DEFINED_NUM_TO_STR(s) STRINGIFY(s)
+
 #define GETOPT_RESET \
 	optreset = optind = 1
 
@@ -118,12 +121,7 @@ ATF_TC_BODY(options_count, tc)
 		ATF_REQUIRE(options.n_packets == 234567);
 	}
 	{
-		ARGC_ARGV("-c", "replaced_by_LONG_MAX", "localhost");
-		char long_max[64];
-
-		sprintf(long_max, "%ld", LONG_MAX);
-		test_argv[2] = long_max;
-
+		ARGC_ARGV("-c", DEFINED_NUM_TO_STR(LONG_MAX), "localhost");
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
 		ATF_REQUIRE(options.n_packets == LONG_MAX);
 	}
