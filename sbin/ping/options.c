@@ -68,6 +68,8 @@ struct tv32 {
 #define MAX_ALARM (60 * 60)
 #define	MAX_TOS		255
 
+#define OPTIONS_STRTONUM_ERRBUF_SIZE 72
+
 #define OPSTR_COMMON        "Aac:DdfI:i:l:nop:qS:s:t:vW:"
 #define OPSTR_IPV4          "4G:g:h:LM:m:QRrT:z:"
 #define OPSTR_IPV6          "6b:e:j:k:NuwYy"
@@ -102,6 +104,8 @@ static int  options_parse_hosts(int argc, char **argv, struct options *const opt
 static void options_print_error(const char *const fmt, ...);
 static void options_set_defaults(struct options *const options);
 static bool options_strtod(const char *const str, double *const val);
+static long long options_strtonum(const char *const str, long long minval,
+    long long maxval, char *const errbuf);
 
 void
 options_free(struct options *const options)
@@ -127,8 +131,7 @@ options_parse(int argc, char **argv, struct options *const options)
 {
 	int ch;
 	double dbl, dbl_integer_part;
-	/* Error string output of strtonum() */
-	const char *errstr;
+	char errbuf[OPTIONS_STRTONUM_ERRBUF_SIZE];
 
 	memset(options, 0, sizeof(*options));
 
@@ -141,10 +144,10 @@ options_parse(int argc, char **argv, struct options *const options)
 			options->f_audible = true;
 			break;
 		case 'c':
-			options->n_packets = strtonum(optarg, 1, LONG_MAX, &errstr);
-			if (errstr != NULL) {
+			options->n_packets = options_strtonum(optarg, 1, LONG_MAX, errbuf);
+			if (errbuf[0] != '\0') {
 				options_print_error("invalid count of packets to transmit: `%s': %s",
-				    optarg, errstr);
+				    optarg, errbuf);
 				return (EX_USAGE);
 			}
 			options->f_packets = true;
@@ -183,9 +186,9 @@ options_parse(int argc, char **argv, struct options *const options)
 			options->f_interval = true;
 			break;
 		case 'l':
-			options->n_preload = strtonum(optarg, 0, INT_MAX, &errstr);
-			if (errstr != NULL) {
-				options_print_error("invalid preload value: `%s': %s", optarg, errstr);
+			options->n_preload = options_strtonum(optarg, 0, INT_MAX, errbuf);
+			if (errbuf[0] != '\0') {
+				options_print_error("invalid preload value: `%s': %s", optarg, errbuf);
 				return (EX_USAGE);
 			}
 			options->f_preload = true;
@@ -222,17 +225,17 @@ options_parse(int argc, char **argv, struct options *const options)
 			options->s_source = optarg;
 			break;
 		case 's':
-			options->n_packet_size = strtonum(optarg, 1, LONG_MAX, &errstr);
-			if (errstr != NULL) {
-				options_print_error("invalid packet size: `%s': %s", optarg, errstr);
+			options->n_packet_size = options_strtonum(optarg, 1, LONG_MAX, errbuf);
+			if (errbuf[0] != '\0') {
+				options_print_error("invalid packet size: `%s': %s", optarg, errbuf);
 				return (EX_USAGE);
 			}
 			options->f_packet_size = true;
 			break;
 		case 't':
-			options->n_alarm_timeout = strtonum(optarg, 1, MAX_ALARM, &errstr);
-			if (errstr != NULL) {
-				options_print_error("invalid timeout: `%s': %s", optarg, errstr);
+			options->n_alarm_timeout = options_strtonum(optarg, 1, MAX_ALARM, errbuf);
+			if (errbuf[0] != '\0') {
+				options_print_error("invalid timeout: `%s': %s", optarg, errbuf);
 				return (EX_USAGE);
 			}
 			options->f_alarm_timeout = true;
@@ -242,9 +245,9 @@ options_parse(int argc, char **argv, struct options *const options)
 			break;
 		case 'W':
 			/* TODO: with 0 no packet will be printed */
-			options->n_wait_time = strtonum(optarg, 0, INT_MAX, &errstr);
-			if (errstr != NULL) {
-				options_print_error("invalid timing interval: `%s': %s", optarg, errstr);
+			options->n_wait_time = options_strtonum(optarg, 0, INT_MAX, errbuf);
+			if (errbuf[0] != '\0') {
+				options_print_error("invalid timing interval: `%s': %s", optarg, errbuf);
 				return (EX_USAGE);
 			}
 			options->f_wait_time = true;
@@ -254,25 +257,25 @@ options_parse(int argc, char **argv, struct options *const options)
 			options->f_protocol_ipv4 = true;
 			break;
 		case 'G':
-			options->n_sweep_max = strtonum(optarg, 1, INT_MAX, &errstr);
-			if (errstr != NULL) {
-				options_print_error("invalid packet size: `%s': %s", optarg, errstr);
+			options->n_sweep_max = options_strtonum(optarg, 1, INT_MAX, errbuf);
+			if (errbuf[0] != '\0') {
+				options_print_error("invalid packet size: `%s': %s", optarg, errbuf);
 				return (EX_USAGE);
 			}
 			options->f_sweep_max = true;
 			break;
 		case 'g':
-			options->n_sweep_min = strtonum(optarg, 1, INT_MAX, &errstr);
-			if (errstr != NULL) {
-				options_print_error("invalid packet size: `%s': %s", optarg, errstr);
+			options->n_sweep_min = options_strtonum(optarg, 1, INT_MAX, errbuf);
+			if (errbuf[0] != '\0') {
+				options_print_error("invalid packet size: `%s': %s", optarg, errbuf);
 				return (EX_USAGE);
 			}
 			options->f_sweep_min = true;
 			break;
 		case 'h':
-			options->n_sweep_incr = strtonum(optarg, 1, INT_MAX, &errstr);
-			if (errstr != NULL) {
-				options_print_error("invalid increment size: `%s': %s", optarg, errstr);
+			options->n_sweep_incr = options_strtonum(optarg, 1, INT_MAX, errbuf);
+			if (errbuf[0] != '\0') {
+				options_print_error("invalid increment size: `%s': %s", optarg, errbuf);
 				return (EX_USAGE);
 			}
 			options->f_sweep_incr = true;
@@ -296,9 +299,9 @@ options_parse(int argc, char **argv, struct options *const options)
 			}
 			break;
 		case 'm':
-			options->n_ttl = strtonum(optarg, 0, MAXTTL, &errstr);
-			if (errstr != NULL) {
-				options_print_error("invalid TTL: `%s': %s", optarg, errstr);
+			options->n_ttl = options_strtonum(optarg, 0, MAXTTL, errbuf);
+			if (errbuf[0] != '\0') {
+				options_print_error("invalid TTL: `%s': %s", optarg, errbuf);
 				return (EX_USAGE);
 			}
 			options->f_ttl = true;
@@ -313,17 +316,17 @@ options_parse(int argc, char **argv, struct options *const options)
 			options->f_so_dontroute = true;
 			break;
 		case 'T':
-			options->n_multicast_ttl = strtonum(optarg, 0, MAXTTL, &errstr);
-			if (errstr != NULL) {
-				options_print_error("invalid multicast TTL: `%s': %s", optarg, errstr);
+			options->n_multicast_ttl = options_strtonum(optarg, 0, MAXTTL, errbuf);
+			if (errbuf[0] != '\0') {
+				options_print_error("invalid multicast TTL: `%s': %s", optarg, errbuf);
 				return (EX_USAGE);
 			}
 			options->f_multicast_ttl = true;
 			break;
 		case 'z':
-			options->n_tos = strtonum(optarg, 0, MAX_TOS, &errstr);
-			if (errstr != NULL) {
-				options_print_error("invalid TOS: `%s': %s", optarg, errstr);
+			options->n_tos = options_strtonum(optarg, 0, MAX_TOS, errbuf);
+			if (errbuf[0] != '\0') {
+				options_print_error("invalid TOS: `%s': %s", optarg, errbuf);
 				return (EX_USAGE);
 			}
 			options->f_tos = true;
@@ -335,9 +338,9 @@ options_parse(int argc, char **argv, struct options *const options)
 			break;
 		case 'b':
 #if defined(SO_SNDBUF) && defined(SO_RCVBUF)
-			options->n_sock_buff_size = strtonum(optarg, 0, INT_MAX, &errstr);
-			if (errstr != NULL) {
-				options_print_error("invalid socket buffer size: `%s': %s", optarg, errstr);
+			options->n_sock_buff_size = options_strtonum(optarg, 0, INT_MAX, errbuf);
+			if (errbuf[0] != '\0') {
+				options_print_error("invalid socket buffer size: `%s': %s", optarg, errbuf);
 				return (EX_USAGE);
 			}
 			options->f_sock_buff_size = true;
@@ -350,9 +353,9 @@ options_parse(int argc, char **argv, struct options *const options)
 			options->s_gateway = optarg;
 			break;
 		case 'j':
-			options->n_hoplimit = strtonum(optarg, 0, 255, &errstr);
-			if (errstr != NULL) {
-				options_print_error("illegal hoplimit %s: %s", optarg, errstr);
+			options->n_hoplimit = options_strtonum(optarg, 0, 255, errbuf);
+			if (errbuf[0] != '\0') {
+				options_print_error("illegal hoplimit %s: %s", optarg, errbuf);
 				return (EX_USAGE);
 			}
 			options->f_hoplimit = true;
@@ -760,6 +763,30 @@ options_strtod(const char *const str, double *const val)
 	return (!((*val == 0) && (errno == EINVAL)) &&
 	    !(((*val == HUGE_VAL) || (*val == -HUGE_VAL)) && (errno == ERANGE)) &&
 	    (*ep == '\0' && *str != '\0'));
+}
+
+static long long
+options_strtonum(const char *const str, long long minval,
+    long long maxval, char *const errbuf)
+{
+	/* TODO: Use assert(minval <= maxval)? */
+	char *ep;
+	const long long val = strtoll(str, &ep, 0);
+
+	errbuf[0] = '\0';
+
+	if (!(*str != '\0' && *ep == '\0'))
+		sprintf(errbuf, "invalid character `%c'", *ep);
+	else if	(val == 0 && errno == EINVAL)
+		sprintf(errbuf, "invalid");
+	else if	((val == LLONG_MIN && errno == ERANGE) || val < minval)
+		sprintf(errbuf, "too small, outside range [%lld, %lld]",
+		    minval, maxval);
+	else if	((val == LLONG_MAX && errno == ERANGE) || val > maxval)
+		sprintf(errbuf, "too large, outside range [%lld, %lld]",
+		    minval, maxval);
+
+	return (val);
 }
 
 #ifdef INET6
