@@ -37,6 +37,7 @@ __FBSDID("$FreeBSD$");
 #include <netinet/ip.h>
 #include <netdb.h>
 
+#include <assert.h>
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
@@ -769,7 +770,8 @@ static long long
 options_strtonum(const char *const str, long long minval,
     long long maxval, char *const errbuf)
 {
-	/* TODO: Use assert(minval <= maxval)? */
+	assert(minval <= maxval);
+
 	char *ep;
 	const long long val = strtoll(str, &ep, 0);
 
