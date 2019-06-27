@@ -322,7 +322,7 @@ ping(struct options *const options)
 	to->sin_family = AF_INET;
 	to->sin_len = sizeof *to;
 	if (inet_aton(options->target, &to->sin_addr) != 0) {
-		/* TODO: check return the value of strncpy() */
+		/* TODO: check the return value of strncpy() */
 		(void)strncpy(vars.hostname, options->target, sizeof(vars.hostname) - 1);
 		vars.hostname[sizeof(vars.hostname) - 1] = '\0';
 	} else {
