@@ -435,12 +435,27 @@ options_parse(int argc, char **argv, struct options *const options)
 #endif /* INET6 */
 #ifdef IPSEC
 		case 'P':
+			/* TODO: Free strdup() allocated memory. */
 			if (!strncmp("in", optarg, 2)) {
+				if (options->s_policy_in != NULL)
+					/*
+					 * Setting another policy. Free the
+					 * memory allocated by the previous
+					 * strdup().
+					 */
+					free(options->s_policy_in);
 				if ((options->s_policy_in = strdup(optarg)) == NULL) {
 					options_print_error("strdup");
 					return (EX_OSERR);
 				}
 			} else if (!strncmp("out", optarg, 3)) {
+				if (options->s_policy_out != NULL)
+					/*
+					 * Setting another policy. Free the
+					 * memory allocated by the previous
+					 * strdup().
+					 */
+					free(options->s_policy_out);
 				if ((options->s_policy_out = strdup(optarg)) == NULL) {
 					options_print_error("strdup");
 					return (EX_OSERR);
