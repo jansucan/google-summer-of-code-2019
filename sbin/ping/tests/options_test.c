@@ -60,6 +60,12 @@ __FBSDID("$FreeBSD$");
 	GETOPT_RESET
 
 /*
+ * Global variables.
+ */
+
+static struct options options;
+
+/*
  * Test cases.
  */
 
@@ -67,7 +73,6 @@ ATF_TC_WITHOUT_HEAD(options_no);
 ATF_TC_BODY(options_no, tc)
 {
 	ARGC_ARGV_EMPTY;
-	struct options options;
 
 	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 }
@@ -76,7 +81,6 @@ ATF_TC_WITHOUT_HEAD(option_missed);
 ATF_TC_BODY(option_missed, tc)
 {
 	ARGC_ARGV("-A", "localhost");
-	struct options options;
 
 	options.f_missed = false;
 	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
@@ -87,7 +91,6 @@ ATF_TC_WITHOUT_HEAD(option_audible);
 ATF_TC_BODY(option_audible, tc)
 {
 	ARGC_ARGV("-a", "localhost");
-	struct options options;
 
 	options.f_audible = false;
 	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
@@ -97,39 +100,45 @@ ATF_TC_BODY(option_audible, tc)
 ATF_TC_WITHOUT_HEAD(option_count);
 ATF_TC_BODY(option_count, tc)
 {
-	struct options options;
 	{
 		ARGC_ARGV("-c");
+
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
 	{
 		ARGC_ARGV("-c", "-1000", "localhost");
+
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
 	{
 		ARGC_ARGV("-c", "0", "localhost");
+
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
 	{
 		ARGC_ARGV("-c", "1", "localhost");
+
 		options.n_packets = -1;
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
 		ATF_REQUIRE(options.n_packets == 1);
 	}
 	{
 		ARGC_ARGV("-c", "234567", "localhost");
+
 		options.n_packets = -1;
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
 		ATF_REQUIRE(options.n_packets == 234567);
 	}
 	{
 		ARGC_ARGV("-c", DEFINED_NUM_TO_STR(LONG_MAX), "localhost");
+
 		options.n_packets = -1;
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
 		ATF_REQUIRE(options.n_packets == LONG_MAX);
 	}
 	{
 		ARGC_ARGV("-c", "replaced_by_LONG_MAX+1", "localhost");
+
 		const unsigned long n = ((unsigned long) LONG_MAX) + 1;
 		char greater_than_long_max[64];
 
@@ -140,6 +149,7 @@ ATF_TC_BODY(option_count, tc)
 	}
 	{
 		ARGC_ARGV("-c", "replaced_by_LONG_MAX+1000", "localhost");
+
 		const unsigned long n = ((unsigned long) LONG_MAX) + 1000;
 		char greater_than_long_max[64];
 
@@ -154,7 +164,6 @@ ATF_TC_WITHOUT_HEAD(option_dont_fragment);
 ATF_TC_BODY(option_dont_fragment, tc)
 {
 	ARGC_ARGV("-D", "localhost");
-	struct options options;
 
 	options.f_dont_fragment = false;
 	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
@@ -165,7 +174,6 @@ ATF_TC_WITHOUT_HEAD(option_so_debug);
 ATF_TC_BODY(option_so_debug, tc)
 {
 	ARGC_ARGV("-d", "localhost");
-	struct options options;
 
 	options.f_so_debug = false;
 	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
@@ -176,7 +184,6 @@ ATF_TC_WITHOUT_HEAD(option_numeric);
 ATF_TC_BODY(option_numeric, tc)
 {
 	ARGC_ARGV("-n", "localhost");
-	struct options options;
 
 	options.f_numeric = false;
 	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
@@ -187,7 +194,6 @@ ATF_TC_WITHOUT_HEAD(option_once);
 ATF_TC_BODY(option_once, tc)
 {
 	ARGC_ARGV("-o", "localhost");
-	struct options options;
 
 	options.f_once = false;
 	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
@@ -198,7 +204,6 @@ ATF_TC_WITHOUT_HEAD(option_quiet);
 ATF_TC_BODY(option_quiet, tc)
 {
 	ARGC_ARGV("-q", "localhost");
-	struct options options;
 
 	options.f_quiet = false;
 	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
@@ -209,7 +214,6 @@ ATF_TC_WITHOUT_HEAD(option_verbose);
 ATF_TC_BODY(option_verbose, tc)
 {
 	ARGC_ARGV("-v", "localhost");
-	struct options options;
 
 	options.f_verbose = false;
 	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
@@ -220,7 +224,6 @@ ATF_TC_WITHOUT_HEAD(option_protocol_ipv4);
 ATF_TC_BODY(option_protocol_ipv4, tc)
 {
 	ARGC_ARGV("-4", "localhost");
-	struct options options;
 
 	options.f_protocol_ipv4 = false;
 	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
@@ -231,7 +234,6 @@ ATF_TC_WITHOUT_HEAD(option_no_loop);
 ATF_TC_BODY(option_no_loop, tc)
 {
 	ARGC_ARGV("-L", "localhost");
-	struct options options;
 
 	options.f_no_loop = false;
 	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
@@ -243,19 +245,16 @@ ATF_TC_BODY(option_mask_time, tc)
 {
 	{
 		ARGC_ARGV("-M");
-		struct options options;
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
 	{
 		ARGC_ARGV("-M", "x", "localhost");
-		struct options options;
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
 	{
 		ARGC_ARGV("-M", "M", "localhost");
-		struct options options;
 
 		options.f_mask= false;
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
@@ -263,7 +262,6 @@ ATF_TC_BODY(option_mask_time, tc)
 	}
 	{
 		ARGC_ARGV("-M", "m", "localhost");
-		struct options options;
 
 		options.f_mask= false;
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
@@ -271,7 +269,6 @@ ATF_TC_BODY(option_mask_time, tc)
 	}
 	{
 		ARGC_ARGV("-M", "T", "localhost");
-		struct options options;
 
 		options.f_time= false;
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
@@ -279,7 +276,6 @@ ATF_TC_BODY(option_mask_time, tc)
 	}
 	{
 		ARGC_ARGV("-M", "t", "localhost");
-		struct options options;
 
 		options.f_time= false;
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
@@ -291,7 +287,6 @@ ATF_TC_WITHOUT_HEAD(option_somewhat_quiet);
 ATF_TC_BODY(option_somewhat_quiet, tc)
 {
 	ARGC_ARGV("-Q", "localhost");
-	struct options options;
 
 	options.f_somewhat_quiet = false;
 	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
@@ -302,7 +297,6 @@ ATF_TC_WITHOUT_HEAD(option_rroute);
 ATF_TC_BODY(option_rroute, tc)
 {
 	ARGC_ARGV("-R", "localhost");
-	struct options options;
 
 	options.f_rroute = false;
 	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
@@ -313,7 +307,6 @@ ATF_TC_WITHOUT_HEAD(option_so_dontroute);
 ATF_TC_BODY(option_so_dontroute, tc)
 {
 	ARGC_ARGV("-r", "localhost");
-	struct options options;
 
 	options.f_so_dontroute = false;
 	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
@@ -325,7 +318,6 @@ ATF_TC_WITHOUT_HEAD(option_protocol_ipv6);
 ATF_TC_BODY(option_protocol_ipv6, tc)
 {
 	ARGC_ARGV("-6", "localhost");
-	struct options options;
 
 	options.f_protocol_ipv6 = false;
 	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
@@ -335,39 +327,45 @@ ATF_TC_BODY(option_protocol_ipv6, tc)
 ATF_TC_WITHOUT_HEAD(option_sock_buf_size);
 ATF_TC_BODY(option_sock_buf_size, tc)
 {
-	struct options options;
 	{
 		ARGC_ARGV("-b");
+
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
 	{
 		ARGC_ARGV("-b", "-1000", "localhost");
+
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
 	{
 		ARGC_ARGV("-b", "-1", "localhost");
+
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
 	{
 		ARGC_ARGV("-b", "0", "localhost");
+
 		options.n_sock_buff_size = -1;
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
 		ATF_REQUIRE(options.n_sock_buff_size == 0);
 	}
 	{
 		ARGC_ARGV("-b", "123456", "localhost");
+
 		options.n_sock_buff_size = -1;
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
 		ATF_REQUIRE(options.n_sock_buff_size == 123456);
 	}
 	{
 		ARGC_ARGV("-b", DEFINED_NUM_TO_STR(INT_MAX), "localhost");
+
 		options.n_sock_buff_size = -1;
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
 		ATF_REQUIRE(options.n_sock_buff_size == INT_MAX);
 	}
 	{
 		ARGC_ARGV("-b", "replaced_by_INT_MAX+1", "localhost");
+
 		const unsigned int n = ((unsigned long) INT_MAX) + 1;
 		char greater_than_int_max[64];
 
@@ -378,6 +376,7 @@ ATF_TC_BODY(option_sock_buf_size, tc)
 	}
 	{
 		ARGC_ARGV("-b", "replaced_by_INT_MAX+1000", "localhost");
+
 		const unsigned int n = ((unsigned long) INT_MAX) + 1000;
 		char greater_than_int_max[64];
 
@@ -393,13 +392,11 @@ ATF_TC_BODY(option_gateway, tc)
 {
 	{
 		ARGC_ARGV("-e");
-		struct options options;
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
 	{
 		ARGC_ARGV("-e", "gateway1234", "localhost");
-		struct options options;
 
 		options.s_gateway = NULL;
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
@@ -412,19 +409,16 @@ ATF_TC_BODY(option_nodeaddr, tc)
 {
 	{
 		ARGC_ARGV("-k");
-		struct options options;
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
 	{
 		ARGC_ARGV("-k", "aclsgX", "localhost");
-		struct options options;
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
 	{
 		ARGC_ARGV("-k", "", "localhost");
-		struct options options;
 
 		options.f_fqdn = true;
 		options.f_fqdn_old = true;
@@ -439,7 +433,6 @@ ATF_TC_BODY(option_nodeaddr, tc)
 	}
 	{
 		ARGC_ARGV("-k", "a", "localhost");
-		struct options options;
 
 		options.f_nodeaddr_flag_all = false;
 
@@ -448,7 +441,6 @@ ATF_TC_BODY(option_nodeaddr, tc)
 	}
 	{
 		ARGC_ARGV("-k", "c", "localhost");
-		struct options options;
 
 		options.f_nodeaddr_flag_compat = false;
 
@@ -457,7 +449,6 @@ ATF_TC_BODY(option_nodeaddr, tc)
 	}
 	{
 		ARGC_ARGV("-k", "C", "localhost");
-		struct options options;
 
 		options.f_nodeaddr_flag_compat = false;
 
@@ -466,7 +457,6 @@ ATF_TC_BODY(option_nodeaddr, tc)
 	}
 	{
 		ARGC_ARGV("-k", "l", "localhost");
-		struct options options;
 
 		options.f_nodeaddr_flag_linklocal = false;
 
@@ -475,7 +465,6 @@ ATF_TC_BODY(option_nodeaddr, tc)
 	}
 	{
 		ARGC_ARGV("-k", "L", "localhost");
-		struct options options;
 
 		options.f_nodeaddr_flag_linklocal = false;
 
@@ -484,7 +473,6 @@ ATF_TC_BODY(option_nodeaddr, tc)
 	}
 	{
 		ARGC_ARGV("-k", "s", "localhost");
-		struct options options;
 
 		options.f_nodeaddr_flag_sitelocal = false;
 
@@ -493,7 +481,6 @@ ATF_TC_BODY(option_nodeaddr, tc)
 	}
 	{
 		ARGC_ARGV("-k", "S", "localhost");
-		struct options options;
 
 		options.f_nodeaddr_flag_sitelocal = false;
 
@@ -502,7 +489,6 @@ ATF_TC_BODY(option_nodeaddr, tc)
 	}
 	{
 		ARGC_ARGV("-k", "g", "localhost");
-		struct options options;
 
 		options.f_nodeaddr_flag_global = false;
 
@@ -511,7 +497,6 @@ ATF_TC_BODY(option_nodeaddr, tc)
 	}
 	{
 		ARGC_ARGV("-k", "G", "localhost");
-		struct options options;
 
 		options.f_nodeaddr_flag_global = false;
 
@@ -520,7 +505,7 @@ ATF_TC_BODY(option_nodeaddr, tc)
 	}
 	{
 		ARGC_ARGV("-k", "A", "localhost");
-		struct options options;
+
 #ifdef NI_NODEADDR_FLAG_ANYCAST
 		options.f_nodeaddr_flag_anycast = false;
 
@@ -538,7 +523,6 @@ ATF_TC_BODY(option_nigroup, tc)
 {
 	{
 		ARGC_ARGV("-N", "localhost");
-		struct options options;
 
 		options.f_nigroup = false;
 		options.c_nigroup = 123;
@@ -550,7 +534,6 @@ ATF_TC_BODY(option_nigroup, tc)
 	}
 	{
 		ARGC_ARGV("-N", "-N" ,"localhost");
-		struct options options;
 
 		options.f_nigroup = false;
 		options.c_nigroup = 123;
@@ -560,7 +543,6 @@ ATF_TC_BODY(option_nigroup, tc)
 	}
 	{
 		ARGC_ARGV("-N", "-N", "-N", "-N", "-N", "-N", "-N", "localhost");
-		struct options options;
 
 		options.f_nigroup = false;
 		options.c_nigroup = 123;
@@ -576,7 +558,6 @@ ATF_TC_BODY(option_use_min_mtu, tc)
 {
 	{
 		ARGC_ARGV("-u", "localhost");
-		struct options options;
 
 		options.c_use_min_mtu = 123;
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
@@ -584,7 +565,6 @@ ATF_TC_BODY(option_use_min_mtu, tc)
 	}
 	{
 		ARGC_ARGV("-u", "-u", "localhost");
-		struct options options;
 
 		options.c_use_min_mtu = 123;
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
@@ -592,7 +572,6 @@ ATF_TC_BODY(option_use_min_mtu, tc)
 	}
 	{
 		ARGC_ARGV("-u", "-u", "-u", "-u", "-u", "-u", "-u", "localhost");
-		struct options options;
 
 		options.c_use_min_mtu = 123;
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
@@ -605,7 +584,6 @@ ATF_TC_WITHOUT_HEAD(option_fqdn);
 ATF_TC_BODY(option_fqdn, tc)
 {
 	ARGC_ARGV("-w", "localhost");
-	struct options options;
 
 	options.f_nodeaddr = true;
 	options.f_fqdn_old = true;
@@ -623,7 +601,6 @@ ATF_TC_WITHOUT_HEAD(option_fqdn_old);
 ATF_TC_BODY(option_fqdn_old, tc)
 {
 	ARGC_ARGV("-Y", "localhost");
-	struct options options;
 
 	options.f_nodeaddr = true;
 	options.f_fqdn_old = false;
@@ -641,7 +618,6 @@ ATF_TC_WITHOUT_HEAD(option_subtypes);
 ATF_TC_BODY(option_subtypes, tc)
 {
 	ARGC_ARGV("-y", "localhost");
-	struct options options;
 
 	options.f_nodeaddr = true;
 	options.f_fqdn_old = true;
@@ -662,19 +638,16 @@ ATF_TC_BODY(option_policy, tc)
 {
 	{
 		ARGC_ARGV("-P");
-		struct options options;
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
 	{
 		ARGC_ARGV("-P", "unknown", "localhost");
-		struct options options;
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
 	{
 		ARGC_ARGV("-P", "in_policy_1", "-P", "in_policy_2", "localhost");
-		struct options options;
 
 		options.f_policy = false;
 		options.s_policy_in = NULL;
@@ -687,7 +660,6 @@ ATF_TC_BODY(option_policy, tc)
 	}
 	{
 		ARGC_ARGV("-P", "out_policy_1", "-P", "out_policy_2", "localhost");
-		struct options options;
 
 		options.f_policy = false;
 		options.s_policy_in = NULL;
@@ -701,7 +673,6 @@ ATF_TC_BODY(option_policy, tc)
 	}
 	{
 		ARGC_ARGV("-P", "in_policy", "-P", "out_policy", "localhost");
-		struct options options;
 
 		options.f_policy = false;
 		options.s_policy_in = NULL;
@@ -718,7 +689,6 @@ ATF_TC_WITHOUT_HEAD(option_authhdd);
 ATF_TC_BODY(option_authhdr, tc)
 {
 	ARGC_ARGV("-Z", "localhost");
-	struct options options;
 
 	options.f_authhdr = false;
 	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
@@ -729,7 +699,6 @@ ATF_TC_WITHOUT_HEAD(option_encrypt);
 ATF_TC_BODY(option_encrypt, tc)
 {
 	ARGC_ARGV("-E", "localhost");
-	struct options options;
 
 	options.f_encrypt = false;
 	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
