@@ -45,6 +45,7 @@ __FBSDID("$FreeBSD$");
 #include "../options.h"
 
 /* TODO: this is duplicated from options.c */
+#define MAX_ALARM      3600
 #define	MAX_TOS		255
 
 /*
@@ -188,6 +189,29 @@ ATF_TC_BODY(option_so_debug, tc)
 	ATF_REQUIRE(options.f_so_debug == true);
 }
 
+ATF_TC_WITHOUT_HEAD(option_interface);
+ATF_TC_BODY(option_interface, tc)
+{
+	{
+		ARGC_ARGV("-I");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-I", "interface1234", "localhost");
+#if !defined(INET6) || !defined(USE_SIN6_SCOPE_ID)
+		options.f_interface = false;
+#endif
+		options.s_interface = NULL;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE_STREQ("interface1234", options.s_interface);
+#if !defined(INET6) || !defined(USE_SIN6_SCOPE_ID)
+		ATF_REQUIRE(options.f_interface == true);
+#endif
+
+	}
+}
+
 ATF_TC_WITHOUT_HEAD(option_numeric);
 ATF_TC_BODY(option_numeric, tc)
 {
@@ -216,6 +240,81 @@ ATF_TC_BODY(option_quiet, tc)
 	options.f_quiet = false;
 	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
 	ATF_REQUIRE(options.f_quiet == true);
+}
+
+ATF_TC_WITHOUT_HEAD(option_alarm_timeout);
+ATF_TC_BODY(option_alarm_timeout, tc)
+{
+	{
+		ARGC_ARGV("-t");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-t", "-1000", "localhost");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-t", "0", "localhost");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-t", "1", "localhost");
+
+		options.f_alarm_timeout = false;
+		options.n_alarm_timeout = -1;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_alarm_timeout == true);
+		ATF_REQUIRE(options.n_alarm_timeout == 1);
+	}
+	{
+		ARGC_ARGV("-t", "replaced_by_MAX_ALARM/2", "localhost");
+
+		const unsigned int n = (unsigned long) (MAX_ALARM / 2);
+		char maxttl[64];
+
+		sprintf(maxttl, "%u", n);
+		test_argv[2] = maxttl;
+
+		options.f_alarm_timeout = false;
+		options.n_alarm_timeout = -1;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_alarm_timeout == true);
+		ATF_REQUIRE(options.n_alarm_timeout == (MAX_ALARM / 2));
+	}
+	{
+		ARGC_ARGV("-t", DEFINED_NUM_TO_STR(MAX_ALARM), "localhost");
+
+		options.f_alarm_timeout = false;
+		options.n_alarm_timeout = -1;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_alarm_timeout == true);
+		ATF_REQUIRE(options.n_alarm_timeout == MAX_ALARM);
+	}
+	{
+		ARGC_ARGV("-t", "replaced_by_MAX_ALARM+1", "localhost");
+
+		const unsigned int n = ((unsigned long) MAX_ALARM) + 1;
+		char greater_than_maxttl[64];
+
+		sprintf(greater_than_maxttl, "%u", n);
+		test_argv[2] = greater_than_maxttl;
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-t", "replaced_by_MAX_ALARM+1000", "localhost");
+
+		const unsigned int n = ((unsigned long) MAX_ALARM) + 1000;
+		char greater_than_maxttl[64];
+
+		sprintf(greater_than_maxttl, "%u", n);
+		test_argv[2] = greater_than_maxttl;
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
 }
 
 ATF_TC_WITHOUT_HEAD(option_verbose);
@@ -1226,9 +1325,11 @@ ATF_TP_ADD_TCS(tp)
 	ATF_TP_ADD_TC(tp, option_count);
 	ATF_TP_ADD_TC(tp, option_dont_fragment);
 	ATF_TP_ADD_TC(tp, option_so_debug);
+	ATF_TP_ADD_TC(tp, option_interface);
 	ATF_TP_ADD_TC(tp, option_numeric);
 	ATF_TP_ADD_TC(tp, option_once);
 	ATF_TP_ADD_TC(tp, option_quiet);
+	ATF_TP_ADD_TC(tp, option_alarm_timeout);
 	ATF_TP_ADD_TC(tp, option_verbose);
 	ATF_TP_ADD_TC(tp, option_protocol_ipv4);
 	ATF_TP_ADD_TC(tp, option_sweep_max);
