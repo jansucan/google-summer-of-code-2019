@@ -29,6 +29,11 @@
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
+#include <sys/types.h>
+
+#include <netinet/in.h>
+#include <netinet/ip.h>
+
 #include <atf-c.h>
 #include <limits.h>
 #include <stdarg.h>
@@ -38,6 +43,9 @@ __FBSDID("$FreeBSD$");
 #include <sysexits.h>
 
 #include "../options.h"
+
+/* TODO: this is duplicated from options.c */
+#define	MAX_TOS		255
 
 /*
  * Helper macros.
@@ -230,6 +238,223 @@ ATF_TC_BODY(option_protocol_ipv4, tc)
 	ATF_REQUIRE(options.f_protocol_ipv4 == true);
 }
 
+ATF_TC_WITHOUT_HEAD(option_sweep_max);
+ATF_TC_BODY(option_sweep_max, tc)
+{
+	{
+		ARGC_ARGV("-G");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-G", "-1000", "localhost");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-G", "0", "localhost");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-G", "1", "localhost");
+
+		options.f_sweep_max = false;
+		options.n_sweep_max = -1;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_sweep_max == true);
+		ATF_REQUIRE(options.n_sweep_max == 1);
+	}
+	{
+		ARGC_ARGV("-G", "123456", "localhost");
+
+		options.f_sweep_max = false;
+		options.n_sweep_max = -1;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_sweep_max == true);
+		ATF_REQUIRE(options.n_sweep_max == 123456);
+	}
+	{
+		ARGC_ARGV("-G", DEFINED_NUM_TO_STR(INT_MAX), "localhost");
+
+		options.f_sweep_max = false;
+		options.n_sweep_max = -1;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_sweep_max == true);
+		ATF_REQUIRE(options.n_sweep_max == INT_MAX);
+	}
+	{
+		ARGC_ARGV("-G", "replaced_by_INT_MAX+1", "localhost");
+
+		const unsigned int n = ((unsigned long) INT_MAX) + 1;
+		char greater_than_int_max[64];
+
+		sprintf(greater_than_int_max, "%u", n);
+		test_argv[2] = greater_than_int_max;
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-G", "replaced_by_INT_MAX+1000", "localhost");
+
+		const unsigned int n = ((unsigned long) INT_MAX) + 1000;
+		char greater_than_int_max[64];
+
+		sprintf(greater_than_int_max, "%u", n);
+		test_argv[2] = greater_than_int_max;
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+}
+
+ATF_TC_WITHOUT_HEAD(option_sweep_min);
+ATF_TC_BODY(option_sweep_min, tc)
+{
+	{
+		ARGC_ARGV("-g");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-g", "-1000", "localhost");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-g", "0", "localhost");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-g", "1", "localhost");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-g", "1", "-G", "1", "localhost");
+
+		options.f_sweep_min = false;
+		options.n_sweep_min = -1;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_sweep_min == true);
+		ATF_REQUIRE(options.n_sweep_min == 1);
+	}
+	{
+		ARGC_ARGV("-g", "123456", "-G", "123456", "localhost");
+
+		options.f_sweep_min = false;
+		options.n_sweep_min = -1;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_sweep_min == true);
+		ATF_REQUIRE(options.n_sweep_min == 123456);
+	}
+	{
+		ARGC_ARGV("-g", DEFINED_NUM_TO_STR(INT_MAX), "-G", DEFINED_NUM_TO_STR(INT_MAX), "localhost");
+
+		options.f_sweep_min = false;
+		options.n_sweep_min = -1;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_sweep_min == true);
+		ATF_REQUIRE(options.n_sweep_min == INT_MAX);
+	}
+	{
+		ARGC_ARGV("-g", "replaced_by_INT_MAX+1", "localhost");
+
+		const unsigned int n = ((unsigned long) INT_MAX) + 1;
+		char greater_than_int_max[64];
+
+		sprintf(greater_than_int_max, "%u", n);
+		test_argv[2] = greater_than_int_max;
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-g", "replaced_by_INT_MAX+1000", "localhost");
+
+		const unsigned int n = ((unsigned long) INT_MAX) + 1000;
+		char greater_than_int_max[64];
+
+		sprintf(greater_than_int_max, "%u", n);
+		test_argv[2] = greater_than_int_max;
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+}
+
+ATF_TC_WITHOUT_HEAD(option_sweep_incr);
+ATF_TC_BODY(option_sweep_incr, tc)
+{
+	{
+		ARGC_ARGV("-h");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-h", "-1000", "localhost");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-h", "0", "localhost");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-h", "1", "localhost");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-h", "1", "-G", "1", "localhost");
+
+		options.f_sweep_incr = false;
+		options.n_sweep_incr = -1;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_sweep_incr == true);
+		ATF_REQUIRE(options.n_sweep_incr == 1);
+	}
+	{
+		ARGC_ARGV("-h", "123456", "-G", "123456", "localhost");
+
+		options.f_sweep_incr = false;
+		options.n_sweep_incr = -1;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_sweep_incr == true);
+		ATF_REQUIRE(options.n_sweep_incr == 123456);
+	}
+	{
+		ARGC_ARGV("-h", DEFINED_NUM_TO_STR(INT_MAX), "-G", DEFINED_NUM_TO_STR(INT_MAX), "localhost");
+
+		options.f_sweep_incr = false;
+		options.n_sweep_incr = -1;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_sweep_incr == true);
+		ATF_REQUIRE(options.n_sweep_incr == INT_MAX);
+	}
+	{
+		ARGC_ARGV("-h", "replaced_by_INT_MAX+1", "localhost");
+
+		const unsigned int n = ((unsigned long) INT_MAX) + 1;
+		char greater_than_int_max[64];
+
+		sprintf(greater_than_int_max, "%u", n);
+		test_argv[2] = greater_than_int_max;
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-h", "replaced_by_INT_MAX+1000", "localhost");
+
+		const unsigned int n = ((unsigned long) INT_MAX) + 1000;
+		char greater_than_int_max[64];
+
+		sprintf(greater_than_int_max, "%u", n);
+		test_argv[2] = greater_than_int_max;
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+}
+
 ATF_TC_WITHOUT_HEAD(option_no_loop);
 ATF_TC_BODY(option_no_loop, tc)
 {
@@ -280,6 +505,231 @@ ATF_TC_BODY(option_mask_time, tc)
 		options.f_time= false;
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
 		ATF_REQUIRE(options.f_time == true);
+	}
+}
+
+ATF_TC_WITHOUT_HEAD(option_ttl);
+ATF_TC_BODY(option_ttl, tc)
+{
+	{
+		ARGC_ARGV("-m");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-m", "-1000", "localhost");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-m", "-1", "localhost");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-m", "0", "localhost");
+
+		options.f_ttl = false;
+		options.n_ttl = -1;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_ttl == true);
+		ATF_REQUIRE(options.n_ttl == 0);
+	}
+	{
+		ARGC_ARGV("-m", "replaced_by_MAXTTL/2", "localhost");
+
+		const unsigned int n = (unsigned long) (MAXTTL / 2);
+		char maxttl[64];
+
+		sprintf(maxttl, "%u", n);
+		test_argv[2] = maxttl;
+
+		options.f_ttl = false;
+		options.n_ttl = -1;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_ttl == true);
+		ATF_REQUIRE(options.n_ttl == (MAXTTL / 2));
+	}
+	{
+		ARGC_ARGV("-m", DEFINED_NUM_TO_STR(MAXTTL), "localhost");
+
+		options.f_ttl = false;
+		options.n_ttl = -1;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_ttl == true);
+		ATF_REQUIRE(options.n_ttl == MAXTTL);
+	}
+	{
+		ARGC_ARGV("-m", "replaced_by_MAXTTL+1", "localhost");
+
+		const unsigned int n = ((unsigned long) MAXTTL) + 1;
+		char greater_than_maxttl[64];
+
+		sprintf(greater_than_maxttl, "%u", n);
+		test_argv[2] = greater_than_maxttl;
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-m", "replaced_by_MAXTTL+1000", "localhost");
+
+		const unsigned int n = ((unsigned long) MAXTTL) + 1000;
+		char greater_than_maxttl[64];
+
+		sprintf(greater_than_maxttl, "%u", n);
+		test_argv[2] = greater_than_maxttl;
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+}
+
+ATF_TC_WITHOUT_HEAD(option_multicast_ttl);
+ATF_TC_BODY(option_multicast_ttl, tc)
+{
+	{
+		ARGC_ARGV("-T");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-T", "-1000", "localhost");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-T", "-1", "localhost");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-T", "0", "localhost");
+
+		options.f_multicast_ttl = false;
+		options.n_multicast_ttl = -1;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_multicast_ttl == true);
+		ATF_REQUIRE(options.n_multicast_ttl == 0);
+	}
+	{
+		ARGC_ARGV("-T", "replaced_by_MAXTTL/2", "localhost");
+
+		const unsigned int n = (unsigned long) (MAXTTL / 2);
+		char maxttl[64];
+
+		sprintf(maxttl, "%u", n);
+		test_argv[2] = maxttl;
+
+		options.f_multicast_ttl = false;
+		options.n_multicast_ttl = -1;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_multicast_ttl == true);
+		ATF_REQUIRE(options.n_multicast_ttl == (MAXTTL / 2));
+	}
+	{
+		ARGC_ARGV("-T", DEFINED_NUM_TO_STR(MAXTTL), "localhost");
+
+		options.f_multicast_ttl = false;
+		options.n_multicast_ttl = -1;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_multicast_ttl == true);
+		ATF_REQUIRE(options.n_multicast_ttl == MAXTTL);
+	}
+	{
+		ARGC_ARGV("-T", "replaced_by_MAXTTL+1", "localhost");
+
+		const unsigned int n = ((unsigned long) MAXTTL) + 1;
+		char greater_than_maxttl[64];
+
+		sprintf(greater_than_maxttl, "%u", n);
+		test_argv[2] = greater_than_maxttl;
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-T", "replaced_by_MAXTTL+1000", "localhost");
+
+		const unsigned int n = ((unsigned long) MAXTTL) + 1000;
+		char greater_than_maxttl[64];
+
+		sprintf(greater_than_maxttl, "%u", n);
+		test_argv[2] = greater_than_maxttl;
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+}
+
+ATF_TC_WITHOUT_HEAD(option_tos);
+ATF_TC_BODY(option_tos, tc)
+{
+	{
+		ARGC_ARGV("-z");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-z", "-1000", "localhost");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-z", "-1", "localhost");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-z", "0", "localhost");
+
+		options.f_tos = false;
+		options.n_tos = -1;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_tos == true);
+		ATF_REQUIRE(options.n_tos == 0);
+	}
+	{
+		ARGC_ARGV("-z", "replaced_by_MAX_TOS/2", "localhost");
+
+		const unsigned int n = (unsigned long) (MAX_TOS / 2);
+		char maxttl[64];
+
+		sprintf(maxttl, "%u", n);
+		test_argv[2] = maxttl;
+
+		options.f_tos = false;
+		options.n_tos = -1;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_tos == true);
+		ATF_REQUIRE(options.n_tos == (MAX_TOS / 2));
+	}
+	{
+		ARGC_ARGV("-z", DEFINED_NUM_TO_STR(MAX_TOS), "localhost");
+
+		options.f_tos = false;
+		options.n_tos = -1;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_tos == true);
+		ATF_REQUIRE(options.n_tos == MAX_TOS);
+	}
+	{
+		ARGC_ARGV("-z", "replaced_by_MAX_TOS+1", "localhost");
+
+		const unsigned int n = ((unsigned long) MAX_TOS) + 1;
+		char greater_than_maxttl[64];
+
+		sprintf(greater_than_maxttl, "%u", n);
+		test_argv[2] = greater_than_maxttl;
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-z", "replaced_by_MAX_TOS+1000", "localhost");
+
+		const unsigned int n = ((unsigned long) MAX_TOS) + 1000;
+		char greater_than_maxttl[64];
+
+		sprintf(greater_than_maxttl, "%u", n);
+		test_argv[2] = greater_than_maxttl;
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
 }
 
@@ -401,6 +851,63 @@ ATF_TC_BODY(option_gateway, tc)
 		options.s_gateway = NULL;
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
 		ATF_REQUIRE_STREQ("gateway1234", options.s_gateway);
+	}
+}
+
+ATF_TC_WITHOUT_HEAD(option_hoplimit);
+ATF_TC_BODY(option_hoplimit, tc)
+{
+	{
+		ARGC_ARGV("-j");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-j", "-1000", "localhost");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-j", "-1", "localhost");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-j", "0", "localhost");
+
+		options.f_hoplimit = false;
+		options.n_hoplimit = -1;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_hoplimit == true);
+		ATF_REQUIRE(options.n_hoplimit == 0);
+	}
+	{
+		ARGC_ARGV("-j", "123", "localhost");
+
+		options.f_hoplimit = false;
+		options.n_hoplimit = -1;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_hoplimit == true);
+		ATF_REQUIRE(options.n_hoplimit == 123);
+	}
+	{
+		ARGC_ARGV("-j", "255", "localhost");
+
+		options.f_hoplimit = false;
+		options.n_hoplimit = -1;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_hoplimit == true);
+		ATF_REQUIRE(options.n_hoplimit == 255);
+	}
+	{
+		ARGC_ARGV("-j", "256", "localhost");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-j", "1255", "localhost");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
 }
 
@@ -724,16 +1231,23 @@ ATF_TP_ADD_TCS(tp)
 	ATF_TP_ADD_TC(tp, option_quiet);
 	ATF_TP_ADD_TC(tp, option_verbose);
 	ATF_TP_ADD_TC(tp, option_protocol_ipv4);
+	ATF_TP_ADD_TC(tp, option_sweep_max);
+	ATF_TP_ADD_TC(tp, option_sweep_min);
+	ATF_TP_ADD_TC(tp, option_sweep_incr);
 	ATF_TP_ADD_TC(tp, option_no_loop);
 	ATF_TP_ADD_TC(tp, option_mask_time);
+	ATF_TP_ADD_TC(tp, option_ttl);
 	ATF_TP_ADD_TC(tp, option_somewhat_quiet);
 	ATF_TP_ADD_TC(tp, option_rroute);
 	ATF_TP_ADD_TC(tp, option_so_dontroute);
+	ATF_TP_ADD_TC(tp, option_multicast_ttl);
+	ATF_TP_ADD_TC(tp, option_tos);
 
 #ifdef INET6
 	ATF_TP_ADD_TC(tp, option_protocol_ipv6);
 	ATF_TP_ADD_TC(tp, option_sock_buf_size);
 	ATF_TP_ADD_TC(tp, option_gateway);
+	ATF_TP_ADD_TC(tp, option_hoplimit);
 	ATF_TP_ADD_TC(tp, option_nodeaddr);
 	ATF_TP_ADD_TC(tp, option_nigroup);
 #ifdef IPV6_USE_MIN_MTU
