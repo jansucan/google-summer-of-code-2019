@@ -388,7 +388,7 @@ options_parse(int argc, char **argv, struct options *const options)
 					options->f_nodeaddr_flag_anycast = true;
 					break;
 #else
-					options_print_error("-a A is not supported on the platform");
+					options_print_error("-k A is not supported on the platform");
 					return (EX_USAGE);
 #endif
 				default:
