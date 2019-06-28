@@ -160,10 +160,6 @@ options_parse(int argc, char **argv, struct options *const options)
 			options->f_so_debug = true;
 			break;
 		case 'f':
-			if (getuid() != 0) {
-				options_print_error("Must be superuser to flood ping");
-				return (EX_NOPERM);
-			}
 			options->f_flood = true;
 			break;
 		case 'I':
