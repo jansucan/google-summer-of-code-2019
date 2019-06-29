@@ -727,13 +727,13 @@ static void
 options_set_defaults(struct options *const options)
 {
 	if (!options->f_sweep_incr)
-		options->n_sweep_incr = 1;
+		options->n_sweep_incr = DEFAULT_SWEEP_INCR;
 	if (!options->f_interval) {
-		options->n_interval.tv_sec = 1;
-		options->n_interval.tv_usec = 0;
+		options->n_interval.tv_sec = DEFAULT_INTERVAL_TV_SEC;
+		options->n_interval.tv_usec = DEFAULT_INTERVAL_TV_USEC;
 	}
 	if (!options->f_wait_time)
-		options->n_wait_time = 10000;
+		options->n_wait_time = DEFAULT_WAIT_TIME;
 	if (!options->f_packet_size) {
 		if ((options->target_type == TARGET_ADDRESS_IPV4) ||
 		    (options->target_type == TARGET_ADDRESS_IPV4))

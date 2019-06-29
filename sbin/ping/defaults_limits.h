@@ -38,6 +38,7 @@
  */
 #define	MAX_TOS			255
 #define	DEFAULT_DATALEN_IPV4	56
+#define	DEFAULT_SWEEP_INCR	1
 
 /*
  * Defines for IPv6 ping.
@@ -54,6 +55,10 @@
  */
 
 /* Max. alarm value in seconds. */
-#define	MAX_ALARM	3600
+#define	MAX_ALARM			3600
+#define	DEFAULT_INTERVAL_TV_SEC		1
+#define	DEFAULT_INTERVAL_TV_USEC	0
+/* Default wait time for response in milliseconds. */
+#define	DEFAULT_WAIT_TIME		10000
 
 #endif

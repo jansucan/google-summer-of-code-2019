@@ -248,6 +248,17 @@ ATF_TC_WITHOUT_HEAD(option_interval);
 ATF_TC_BODY(option_interval, tc)
 {
 	{
+		ARGC_ARGV("localhost");
+
+		options.f_interval = true;
+		options.n_interval.tv_sec = DEFAULT_INTERVAL_TV_SEC + 123;
+		options.n_interval.tv_usec = DEFAULT_INTERVAL_TV_USEC + 123;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_interval == false);
+		ATF_REQUIRE(options.n_interval.tv_sec == DEFAULT_INTERVAL_TV_SEC);
+		ATF_REQUIRE(options.n_interval.tv_usec == DEFAULT_INTERVAL_TV_USEC);
+	}
+	{
 		ARGC_ARGV("-i");
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
@@ -493,6 +504,26 @@ ATF_TC_BODY(option_source, tc)
 ATF_TC_WITHOUT_HEAD(option_packet_size);
 ATF_TC_BODY(option_packet_size, tc)
 {
+#ifdef INET6
+	{
+		ARGC_ARGV("-6", "localhost");
+
+		options.f_packet_size = true;
+		options.n_packet_size = DEFAULT_DATALEN_IPV6 + 123;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_packet_size == false);
+		ATF_REQUIRE(options.n_packet_size == DEFAULT_DATALEN_IPV6);
+	}
+#endif
+	{
+		ARGC_ARGV("-4", "localhost");
+
+		options.f_packet_size = true;
+		options.n_packet_size = DEFAULT_DATALEN_IPV4 + 123;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_packet_size == false);
+		ATF_REQUIRE(options.n_packet_size == DEFAULT_DATALEN_IPV4);
+	}
 	{
 		ARGC_ARGV("-s");
 
@@ -699,6 +730,15 @@ ATF_TC_BODY(option_verbose, tc)
 ATF_TC_WITHOUT_HEAD(option_wait_time);
 ATF_TC_BODY(option_wait_time, tc)
 {
+	{
+		ARGC_ARGV("localhost");
+
+		options.f_wait_time = true;
+		options.n_wait_time = DEFAULT_WAIT_TIME + 123;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_wait_time == false);
+		ATF_REQUIRE(options.n_wait_time == DEFAULT_WAIT_TIME);
+	}
 	{
 		ARGC_ARGV("-W");
 
