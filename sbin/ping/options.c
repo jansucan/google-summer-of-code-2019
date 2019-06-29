@@ -78,7 +78,7 @@ __FBSDID("$FreeBSD$");
 #endif	/* INET6 */
 
 static int  options_check(struct options *const options);
-static int  options_check_packet_size(int, int);
+static int  options_check_packet_size(long, long);
 static int  options_get_target_type(struct options *const options);
 static int  options_getaddrinfo(const char *const hostname,
     const struct addrinfo *const hints, struct addrinfo **const res);
@@ -582,7 +582,7 @@ options_check(struct options *const options)
 }
 
 static int
-options_check_packet_size(int size, int max_size)
+options_check_packet_size(long size, long max_size)
 {
 	if ((getuid() != 0) && (size > max_size)) {
 		options_print_error("packet size too large: %d > %u", size, max_size);
