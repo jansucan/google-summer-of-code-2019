@@ -31,8 +31,6 @@
 #ifndef OPTIONS_H
 #define OPTIONS_H 1
 
-#include <sys/cdefs.h>
-
 /*
  * This block of includes is needed here. It contains preprocessor
  * symbols for configuration of 'struct options' during build-time.
