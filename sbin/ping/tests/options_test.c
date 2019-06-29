@@ -74,15 +74,17 @@ __FBSDID("$FreeBSD$");
 	GETOPT_RESET
 
 /* TODO: Check return value of sprintf() calls */
+#define	ARGV_BUFFER_SIZE	64
+
 #define ARGV_SET_FROM_EXPR(argv, idx, expr)	\
 	const unsigned long ul_##idx = expr;	\
-	char ul_str_##idx[64];			\
+	char ul_str_##idx[ARGV_BUFFER_SIZE];	\
 	sprintf(ul_str_##idx, "%lu", ul_##idx);	\
 	argv[idx] = ul_str_##idx
 
 #define ARGV_SET_LDBL_FROM_EXPR(argv, idx, expr)	\
 	const long double ldbl_##idx = expr;		\
-	char ldbl_str_##idx[64];			\
+	char ldbl_str_##idx[ARGV_BUFFER_SIZE];		\
 	sprintf(ldbl_str_##idx, "%Lg", ldbl_##idx);	\
 	argv[idx] = ldbl_str_##idx
 
