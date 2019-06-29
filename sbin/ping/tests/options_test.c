@@ -1556,7 +1556,32 @@ ATF_TC_BODY(option_nodeaddr, tc)
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 #endif /* NI_NODEADDR_FLAG_ANYCAST */
 	}
+	{
+#ifdef NI_NODEADDR_FLAG_ANYCAST
+		char *const k_arg = "acClLsSgGA";
+#else
+		char *const k_arg = "acClLsSgG";
+#endif
+		ARGC_ARGV("-k", k_arg, "localhost");
 
+		options.f_nodeaddr_flag_all = false;
+		options.f_nodeaddr_flag_compat = false;
+		options.f_nodeaddr_flag_linklocal = false;
+		options.f_nodeaddr_flag_sitelocal = false;
+		options.f_nodeaddr_flag_global = false;
+#ifdef NI_NODEADDR_FLAG_ANYCAST
+		options.f_nodeaddr_flag_anycast = false;
+#endif
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_nodeaddr_flag_all == true);
+		ATF_REQUIRE(options.f_nodeaddr_flag_compat == true);
+		ATF_REQUIRE(options.f_nodeaddr_flag_linklocal == true);
+		ATF_REQUIRE(options.f_nodeaddr_flag_sitelocal == true);
+		ATF_REQUIRE(options.f_nodeaddr_flag_global == true);
+#ifdef NI_NODEADDR_FLAG_ANYCAST
+		ATF_REQUIRE(options.f_nodeaddr_flag_anycast == true);
+#endif
+	}
 }
 
 ATF_TC_WITHOUT_HEAD(option_nigroup);
