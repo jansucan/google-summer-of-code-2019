@@ -528,11 +528,7 @@ options_check(struct options *const options)
 			options_print_error("datalen value too large, maximum is %d", MAXDATALEN);
 			return (EX_USAGE);
 		}
-	} else if ((options->target_type == TARGET_ADDRESS_IPV4) ||
-	    (options->target_type == TARGET_HOSTNAME_IPV4))
-		options->n_packet_size = DEFAULT_DATALEN_IPV4;
-	else
-		options->n_packet_size = DEFAULT_DATALEN_IPV6;
+	}
 
 	/*
 	 * Check options only for IPv4 target.
