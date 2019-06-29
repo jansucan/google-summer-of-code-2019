@@ -1373,31 +1373,34 @@ ATF_TC_BODY(option_hoplimit, tc)
 		ATF_REQUIRE(options.n_hoplimit == 0);
 	}
 	{
-		ARGC_ARGV("-j", "123", "localhost");
+		ARGC_ARGV("-j", "replaced_by_MAX_HOPLIMIT/2", "localhost");
+
+		ARGV_SET_FROM_EXPR(test_argv[2], (unsigned long) (MAX_HOPLIMIT / 2));
+		options.f_hoplimit = false;
+		options.n_hoplimit = -1;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_hoplimit == true);
+		ATF_REQUIRE(options.n_hoplimit == (MAX_HOPLIMIT / 2));
+	}
+	{
+		ARGC_ARGV("-j", DEFINED_NUM_TO_STR(MAX_HOPLIMIT), "localhost");
 
 		options.f_hoplimit = false;
 		options.n_hoplimit = -1;
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
 		ATF_REQUIRE(options.f_hoplimit == true);
-		ATF_REQUIRE(options.n_hoplimit == 123);
+		ATF_REQUIRE(options.n_hoplimit == MAX_HOPLIMIT);
 	}
 	{
-		ARGC_ARGV("-j", "255", "localhost");
+		ARGC_ARGV("-j", "replaced_by_MAX_HOPLIMIT+1", "localhost");
 
-		options.f_hoplimit = false;
-		options.n_hoplimit = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
-		ATF_REQUIRE(options.f_hoplimit == true);
-		ATF_REQUIRE(options.n_hoplimit == 255);
-	}
-	{
-		ARGC_ARGV("-j", "256", "localhost");
-
+		ARGV_SET_FROM_EXPR(test_argv[2], ((unsigned long) MAX_HOPLIMIT) + 1);
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
 	{
-		ARGC_ARGV("-j", "1255", "localhost");
+		ARGC_ARGV("-j", "replaced_by_MAX_HOPLIMIT+1000", "localhost");
 
+		ARGV_SET_FROM_EXPR(test_argv[2], ((unsigned long) MAX_HOPLIMIT) + 1000);
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
 }

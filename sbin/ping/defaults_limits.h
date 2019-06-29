@@ -49,6 +49,7 @@
 #define	ICMP6ECHOTMLEN		sizeof(struct tv32)
 #define	MAXDATALEN		(MAXPACKETLEN - IP6LEN - ICMP6ECHOLEN)
 #define	DEFAULT_DATALEN_IPV6	ICMP6ECHOTMLEN
+#define	MAX_HOPLIMIT		255
 
 /*
  * Defines for IPv4 and IPv6 ping.

@@ -335,7 +335,7 @@ options_parse(int argc, char **argv, struct options *const options)
 			options->s_gateway = optarg;
 			break;
 		case 'j':
-			options->n_hoplimit = options_strtonum(optarg, 0, 255, errbuf);
+			options->n_hoplimit = options_strtonum(optarg, 0, MAX_HOPLIMIT, errbuf);
 			if (errbuf[0] != '\0') {
 				options_print_error("illegal hoplimit %s: %s", optarg, errbuf);
 				return (EX_USAGE);
