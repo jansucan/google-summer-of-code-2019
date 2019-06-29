@@ -490,6 +490,142 @@ ATF_TC_BODY(option_source, tc)
 	}
 }
 
+ATF_TC_WITHOUT_HEAD(option_packet_size);
+ATF_TC_BODY(option_packet_size, tc)
+{
+	{
+		ARGC_ARGV("-s");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-s", "-1000", "localhost");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-s", "0", "localhost");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-s", "1", "localhost");
+
+		options.f_packet_size = false;
+		options.n_packet_size = -1;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_packet_size == true);
+		ATF_REQUIRE(options.n_packet_size == 1);
+	}
+#ifdef INET6
+	{
+		ARGC_ARGV("-6", "-s", "replaced_by_MAXDATALEN/2", "localhost");
+
+		ARGV_SET_FROM_EXPR(test_argv[3], (unsigned long) (MAXDATALEN / 2));
+		options.f_packet_size = false;
+		options.n_packet_size = -1;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_packet_size == true);
+		ATF_REQUIRE(options.n_packet_size == (MAXDATALEN / 2));
+	}
+	{
+		ARGC_ARGV("-6", "-s", "replaced_by_MAXDATALEN", "localhost");
+
+		ARGV_SET_FROM_EXPR(test_argv[3], (unsigned long) MAXDATALEN);
+		options.f_packet_size = false;
+		options.n_packet_size = -1;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_packet_size == true);
+		ATF_REQUIRE(options.n_packet_size == MAXDATALEN);
+	}
+	{
+		ARGC_ARGV("-6", "-s", "replaced_by_MAXDATALEN+1", "localhost");
+
+		ARGV_SET_FROM_EXPR(test_argv[3], ((unsigned long) MAXDATALEN) + 1);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-6", "-s", "replaced_by_MAXDATALEN+1000", "localhost");
+
+		ARGV_SET_FROM_EXPR(test_argv[3], ((unsigned long) MAXDATALEN) + 1000);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+#endif /* !INET6 */
+	{
+		ARGC_ARGV("-4", "-s", "replaced_by_LONG_MAX/2", "localhost");
+
+		ARGV_SET_FROM_EXPR(test_argv[3], (unsigned long) (LONG_MAX / 2));
+		options.f_packet_size = false;
+		options.n_packet_size = -1;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_packet_size == true);
+		ATF_REQUIRE(options.n_packet_size == (LONG_MAX / 2));
+	}
+	{
+		ARGC_ARGV("-4", "-s", "replaced_by_LONG_MAX", "localhost");
+
+		ARGV_SET_FROM_EXPR(test_argv[3], (unsigned long) LONG_MAX);
+		options.f_packet_size = false;
+		options.n_packet_size = -1;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_packet_size == true);
+		ATF_REQUIRE(options.n_packet_size == LONG_MAX);
+	}
+	{
+		ARGC_ARGV("-4", "-s", "replaced_by_LONG_MAX+1", "localhost");
+
+		ARGV_SET_FROM_EXPR(test_argv[3], ((unsigned long) LONG_MAX) + 1);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-4", "-s", "replaced_by_LONG_MAX+1000", "localhost");
+
+		ARGV_SET_FROM_EXPR(test_argv[3], ((unsigned long) LONG_MAX) + 1000);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+}
+
+ATF_TC(unprivileged_option_packet_size);
+ATF_TC_HEAD(unprivileged_option_packet_size, tc)
+{
+	atf_tc_set_md_var(tc, "require.user", "unprivileged");
+}
+ATF_TC_BODY(unprivileged_option_packet_size, tc)
+{
+	{
+		ARGC_ARGV("-4", "-s", "replaced_by_DEFAULT_DATALEN_IPV4/2", "localhost");
+
+		ARGV_SET_FROM_EXPR(test_argv[3], (unsigned long) (DEFAULT_DATALEN_IPV4 / 2));
+		options.f_packet_size = false;
+		options.n_packet_size = -1;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_packet_size == true);
+		ATF_REQUIRE(options.n_packet_size == (DEFAULT_DATALEN_IPV4 / 2));
+	}
+	{
+		ARGC_ARGV("-4", "-s", "replaced_by_DEFAULT_DATALEN_IPV4", "localhost");
+
+		ARGV_SET_FROM_EXPR(test_argv[3], (unsigned long) DEFAULT_DATALEN_IPV4);
+		options.f_packet_size = false;
+		options.n_packet_size = -1;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_packet_size == true);
+		ATF_REQUIRE(options.n_packet_size == DEFAULT_DATALEN_IPV4);
+	}
+	{
+		ARGC_ARGV("-4", "-s", "replaced_by_DEFAULT_DATALEN_IPV4+1", "localhost");
+
+		ARGV_SET_FROM_EXPR(test_argv[3], ((unsigned long) DEFAULT_DATALEN_IPV4) + 1);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_NOPERM);
+	}
+	{
+		ARGC_ARGV("-4", "-s", "replaced_by_DEFAULT_DATALEN_IPV4+1000", "localhost");
+
+		ARGV_SET_FROM_EXPR(test_argv[3], ((unsigned long) DEFAULT_DATALEN_IPV4) + 1000);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_NOPERM);
+	}
+}
+
 ATF_TC_WITHOUT_HEAD(option_alarm_timeout);
 ATF_TC_BODY(option_alarm_timeout, tc)
 {
@@ -1483,6 +1619,8 @@ ATF_TP_ADD_TCS(tp)
 	ATF_TP_ADD_TC(tp, option_ping_filled);
 	ATF_TP_ADD_TC(tp, option_quiet);
 	ATF_TP_ADD_TC(tp, option_source);
+	ATF_TP_ADD_TC(tp, option_packet_size);
+	ATF_TP_ADD_TC(tp, unprivileged_option_packet_size);
 	ATF_TP_ADD_TC(tp, option_alarm_timeout);
 	ATF_TP_ADD_TC(tp, option_verbose);
 	ATF_TP_ADD_TC(tp, option_protocol_ipv4);
