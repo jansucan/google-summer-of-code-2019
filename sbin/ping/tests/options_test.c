@@ -98,6 +98,91 @@ static struct options options;
  * Test cases.
  */
 
+ATF_TC_WITHOUT_HEAD(parse_hosts);
+ATF_TC_BODY(parse_hosts, tc)
+{
+	{
+		ARGC_ARGV("127.0.0.1", "127.0.0.1");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("127.0.0.1");
+
+		options.target = NULL;
+		options.target_addrinfo = NULL;
+		options.target_type = TARGET_UNKNOWN;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE_STREQ("127.0.0.1", options.target);
+		ATF_REQUIRE(options.target_addrinfo != NULL);
+		ATF_REQUIRE(options.target_addrinfo->ai_family == AF_INET);
+		ATF_REQUIRE(options.target_type == TARGET_ADDRESS_IPV4);
+	}
+	{
+		ARGC_ARGV("-4", "localhost");
+
+		options.target = NULL;
+		options.target_addrinfo = NULL;
+		options.target_type = TARGET_UNKNOWN;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE_STREQ("localhost", options.target);
+		ATF_REQUIRE(options.target_addrinfo != NULL);
+		ATF_REQUIRE(options.target_addrinfo->ai_family == AF_INET);
+		ATF_REQUIRE(options.target_type == TARGET_HOSTNAME_IPV4);
+	}
+#ifdef INET6
+	{
+		ARGC_ARGV("::1");
+
+		options.target = NULL;
+		options.target_addrinfo = NULL;
+		options.target_type = TARGET_UNKNOWN;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE_STREQ("::1", options.target);
+		ATF_REQUIRE(options.target_addrinfo != NULL);
+		ATF_REQUIRE(options.target_addrinfo->ai_family == AF_INET6);
+		ATF_REQUIRE(options.target_type == TARGET_ADDRESS_IPV6);
+	}
+	{
+		ARGC_ARGV("-6", "localhost");
+
+		options.target = NULL;
+		options.target_addrinfo = NULL;
+		options.target_type = TARGET_UNKNOWN;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE_STREQ("localhost", options.target);
+		ATF_REQUIRE(options.target_addrinfo != NULL);
+		ATF_REQUIRE(options.target_addrinfo->ai_family == AF_INET6);
+		ATF_REQUIRE(options.target_type == TARGET_HOSTNAME_IPV6);
+	}
+	/* TODO: hops */
+#endif /* INET6 */
+}
+
+#ifdef INET6
+ATF_TC_WITHOUT_HEAD(compatibility_options_target);
+ATF_TC_BODY(compatibility_options_target, tc)
+{
+	{
+		ARGC_ARGV("-6", "-G", "localhost");
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-4", "-e", "localhost");
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	/* { */
+	/* 	ARGC_ARGV("-4", "::1"); */
+	/* 	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE); */
+	/* } */
+	/* { */
+	/* 	ARGC_ARGV("-6", "127.0.0.1"); */
+	/* 	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE); */
+	/* } */
+	/* TODO: how to test hostname resolving only to IPv4 or IPv6? */
+}
+#endif /* INET6 */
+
 ATF_TC_WITHOUT_HEAD(options_no);
 ATF_TC_BODY(options_no, tc)
 {
@@ -209,11 +294,18 @@ ATF_TC_BODY(option_so_debug, tc)
 ATF_TC_WITHOUT_HEAD(option_flood);
 ATF_TC_BODY(option_flood, tc)
 {
-	ARGC_ARGV("-f", "localhost");
+	{
+		ARGC_ARGV("-f", "localhost");
 
-	options.f_flood = false;
-	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
-	ATF_REQUIRE(options.f_flood == true);
+		options.f_flood = false;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_flood == true);
+	}
+	{
+		ARGC_ARGV("-f", "-i", "1","localhost");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
 }
 
 ATF_TC(unprivileged_option_flood);
@@ -342,6 +434,19 @@ ATF_TC_BODY(option_interval, tc)
 	}
 }
 
+ATF_TC(unprivileged_option_interval);
+ATF_TC_HEAD(unprivileged_option_interval, tc)
+{
+	atf_tc_set_md_var(tc, "require.user", "unprivileged");
+}
+ATF_TC_BODY(unprivileged_option_interval, tc)
+{
+	ARGC_ARGV("-i", "replaced_by_DBL_MIN", "localhost");
+	ARGV_SET_LDBL_FROM_EXPR(test_argv[2], DBL_MIN);
+
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_NOPERM);
+}
+
 ATF_TC_WITHOUT_HEAD(option_preload);
 ATF_TC_BODY(option_preload, tc)
 {
@@ -400,6 +505,18 @@ ATF_TC_BODY(option_preload, tc)
 		ARGV_SET_FROM_EXPR(test_argv[2], ((unsigned long) INT_MAX) + 1000);
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
+}
+
+ATF_TC(unprivileged_option_preload);
+ATF_TC_HEAD(unprivileged_option_preload, tc)
+{
+	atf_tc_set_md_var(tc, "require.user", "unprivileged");
+}
+ATF_TC_BODY(unprivileged_option_preload, tc)
+{
+	ARGC_ARGV("-l", "1", "localhost");
+
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_NOPERM);
 }
 
 ATF_TC_WITHOUT_HEAD(option_numeric);
@@ -875,6 +992,33 @@ ATF_TC_BODY(option_sweep_max, tc)
 		ARGV_SET_FROM_EXPR(test_argv[2], ((unsigned long) INT_MAX) + 1000);
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
+	{
+		ARGC_ARGV("-G", "1", "-s", "1", "localhost");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+}
+
+ATF_TC(unprivileged_option_sweep_max);
+ATF_TC_HEAD(unprivileged_option_sweep_max, tc)
+{
+	atf_tc_set_md_var(tc, "require.user", "unprivileged");
+}
+ATF_TC_BODY(unprivileged_option_sweep_max, tc)
+{
+	{
+		ARGC_ARGV("-G", DEFINED_NUM_TO_STR(DEFAULT_DATALEN_IPV4), "localhost");
+
+		options.n_sweep_max = DEFAULT_DATALEN_IPV4 + 123;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		options.n_sweep_max = DEFAULT_DATALEN_IPV4;
+	}
+	{
+		ARGC_ARGV("-G", "replaced_by_DEFAULT_DATALEN_IPV4+1", "localhost");
+
+		ARGV_SET_FROM_EXPR(test_argv[2], ((unsigned long) DEFAULT_DATALEN_IPV4) + 1);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_NOPERM);
+	}
 }
 
 ATF_TC_WITHOUT_HEAD(option_sweep_min);
@@ -897,6 +1041,11 @@ ATF_TC_BODY(option_sweep_min, tc)
 	}
 	{
 		ARGC_ARGV("-g", "1", "localhost");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-g", "2", "-G", "1", "localhost");
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
@@ -940,6 +1089,31 @@ ATF_TC_BODY(option_sweep_min, tc)
 
 		ARGV_SET_FROM_EXPR(test_argv[2], ((unsigned long) INT_MAX) + 1000);
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+}
+
+ATF_TC(unprivileged_option_sweep_min);
+ATF_TC_HEAD(unprivileged_option_sweep_min, tc)
+{
+	atf_tc_set_md_var(tc, "require.user", "unprivileged");
+}
+ATF_TC_BODY(unprivileged_option_sweep_min, tc)
+{
+	{
+		ARGC_ARGV("-g", DEFINED_NUM_TO_STR(DEFAULT_DATALEN_IPV4), "-G",
+		    DEFINED_NUM_TO_STR(DEFAULT_DATALEN_IPV4), "localhost");
+
+		options.n_sweep_min = DEFAULT_DATALEN_IPV4 + 123;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		options.n_sweep_min = DEFAULT_DATALEN_IPV4;
+	}
+	{
+		ARGC_ARGV("-g", "replaced_by_DEFAULT_DATALEN_IPV4+1", "-G",
+		    "replaced_by_DEFAULT_DATALEN_IPV4+1", "localhost");
+
+		ARGV_SET_FROM_EXPR(test_argv[2], ((unsigned long) DEFAULT_DATALEN_IPV4) + 1);
+		ARGV_SET_FROM_EXPR(test_argv[4], ((unsigned long) DEFAULT_DATALEN_IPV4) + 1);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_NOPERM);
 	}
 }
 
@@ -1017,6 +1191,31 @@ ATF_TC_BODY(option_sweep_incr, tc)
 	}
 }
 
+ATF_TC(unprivileged_option_sweep_incr);
+ATF_TC_HEAD(unprivileged_option_sweep_incr, tc)
+{
+	atf_tc_set_md_var(tc, "require.user", "unprivileged");
+}
+ATF_TC_BODY(unprivileged_option_sweep_incr, tc)
+{
+	{
+		ARGC_ARGV("-h", DEFINED_NUM_TO_STR(DEFAULT_DATALEN_IPV4), "-G",
+		    DEFINED_NUM_TO_STR(DEFAULT_DATALEN_IPV4), "localhost");
+
+		options.n_sweep_incr = DEFAULT_DATALEN_IPV4 + 123;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		options.n_sweep_incr = DEFAULT_DATALEN_IPV4;
+	}
+	{
+		ARGC_ARGV("-h", "replaced_by_DEFAULT_DATALEN_IPV4+1", "-G",
+		    "replaced_by_DEFAULT_DATALEN_IPV4+1", "localhost");
+
+		ARGV_SET_FROM_EXPR(test_argv[2], ((unsigned long) DEFAULT_DATALEN_IPV4) + 1);
+		ARGV_SET_FROM_EXPR(test_argv[4], ((unsigned long) DEFAULT_DATALEN_IPV4) + 1);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_NOPERM);
+	}
+}
+
 ATF_TC_WITHOUT_HEAD(option_no_loop);
 ATF_TC_BODY(option_no_loop, tc)
 {
@@ -1085,6 +1284,11 @@ ATF_TC_BODY(option_mask_time, tc)
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
 		ATF_REQUIRE(options.f_mask == false);
 		ATF_REQUIRE(options.f_time == true);
+	}
+	{
+		ARGC_ARGV("-M", "m", "-M", "t", "localhost");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
 }
 
@@ -1803,6 +2007,10 @@ ATF_TC_BODY(option_encrypt, tc)
 
 ATF_TP_ADD_TCS(tp)
 {
+	ATF_TP_ADD_TC(tp, parse_hosts);
+#ifdef INET6
+	ATF_TP_ADD_TC(tp, compatibility_options_target);
+#endif
 	ATF_TP_ADD_TC(tp, options_no);
 	ATF_TP_ADD_TC(tp, option_missed);
 	ATF_TP_ADD_TC(tp, option_audible);
@@ -1813,7 +2021,9 @@ ATF_TP_ADD_TCS(tp)
 	ATF_TP_ADD_TC(tp, unprivileged_option_flood);
 	ATF_TP_ADD_TC(tp, option_interface);
 	ATF_TP_ADD_TC(tp, option_interval);
+	ATF_TP_ADD_TC(tp, unprivileged_option_interval);
 	ATF_TP_ADD_TC(tp, option_preload);
+	ATF_TP_ADD_TC(tp, unprivileged_option_preload);
 	ATF_TP_ADD_TC(tp, option_numeric);
 	ATF_TP_ADD_TC(tp, option_once);
 	ATF_TP_ADD_TC(tp, option_ping_filled);
@@ -1826,8 +2036,11 @@ ATF_TP_ADD_TCS(tp)
 	ATF_TP_ADD_TC(tp, option_wait_time);
 	ATF_TP_ADD_TC(tp, option_protocol_ipv4);
 	ATF_TP_ADD_TC(tp, option_sweep_max);
+	ATF_TP_ADD_TC(tp, unprivileged_option_sweep_max);
 	ATF_TP_ADD_TC(tp, option_sweep_min);
+	ATF_TP_ADD_TC(tp, unprivileged_option_sweep_min);
 	ATF_TP_ADD_TC(tp, option_sweep_incr);
+	ATF_TP_ADD_TC(tp, unprivileged_option_sweep_incr);
 	ATF_TP_ADD_TC(tp, option_no_loop);
 	ATF_TP_ADD_TC(tp, option_mask_time);
 	ATF_TP_ADD_TC(tp, option_ttl);
