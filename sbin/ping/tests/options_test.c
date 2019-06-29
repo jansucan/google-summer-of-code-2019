@@ -1071,8 +1071,8 @@ ATF_TC_BODY(option_mask_time, tc)
 	{
 		ARGC_ARGV("-M", "mt", "localhost");
 
-		options.f_mask false;
-		options.f_time= false;
+		options.f_mask = false;
+		options.f_time = false;
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
 		ATF_REQUIRE(options.f_mask == true);
 		ATF_REQUIRE(options.f_time == true);
@@ -1321,28 +1321,28 @@ ATF_TC_BODY(option_sock_buf_size, tc)
 	{
 		ARGC_ARGV("-b", "0", "localhost");
 
-		options.f_sock_buf_size = false;
+		options.f_sock_buff_size = false;
 		options.n_sock_buff_size = -1;
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
-		ATF_REQUIRE(options.f_sock_buf_size == false);
+		ATF_REQUIRE(options.f_sock_buff_size == false);
 		ATF_REQUIRE(options.n_sock_buff_size == 0);
 	}
 	{
 		ARGC_ARGV("-b", "replaced_by_INT_MAX/2", "localhost");
 
 		ARGV_SET_FROM_EXPR(test_argv[2], (unsigned long) (INT_MAX / 2));
-		options.f_sock_buf_size = false;
+		options.f_sock_buff_size = false;
 		options.n_sock_buff_size = -1;
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
-		ATF_REQUIRE(options.f_sock_buf_size == false);
+		ATF_REQUIRE(options.f_sock_buff_size == false);
 		ATF_REQUIRE(options.n_sock_buff_size == (INT_MAX / 2));
 	}
 	{
 		ARGC_ARGV("-b", DEFINED_NUM_TO_STR(INT_MAX), "localhost");
-		options.f_sock_buf_size = false;
+		options.f_sock_buff_size = false;
 		options.n_sock_buff_size = -1;
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
-		ATF_REQUIRE(options.f_sock_buf_size == false);
+		ATF_REQUIRE(options.f_sock_buff_size == false);
 		ATF_REQUIRE(options.n_sock_buff_size == INT_MAX);
 	}
 	{
