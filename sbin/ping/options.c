@@ -735,7 +735,7 @@ options_set_defaults(struct options *const options)
 		options->n_wait_time = DEFAULT_WAIT_TIME;
 	if (!options->f_packet_size) {
 		if ((options->target_type == TARGET_ADDRESS_IPV4) ||
-		    (options->target_type == TARGET_ADDRESS_IPV4))
+		    (options->target_type == TARGET_HOSTNAME_IPV4))
 			options->n_packet_size = DEFAULT_DATALEN_IPV4;
 		else
 			options->n_packet_size = DEFAULT_DATALEN_IPV6;
