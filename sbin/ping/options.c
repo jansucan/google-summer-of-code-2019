@@ -551,17 +551,17 @@ options_check(struct options *const options)
 			options_print_error("Packet size and ping sweep are mutually exclusive");
 			return (EX_USAGE);
 		}
-		const int r = options_check_packet_size(options->f_sweep_max, DEFAULT_DATALEN_IPV4);
+		const int r = options_check_packet_size(options->n_sweep_max, DEFAULT_DATALEN_IPV4);
 		if (r != EX_OK)
 			return (r);
 	}
 	if (options->f_sweep_min) {
-		const int r = options_check_packet_size(options->f_sweep_min, DEFAULT_DATALEN_IPV4);
+		const int r = options_check_packet_size(options->n_sweep_min, DEFAULT_DATALEN_IPV4);
 		if (r != EX_OK)
 			return (r);
 	}
 	if (options->f_sweep_incr) {
-		const int r = options_check_packet_size(options->f_sweep_incr, DEFAULT_DATALEN_IPV4);
+		const int r = options_check_packet_size(options->n_sweep_incr, DEFAULT_DATALEN_IPV4);
 		if (r != EX_OK)
 			return (r);
 	}
