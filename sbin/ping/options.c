@@ -51,23 +51,7 @@ __FBSDID("$FreeBSD$");
 #include <unistd.h>
 
 #include "options.h"
-
-/* TODO: This is duplicated from ping6.c */
-struct tv32 {
-	int32_t tv32_sec;
-	int32_t tv32_usec;
-};
-#define MAXPACKETLEN	131072
-#define	IP6LEN		40
-#define ICMP6ECHOLEN	8	/* icmp echo header len excluding time */
-#define ICMP6ECHOTMLEN  sizeof(struct tv32)
-#define MAXDATALEN	MAXPACKETLEN - IP6LEN - ICMP6ECHOLEN
-
-#define DEFAULT_DATALEN_IPV6   ICMP6ECHOTMLEN
-#define	DEFAULT_DATALEN_IPV4   56
-
-#define MAX_ALARM (60 * 60)
-#define	MAX_TOS		255
+#include "defaults_limits.h"
 
 #define OPTIONS_STRTONUM_ERRBUF_SIZE 72
 

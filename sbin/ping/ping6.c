@@ -136,21 +136,16 @@ __FBSDID("$FreeBSD$");
 
 #include <md5.h>
 
+#include "defaults_limits.h"
 #include "ping6.h"
 #include "timing.h"
 #include "utils.h"
 
-#define MAXPACKETLEN	131072
-#define	IP6LEN		40
-#define ICMP6ECHOLEN	8	/* icmp echo header len excluding time */
-#define ICMP6ECHOTMLEN sizeof(struct tv32)
 #define ICMP6_NIQLEN	(ICMP6ECHOLEN + 8)
 # define CONTROLLEN	10240	/* ancillary data buffer size RFC3542 20.1 */
 /* FQDN case, 64 bits of nonce + 32 bits ttl */
 #define ICMP6_NIRLEN	(ICMP6ECHOLEN + 12)
 #define	EXTRA		256	/* for AH and various other headers. weird. */
-#define	DEFDATALEN	ICMP6ECHOTMLEN
-#define MAXDATALEN	MAXPACKETLEN - IP6LEN - ICMP6ECHOLEN
 #define	NROUTES		9		/* number of record route slots */
 
 #define IN6LEN		sizeof(struct in6_addr)

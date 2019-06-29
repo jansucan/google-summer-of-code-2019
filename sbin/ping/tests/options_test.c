@@ -45,10 +45,7 @@ __FBSDID("$FreeBSD$");
 #include <sysexits.h>
 
 #include "../options.h"
-
-/* TODO: this is duplicated from options.c */
-#define MAX_ALARM      3600
-#define	MAX_TOS		255
+#include "../defaults_limits.h"
 
 /*
  * Max. allowed difference in microseconds used for checking the
