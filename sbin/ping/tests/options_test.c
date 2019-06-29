@@ -152,11 +152,12 @@ ATF_TC_BODY(option_count, tc)
 		ATF_REQUIRE(options.n_packets == 1);
 	}
 	{
-		ARGC_ARGV("-c", "234567", "localhost");
+		ARGC_ARGV("-c", "replaced_by_LONG_MAX/2", "localhost");
 
+		ARGV_SET_FROM_EXPR(test_argv[2], (unsigned long) (LONG_MAX / 2));
 		options.n_packets = -1;
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
-		ATF_REQUIRE(options.n_packets == 234567);
+		ATF_REQUIRE(options.n_packets == (LONG_MAX / 2));
 	}
 	{
 		ARGC_ARGV("-c", DEFINED_NUM_TO_STR(LONG_MAX), "localhost");
@@ -290,12 +291,13 @@ ATF_TC_BODY(option_interval, tc)
 		ATF_REQUIRE(options.f_interval == true);
 	}
 	{
-		ARGC_ARGV("-i", "1.234567890", "localhost");
+		ARGC_ARGV("-i", "replaced_by_DBL_MAX/2", "localhost");
+		const double dbl = DBL_MAX / 2;
 
+		ARGV_SET_LDBL_FROM_EXPR(test_argv[2], dbl);
 		options.f_interval = false;
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
 
-		const double dbl = 1.234567890;
 		double dbl_integer_part;
 		const suseconds_t expected_tv_usec = (suseconds_t) (modf(dbl, &dbl_integer_part) * 1000 * 1000);
 		const time_t expected_tv_sec = (time_t) dbl_integer_part;
@@ -362,13 +364,14 @@ ATF_TC_BODY(option_preload, tc)
 		ATF_REQUIRE(options.n_preload == 0);
 	}
 	{
-		ARGC_ARGV("-l", "123456", "localhost");
+		ARGC_ARGV("-l", "replaced_by_INT_MAX/2", "localhost");
 
+		ARGV_SET_FROM_EXPR(test_argv[2], ((unsigned long) (INT_MAX / 2)));
 		options.f_preload = false;
 		options.n_preload = -1;
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
 		ATF_REQUIRE(options.f_preload == true);
-		ATF_REQUIRE(options.n_preload == 123456);
+		ATF_REQUIRE(options.n_preload == (INT_MAX / 2));
 	}
 	{
 		ARGC_ARGV("-l", DEFINED_NUM_TO_STR(INT_MAX), "localhost");
@@ -766,13 +769,14 @@ ATF_TC_BODY(option_wait_time, tc)
 		ATF_REQUIRE(options.n_wait_time == 0);
 	}
 	{
-		ARGC_ARGV("-W", "123456", "localhost");
+		ARGC_ARGV("-W", "replaced_by_INT_MAX/2", "localhost");
 
+		ARGV_SET_FROM_EXPR(test_argv[2], (unsigned long) (INT_MAX / 2));
 		options.f_wait_time = false;
 		options.n_wait_time = -1;
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
 		ATF_REQUIRE(options.f_wait_time == true);
-		ATF_REQUIRE(options.n_wait_time == 123456);
+		ATF_REQUIRE(options.n_wait_time == (INT_MAX / 2));
 	}
 	{
 		ARGC_ARGV("-W", DEFINED_NUM_TO_STR(INT_MAX), "localhost");
@@ -835,13 +839,14 @@ ATF_TC_BODY(option_sweep_max, tc)
 		ATF_REQUIRE(options.n_sweep_max == 1);
 	}
 	{
-		ARGC_ARGV("-G", "123456", "localhost");
+		ARGC_ARGV("-G", "replaced_by_INT_MAX/2", "localhost");
 
+		ARGV_SET_FROM_EXPR(test_argv[2], (unsigned long) (INT_MAX / 2));
 		options.f_sweep_max = false;
 		options.n_sweep_max = -1;
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
 		ATF_REQUIRE(options.f_sweep_max == true);
-		ATF_REQUIRE(options.n_sweep_max == 123456);
+		ATF_REQUIRE(options.n_sweep_max == (INT_MAX / 2));
 	}
 	{
 		ARGC_ARGV("-G", DEFINED_NUM_TO_STR(INT_MAX), "localhost");
@@ -899,13 +904,15 @@ ATF_TC_BODY(option_sweep_min, tc)
 		ATF_REQUIRE(options.n_sweep_min == 1);
 	}
 	{
-		ARGC_ARGV("-g", "123456", "-G", "123456", "localhost");
+		ARGC_ARGV("-g", "replaced_by_INT_MAX/2", "-G", "replaced_by_INT_MAX/2", "localhost");
 
+		ARGV_SET_FROM_EXPR(test_argv[2], (unsigned long) (INT_MAX / 2));
+		ARGV_SET_FROM_EXPR(test_argv[4], (unsigned long) (INT_MAX / 2));
 		options.f_sweep_min = false;
 		options.n_sweep_min = -1;
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
 		ATF_REQUIRE(options.f_sweep_min == true);
-		ATF_REQUIRE(options.n_sweep_min == 123456);
+		ATF_REQUIRE(options.n_sweep_min == (INT_MAX / 2));
 	}
 	{
 		ARGC_ARGV("-g", DEFINED_NUM_TO_STR(INT_MAX), "-G", DEFINED_NUM_TO_STR(INT_MAX), "localhost");
@@ -972,13 +979,14 @@ ATF_TC_BODY(option_sweep_incr, tc)
 		ATF_REQUIRE(options.n_sweep_incr == 1);
 	}
 	{
-		ARGC_ARGV("-h", "123456", "-G", "123456", "localhost");
+		ARGC_ARGV("-h", "replaced_by_INT_MAX/2", "-G", "1", "localhost");
 
+		ARGV_SET_FROM_EXPR(test_argv[2], (unsigned long) (INT_MAX / 2));
 		options.f_sweep_incr = false;
 		options.n_sweep_incr = -1;
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
 		ATF_REQUIRE(options.f_sweep_incr == true);
-		ATF_REQUIRE(options.n_sweep_incr == 123456);
+		ATF_REQUIRE(options.n_sweep_incr == (INT_MAX / 2));
 	}
 	{
 		ARGC_ARGV("-h", DEFINED_NUM_TO_STR(INT_MAX), "-G", DEFINED_NUM_TO_STR(INT_MAX), "localhost");
@@ -1303,11 +1311,12 @@ ATF_TC_BODY(option_sock_buf_size, tc)
 		ATF_REQUIRE(options.n_sock_buff_size == 0);
 	}
 	{
-		ARGC_ARGV("-b", "123456", "localhost");
+		ARGC_ARGV("-b", "replaced_by_INT_MAX/2", "localhost");
 
+		ARGV_SET_FROM_EXPR(test_argv[2], (unsigned long) (INT_MAX / 2));
 		options.n_sock_buff_size = -1;
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
-		ATF_REQUIRE(options.n_sock_buff_size == 123456);
+		ATF_REQUIRE(options.n_sock_buff_size == (INT_MAX / 2));
 	}
 	{
 		ARGC_ARGV("-b", DEFINED_NUM_TO_STR(INT_MAX), "localhost");
