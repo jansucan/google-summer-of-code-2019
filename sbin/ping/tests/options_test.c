@@ -1333,7 +1333,7 @@ ATF_TC_BODY(option_sock_buf_size, tc)
 		options.f_sock_buff_size = false;
 		options.n_sock_buff_size = -1;
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
-		ATF_REQUIRE(options.f_sock_buff_size == false);
+		ATF_REQUIRE(options.f_sock_buff_size == true);
 		ATF_REQUIRE(options.n_sock_buff_size == 0);
 	}
 	{
@@ -1343,7 +1343,7 @@ ATF_TC_BODY(option_sock_buf_size, tc)
 		options.f_sock_buff_size = false;
 		options.n_sock_buff_size = -1;
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
-		ATF_REQUIRE(options.f_sock_buff_size == false);
+		ATF_REQUIRE(options.f_sock_buff_size == true);
 		ATF_REQUIRE(options.n_sock_buff_size == (INT_MAX / 2));
 	}
 	{
@@ -1351,7 +1351,7 @@ ATF_TC_BODY(option_sock_buf_size, tc)
 		options.f_sock_buff_size = false;
 		options.n_sock_buff_size = -1;
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
-		ATF_REQUIRE(options.f_sock_buff_size == false);
+		ATF_REQUIRE(options.f_sock_buff_size == true);
 		ATF_REQUIRE(options.n_sock_buff_size == INT_MAX);
 	}
 	{
