@@ -1,3 +1,4 @@
+
 /*-
  * SPDX-License-Identifier: BSD-2-Clause-FreeBSD
  *
@@ -526,7 +527,7 @@ options_check(struct options *const options)
 				return (r);
 		} else if (options->n_packet_size > MAXDATALEN) {
 			options_print_error("datalen value too large, maximum is %d", MAXDATALEN);
-			return (1);
+			return (EX_USAGE);
 		}
 	} else if ((options->target_type == TARGET_ADDRESS_IPV4) ||
 	    (options->target_type == TARGET_HOSTNAME_IPV4))
