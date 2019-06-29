@@ -1635,10 +1635,10 @@ ATF_TC_BODY(option_nigroup, tc)
 	}
 }
 
-#ifdef IPV6_USE_MIN_MTU
 ATF_TC_WITHOUT_HEAD(option_use_min_mtu);
 ATF_TC_BODY(option_use_min_mtu, tc)
 {
+#ifdef IPV6_USE_MIN_MTU
 	{
 		ARGC_ARGV("-u", "localhost");
 
@@ -1660,8 +1660,15 @@ ATF_TC_BODY(option_use_min_mtu, tc)
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
 		ATF_REQUIRE(options.c_use_min_mtu == 7);
 	}
-}
+#else /* !IPV6_USE_MIN_MTU */
+	{
+		ARGC_ARGV("-u", "localhost");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
 #endif /* IPV6_USE_MIN_MTU */
+}
+
 
 ATF_TC_WITHOUT_HEAD(option_fqdn);
 ATF_TC_BODY(option_fqdn, tc)
@@ -1837,9 +1844,7 @@ ATF_TP_ADD_TCS(tp)
 	ATF_TP_ADD_TC(tp, option_hoplimit);
 	ATF_TP_ADD_TC(tp, option_nodeaddr);
 	ATF_TP_ADD_TC(tp, option_nigroup);
-#ifdef IPV6_USE_MIN_MTU
 	ATF_TP_ADD_TC(tp, option_use_min_mtu);
-#endif /* IPV6_USE_MIN_MTU */
 	ATF_TP_ADD_TC(tp, option_fqdn);
 	ATF_TP_ADD_TC(tp, option_fqdn_old);
 	ATF_TP_ADD_TC(tp, option_subtypes);
