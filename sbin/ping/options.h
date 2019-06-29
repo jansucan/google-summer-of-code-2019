@@ -36,6 +36,7 @@
  * symbols for configuration of 'struct options' during build-time.
  */
 #include <net/if.h>
+#include <netdb.h>
 #include <netinet/in.h>
 #include <netinet/ip6.h>
 #include <netinet/icmp6.h>

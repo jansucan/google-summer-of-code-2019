@@ -36,7 +36,6 @@ __FBSDID("$FreeBSD$");
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
-#include <netdb.h>
 
 #include <assert.h>
 #include <ctype.h>
