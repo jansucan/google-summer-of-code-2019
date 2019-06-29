@@ -301,18 +301,23 @@ ATF_TC_BODY(option_so_debug, tc)
 ATF_TC_WITHOUT_HEAD(option_flood);
 ATF_TC_BODY(option_flood, tc)
 {
-	{
-		ARGC_ARGV("-f", "localhost");
+	ARGC_ARGV("-f", "-i", "1","localhost");
 
-		options.f_flood = false;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
-		ATF_REQUIRE(options.f_flood == true);
-	}
-	{
-		ARGC_ARGV("-f", "-i", "1","localhost");
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+}
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
-	}
+ATF_TC(privileged_option_flood);
+ATF_TC_HEAD(privileged_option_flood, tc)
+{
+	atf_tc_set_md_var(tc, "require.user", "root");
+}
+ATF_TC_BODY(privileged_option_flood, tc)
+{
+	ARGC_ARGV("-f", "localhost");
+
+	options.f_flood = false;
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+	ATF_REQUIRE(options.f_flood == true);
 }
 
 ATF_TC(unprivileged_option_flood);
@@ -382,20 +387,6 @@ ATF_TC_BODY(option_interval, tc)
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
 	{
-		ARGC_ARGV("-i", "replaced_by_DBL_MIN", "localhost");
-		ARGV_SET_LDBL_FROM_EXPR(test_argv, 2, DBL_MIN);
-
-		options.f_interval = false;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
-		/*
-		 * Values less than 1 microsecond are raised to 1
-		 * microsecond.
-		 */
-		ATF_REQUIRE(options.n_interval.tv_sec == 0);
-		ATF_REQUIRE(options.n_interval.tv_usec == 1);
-		ATF_REQUIRE(options.f_interval == true);
-	}
-	{
 		ARGC_ARGV("-i", "replaced_by_DBL_MAX/2", "localhost");
 		const double dbl = DBL_MAX / 2;
 
@@ -441,6 +432,27 @@ ATF_TC_BODY(option_interval, tc)
 	}
 }
 
+ATF_TC(privileged_option_interval);
+ATF_TC_HEAD(privileged_option_interval, tc)
+{
+	atf_tc_set_md_var(tc, "require.user", "root");
+}
+ATF_TC_BODY(privileged_option_interval, tc)
+{
+	ARGC_ARGV("-i", "replaced_by_DBL_MIN", "localhost");
+	ARGV_SET_LDBL_FROM_EXPR(test_argv, 2, DBL_MIN);
+
+	options.f_interval = false;
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+	/*
+	 * Values less than 1 microsecond are raised to 1
+	 * microsecond.
+	 */
+	ATF_REQUIRE(options.n_interval.tv_sec == 0);
+	ATF_REQUIRE(options.n_interval.tv_usec == 1);
+	ATF_REQUIRE(options.f_interval == true);
+}
+
 ATF_TC(unprivileged_option_interval);
 ATF_TC_HEAD(unprivileged_option_interval, tc)
 {
@@ -473,6 +485,27 @@ ATF_TC_BODY(option_preload, tc)
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
 	{
+		ARGC_ARGV("-l", "replaced_by_INT_MAX+1", "localhost");
+
+		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) INT_MAX) + 1);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-l", "replaced_by_INT_MAX+1000", "localhost");
+
+		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) INT_MAX) + 1000);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+}
+
+ATF_TC(privileged_option_preload);
+ATF_TC_HEAD(privileged_option_preload, tc)
+{
+	atf_tc_set_md_var(tc, "require.user", "root");
+}
+ATF_TC_BODY(privileged_option_preload, tc)
+{
+	{
 		ARGC_ARGV("-l", "0", "localhost");
 
 		options.f_preload = false;
@@ -499,18 +532,6 @@ ATF_TC_BODY(option_preload, tc)
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
 		ATF_REQUIRE(options.f_preload == true);
 		ATF_REQUIRE(options.n_preload == INT_MAX);
-	}
-	{
-		ARGC_ARGV("-l", "replaced_by_INT_MAX+1", "localhost");
-
-		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) INT_MAX) + 1);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
-	}
-	{
-		ARGC_ARGV("-l", "replaced_by_INT_MAX+1000", "localhost");
-
-		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) INT_MAX) + 1000);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
 }
 
@@ -718,6 +739,27 @@ ATF_TC_BODY(option_packet_size, tc)
 	}
 #endif /* !INET6 */
 	{
+		ARGC_ARGV("-4", "-s", "replaced_by_LONG_MAX+1", "localhost");
+
+		ARGV_SET_FROM_EXPR(test_argv, 3, ((unsigned long) LONG_MAX) + 1);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-4", "-s", "replaced_by_LONG_MAX+1000", "localhost");
+
+		ARGV_SET_FROM_EXPR(test_argv, 3, ((unsigned long) LONG_MAX) + 1000);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+}
+
+ATF_TC(privileged_option_packet_size);
+ATF_TC_HEAD(privileged_option_packet_size, tc)
+{
+	atf_tc_set_md_var(tc, "require.user", "root");
+}
+ATF_TC_BODY(privileged_option_packet_size, tc)
+{
+	{
 		ARGC_ARGV("-4", "-s", "replaced_by_LONG_MAX/2", "localhost");
 
 		ARGV_SET_FROM_EXPR(test_argv, 3, (unsigned long) (LONG_MAX / 2));
@@ -736,18 +778,6 @@ ATF_TC_BODY(option_packet_size, tc)
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
 		ATF_REQUIRE(options.f_packet_size == true);
 		ATF_REQUIRE(options.n_packet_size == LONG_MAX);
-	}
-	{
-		ARGC_ARGV("-4", "-s", "replaced_by_LONG_MAX+1", "localhost");
-
-		ARGV_SET_FROM_EXPR(test_argv, 3, ((unsigned long) LONG_MAX) + 1);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
-	}
-	{
-		ARGC_ARGV("-4", "-s", "replaced_by_LONG_MAX+1000", "localhost");
-
-		ARGV_SET_FROM_EXPR(test_argv, 3, ((unsigned long) LONG_MAX) + 1000);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
 }
 
@@ -969,6 +999,32 @@ ATF_TC_BODY(option_sweep_max, tc)
 		ATF_REQUIRE(options.n_sweep_max == 1);
 	}
 	{
+		ARGC_ARGV("-G", "replaced_by_INT_MAX+1", "localhost");
+
+		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) INT_MAX) + 1);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-G", "replaced_by_INT_MAX+1000", "localhost");
+
+		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) INT_MAX) + 1000);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-G", "1", "-s", "1", "localhost");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+}
+
+ATF_TC(privileged_option_sweep_max);
+ATF_TC_HEAD(privileged_option_sweep_max, tc)
+{
+	atf_tc_set_md_var(tc, "require.user", "root");
+}
+ATF_TC_BODY(privileged_option_sweep_max, tc)
+{
+	{
 		ARGC_ARGV("-G", "replaced_by_INT_MAX/2", "localhost");
 
 		ARGV_SET_FROM_EXPR(test_argv, 2, (unsigned long) (INT_MAX / 2));
@@ -986,23 +1042,6 @@ ATF_TC_BODY(option_sweep_max, tc)
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
 		ATF_REQUIRE(options.f_sweep_max == true);
 		ATF_REQUIRE(options.n_sweep_max == INT_MAX);
-	}
-	{
-		ARGC_ARGV("-G", "replaced_by_INT_MAX+1", "localhost");
-
-		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) INT_MAX) + 1);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
-	}
-	{
-		ARGC_ARGV("-G", "replaced_by_INT_MAX+1000", "localhost");
-
-		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) INT_MAX) + 1000);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
-	}
-	{
-		ARGC_ARGV("-G", "1", "-s", "1", "localhost");
-
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
 }
 
@@ -1066,6 +1105,27 @@ ATF_TC_BODY(option_sweep_min, tc)
 		ATF_REQUIRE(options.n_sweep_min == 1);
 	}
 	{
+		ARGC_ARGV("-g", "replaced_by_INT_MAX+1", "localhost");
+
+		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) INT_MAX) + 1);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-g", "replaced_by_INT_MAX+1000", "localhost");
+
+		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) INT_MAX) + 1000);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+}
+
+ATF_TC(privileged_option_sweep_min);
+ATF_TC_HEAD(privileged_option_sweep_min, tc)
+{
+	atf_tc_set_md_var(tc, "require.user", "root");
+}
+ATF_TC_BODY(privileged_option_sweep_min, tc)
+{
+	{
 		ARGC_ARGV("-g", "replaced_by_INT_MAX/2", "-G", "replaced_by_INT_MAX/2", "localhost");
 
 		ARGV_SET_FROM_EXPR(test_argv, 2, (unsigned long) (INT_MAX / 2));
@@ -1084,18 +1144,6 @@ ATF_TC_BODY(option_sweep_min, tc)
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
 		ATF_REQUIRE(options.f_sweep_min == true);
 		ATF_REQUIRE(options.n_sweep_min == INT_MAX);
-	}
-	{
-		ARGC_ARGV("-g", "replaced_by_INT_MAX+1", "localhost");
-
-		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) INT_MAX) + 1);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
-	}
-	{
-		ARGC_ARGV("-g", "replaced_by_INT_MAX+1000", "localhost");
-
-		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) INT_MAX) + 1000);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
 }
 
@@ -1166,6 +1214,27 @@ ATF_TC_BODY(option_sweep_incr, tc)
 		ATF_REQUIRE(options.n_sweep_incr == 1);
 	}
 	{
+		ARGC_ARGV("-h", "replaced_by_INT_MAX+1", "localhost");
+
+		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) INT_MAX) + 1);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+	{
+		ARGC_ARGV("-h", "replaced_by_INT_MAX+1000", "localhost");
+
+		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) INT_MAX) + 1000);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+}
+
+ATF_TC(privileged_option_sweep_incr);
+ATF_TC_HEAD(privileged_option_sweep_incr, tc)
+{
+	atf_tc_set_md_var(tc, "require.user", "root");
+}
+ATF_TC_BODY(privileged_option_sweep_incr, tc)
+{
+	{
 		ARGC_ARGV("-h", "replaced_by_INT_MAX/2", "-G", "1", "localhost");
 
 		ARGV_SET_FROM_EXPR(test_argv, 2, (unsigned long) (INT_MAX / 2));
@@ -1183,18 +1252,6 @@ ATF_TC_BODY(option_sweep_incr, tc)
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
 		ATF_REQUIRE(options.f_sweep_incr == true);
 		ATF_REQUIRE(options.n_sweep_incr == INT_MAX);
-	}
-	{
-		ARGC_ARGV("-h", "replaced_by_INT_MAX+1", "localhost");
-
-		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) INT_MAX) + 1);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
-	}
-	{
-		ARGC_ARGV("-h", "replaced_by_INT_MAX+1000", "localhost");
-
-		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) INT_MAX) + 1000);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
 }
 
@@ -2025,11 +2082,14 @@ ATF_TP_ADD_TCS(tp)
 	ATF_TP_ADD_TC(tp, option_dont_fragment);
 	ATF_TP_ADD_TC(tp, option_so_debug);
 	ATF_TP_ADD_TC(tp, option_flood);
+	ATF_TP_ADD_TC(tp, privileged_option_flood);
 	ATF_TP_ADD_TC(tp, unprivileged_option_flood);
 	ATF_TP_ADD_TC(tp, option_interface);
 	ATF_TP_ADD_TC(tp, option_interval);
+	ATF_TP_ADD_TC(tp, privileged_option_interval);
 	ATF_TP_ADD_TC(tp, unprivileged_option_interval);
 	ATF_TP_ADD_TC(tp, option_preload);
+	ATF_TP_ADD_TC(tp, privileged_option_preload);
 	ATF_TP_ADD_TC(tp, unprivileged_option_preload);
 	ATF_TP_ADD_TC(tp, option_numeric);
 	ATF_TP_ADD_TC(tp, option_once);
@@ -2037,16 +2097,20 @@ ATF_TP_ADD_TCS(tp)
 	ATF_TP_ADD_TC(tp, option_quiet);
 	ATF_TP_ADD_TC(tp, option_source);
 	ATF_TP_ADD_TC(tp, option_packet_size);
+	ATF_TP_ADD_TC(tp, privileged_option_packet_size);
 	ATF_TP_ADD_TC(tp, unprivileged_option_packet_size);
 	ATF_TP_ADD_TC(tp, option_alarm_timeout);
 	ATF_TP_ADD_TC(tp, option_verbose);
 	ATF_TP_ADD_TC(tp, option_wait_time);
 	ATF_TP_ADD_TC(tp, option_protocol_ipv4);
 	ATF_TP_ADD_TC(tp, option_sweep_max);
+	ATF_TP_ADD_TC(tp, privileged_option_sweep_max);
 	ATF_TP_ADD_TC(tp, unprivileged_option_sweep_max);
 	ATF_TP_ADD_TC(tp, option_sweep_min);
+	ATF_TP_ADD_TC(tp, privileged_option_sweep_min);
 	ATF_TP_ADD_TC(tp, unprivileged_option_sweep_min);
 	ATF_TP_ADD_TC(tp, option_sweep_incr);
+	ATF_TP_ADD_TC(tp, privileged_option_sweep_incr);
 	ATF_TP_ADD_TC(tp, unprivileged_option_sweep_incr);
 	ATF_TP_ADD_TC(tp, option_no_loop);
 	ATF_TP_ADD_TC(tp, option_mask_time);
