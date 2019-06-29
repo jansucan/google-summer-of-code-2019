@@ -1312,6 +1312,7 @@ ATF_TC_BODY(option_protocol_ipv6, tc)
 ATF_TC_WITHOUT_HEAD(option_sock_buf_size);
 ATF_TC_BODY(option_sock_buf_size, tc)
 {
+#if defined(SO_SNDBUF) && defined(SO_RCVBUF)
 	{
 		ARGC_ARGV("-b");
 
@@ -1366,6 +1367,13 @@ ATF_TC_BODY(option_sock_buf_size, tc)
 		ARGV_SET_FROM_EXPR(test_argv[2], ((unsigned long) INT_MAX) + 1000);
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
+#else /* !SO_SNDBUF || !SO_RCVBUF */
+	{
+		ARGC_ARGV("-b", "0", "localhost");
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+	}
+#endif /* SO_SNDBUF && SO_RCVBUF */
 }
 
 ATF_TC_WITHOUT_HEAD(option_gateway);
