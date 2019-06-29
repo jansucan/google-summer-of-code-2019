@@ -1036,7 +1036,7 @@ ATF_TC_BODY(option_mask_time, tc)
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
 	{
-		ARGC_ARGV("-M", "x", "localhost");
+		ARGC_ARGV("-M", "MmTtx", "localhost");
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
@@ -1066,6 +1066,15 @@ ATF_TC_BODY(option_mask_time, tc)
 
 		options.f_time= false;
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_time == true);
+	}
+	{
+		ARGC_ARGV("-M", "mt", "localhost");
+
+		options.f_mask false;
+		options.f_time= false;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE(options.f_mask == true);
 		ATF_REQUIRE(options.f_time == true);
 	}
 }
