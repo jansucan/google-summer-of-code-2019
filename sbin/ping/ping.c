@@ -246,9 +246,9 @@ ping(struct options *const options)
 	if (options->f_flood)
 		setbuf(stdout, (char *)NULL);
 
-	/* TODO: alarm is obsoletet by setitimer(2) */
 	if (options->f_timeout)
-		alarm((unsigned int) options->n_timeout);
+		if (setitimer(ITIMER_REAL, &(options->n_timeout), NULL) != 0)
+			err(EX_OSERR, "cannot set the timeout");
 
 	if ((options->f_interface) && (inet_aton(options->s_interface, &ifaddr) == 0))
 		errx(EX_USAGE, "invalid multicast interface: `%s'", options->s_interface);

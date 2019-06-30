@@ -266,9 +266,9 @@ ping6(struct options *const options)
 	if (options->f_flood)
 		setbuf(stdout, (char *)NULL);
 
-	/* TODO: alarm is obsoletet by setitimer(2) */
 	if (options->f_timeout)
-		alarm((unsigned int) options->n_timeout);
+		if (setitimer(ITIMER_REAL, &(options->n_timeout), NULL) != 0)
+			err(EX_OSERR, "cannot set the timeout");
 
 	if (options->f_ping_filled) {
 		fill((char *)datap, MAXDATALEN - 8 + sizeof(struct tv32) + options->ping_filled_size,

@@ -35,6 +35,8 @@
  * This block of includes is needed here. It contains preprocessor
  * symbols for configuration of 'struct options' during build-time.
  */
+#include <sys/time.h>
+
 #include <net/if.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -114,8 +116,8 @@ struct options {
 	bool f_multicast_ttl;
 	int  n_multicast_ttl;
 
-	bool          f_timeout;
-	unsigned long n_timeout;
+	bool             f_timeout;
+	struct itimerval n_timeout;
 
 	/* Timeout for each packet */
 	bool f_wait_time;

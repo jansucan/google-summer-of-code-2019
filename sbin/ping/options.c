@@ -214,7 +214,8 @@ options_parse(int argc, char **argv, struct options *const options)
 			options->f_packet_size = true;
 			break;
 		case 't':
-			options->n_timeout = options_strtonum(optarg, 1, MAX_TIMEOUT, errbuf);
+			/* The other fields of n_timeout has been set to 0. */
+			options->n_timeout.it_value.tv_sec = options_strtonum(optarg, 1, MAX_TIMEOUT, errbuf);
 			if (errbuf[0] != '\0') {
 				options_print_error("invalid timeout: `%s': %s", optarg, errbuf);
 				return (EX_USAGE);
