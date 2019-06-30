@@ -182,7 +182,7 @@ struct counters {
 	long nrcvtimeout;	/* # of packets we got back after waittime */
 };
 
-static bool sig_option_f_numeric;
+static struct options *sig_options;
 static volatile sig_atomic_t seenint;
 #ifdef SIGINFO
 static volatile sig_atomic_t seeninfo;
@@ -260,8 +260,9 @@ ping6(struct options *const options)
 
 	datap = &vars.outpack[ICMP6ECHOLEN + ICMP6ECHOTMLEN];
 
-	/* Globalize information needed by the signal handler */
-	sig_option_f_numeric = options->f_numeric;
+	/* The signal handler needs pointer to options so it can free
+	 * the dynamically allocated memory. */
+	sig_options = options;
 
 	if (options->f_flood)
 		setbuf(stdout, (char *)NULL);
@@ -894,6 +895,7 @@ ping6(struct options *const options)
         if(vars.packet != NULL)
                 free(vars.packet);
 
+	options_free(options);
 	exit(counters.nreceived == 0 ? 2 : 0);
 }
 
@@ -1890,8 +1892,10 @@ onint(int notused __unused)
 	 * When doing reverse DNS lookups, the seenint flag might not
 	 * be noticed for a while.  Just exit if we get a second SIGINT.
 	 */
-	if (!sig_option_f_numeric && seenint != 0)
+	if (!sig_options->f_numeric && seenint != 0) {
+		options_free(sig_options);
 		_exit(((sig_counters_nreceived != NULL) && (*sig_counters_nreceived != 0)) ? 0 : 2);
+	}
 }
 
 /*

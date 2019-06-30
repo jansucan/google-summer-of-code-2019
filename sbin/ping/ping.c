@@ -140,8 +140,7 @@ struct counters {
 	long nrcvtimeout;	/* # of packets we got back after waittime */
 };
 
-/* nonzero if we've been told to finish up */
-static bool sig_option_f_numeric;
+static struct options *sig_options;
 static volatile sig_atomic_t finish_up;
 static volatile sig_atomic_t siginfo_p;
 /* 
@@ -240,8 +239,9 @@ ping(struct options *const options)
 
 	vars.outpack = vars.outpackhdr + sizeof(struct ip);
 
-	/* Globalize information needed by the signal handler */
-	sig_option_f_numeric = options->f_numeric;
+	/* The signal handler needs pointer to options so it can free
+	 * the dynamically allocated memory. */
+	sig_options = options;
 
 	if (options->f_flood)
 		setbuf(stdout, (char *)NULL);
@@ -698,6 +698,7 @@ ping(struct options *const options)
 			}
 		}
 	}
+	options_free(options);
 	finish(&vars, &counters, &timing);
 	/* NOTREACHED */
 	exit(0);	/* Make the compiler happy */
@@ -717,8 +718,10 @@ stopit(int sig __unused)
 	 * When doing reverse DNS lookups, the finish_up flag might not
 	 * be noticed for a while.  Just exit if we get a second SIGINT.
 	 */
-	if (!sig_option_f_numeric && finish_up)
+	if (!sig_options->f_numeric && finish_up) {
+		options_free(sig_options);
 		_exit(((sig_counters_nreceived != NULL) && (*sig_counters_nreceived != 0)) ? 0 : 2);
+	}
 	finish_up = 1;
 }
 
