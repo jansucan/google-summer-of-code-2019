@@ -1,4 +1,3 @@
-
 /*-
  * SPDX-License-Identifier: BSD-2-Clause-FreeBSD
  *
@@ -95,6 +94,16 @@ static long long options_strtonum(const char *const str, long long minval,
 void
 options_free(struct options *const options)
 {
+	if (options->s_policy_in != NULL) {
+		free(options->s_policy_in);
+		options->s_policy_in = NULL;
+	}
+
+	if (options->s_policy_out != NULL) {
+		free(options->s_policy_out);
+		options->s_policy_out = NULL;
+	}
+
 	if (options->target_addrinfo != NULL) {
 		freeaddrinfo(options->target_addrinfo);
 		options->target_addrinfo = NULL;
@@ -416,7 +425,6 @@ options_parse(int argc, char **argv, struct options *const options)
 #endif /* INET6 */
 #ifdef IPSEC
 		case 'P':
-			/* TODO: Free strdup() allocated memory. */
 			if (!strncmp("in", optarg, 2)) {
 				if (options->s_policy_in != NULL)
 					/*
