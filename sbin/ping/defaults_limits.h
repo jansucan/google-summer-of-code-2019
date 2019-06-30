@@ -55,8 +55,8 @@
  * Defines for IPv4 and IPv6 ping.
  */
 
-/* Max. alarm value in seconds. */
-#define	MAX_ALARM			3600
+/* Max. timeout value in seconds. */
+#define	MAX_TIMEOUT			3600
 #define	DEFAULT_INTERVAL_TV_SEC		1
 #define	DEFAULT_INTERVAL_TV_USEC	0
 /* Default wait time for response in milliseconds. */

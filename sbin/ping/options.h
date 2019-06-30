@@ -114,8 +114,8 @@ struct options {
 	bool f_multicast_ttl;
 	int  n_multicast_ttl;
 
-	bool          f_alarm_timeout;
-	unsigned long n_alarm_timeout;
+	bool          f_timeout;
+	unsigned long n_timeout;
 
 	/* Timeout for each packet */
 	bool f_wait_time;

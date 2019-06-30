@@ -822,8 +822,8 @@ ATF_TC_BODY(unprivileged_option_packet_size, tc)
 	}
 }
 
-ATF_TC_WITHOUT_HEAD(option_alarm_timeout);
-ATF_TC_BODY(option_alarm_timeout, tc)
+ATF_TC_WITHOUT_HEAD(option_timeout);
+ATF_TC_BODY(option_timeout, tc)
 {
 	{
 		ARGC_ARGV("-t");
@@ -843,41 +843,41 @@ ATF_TC_BODY(option_alarm_timeout, tc)
 	{
 		ARGC_ARGV("-t", "1", "localhost");
 
-		options.f_alarm_timeout = false;
-		options.n_alarm_timeout = -1;
+		options.f_timeout = false;
+		options.n_timeout = -1;
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
-		ATF_REQUIRE(options.f_alarm_timeout == true);
-		ATF_REQUIRE(options.n_alarm_timeout == 1);
+		ATF_REQUIRE(options.f_timeout == true);
+		ATF_REQUIRE(options.n_timeout == 1);
 	}
 	{
-		ARGC_ARGV("-t", "replaced_by_MAX_ALARM/2", "localhost");
+		ARGC_ARGV("-t", "replaced_by_MAX_TIMEOUT/2", "localhost");
 
-		ARGV_SET_FROM_EXPR(test_argv, 2, (unsigned long) (MAX_ALARM / 2));
-		options.f_alarm_timeout = false;
-		options.n_alarm_timeout = -1;
+		ARGV_SET_FROM_EXPR(test_argv, 2, (unsigned long) (MAX_TIMEOUT / 2));
+		options.f_timeout = false;
+		options.n_timeout = -1;
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
-		ATF_REQUIRE(options.f_alarm_timeout == true);
-		ATF_REQUIRE(options.n_alarm_timeout == (MAX_ALARM / 2));
+		ATF_REQUIRE(options.f_timeout == true);
+		ATF_REQUIRE(options.n_timeout == (MAX_TIMEOUT / 2));
 	}
 	{
-		ARGC_ARGV("-t", DEFINED_NUM_TO_STR(MAX_ALARM), "localhost");
+		ARGC_ARGV("-t", DEFINED_NUM_TO_STR(MAX_TIMEOUT), "localhost");
 
-		options.f_alarm_timeout = false;
-		options.n_alarm_timeout = -1;
+		options.f_timeout = false;
+		options.n_timeout = -1;
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
-		ATF_REQUIRE(options.f_alarm_timeout == true);
-		ATF_REQUIRE(options.n_alarm_timeout == MAX_ALARM);
+		ATF_REQUIRE(options.f_timeout == true);
+		ATF_REQUIRE(options.n_timeout == MAX_TIMEOUT);
 	}
 	{
-		ARGC_ARGV("-t", "replaced_by_MAX_ALARM+1", "localhost");
+		ARGC_ARGV("-t", "replaced_by_MAX_TIMEOUT+1", "localhost");
 
-		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) MAX_ALARM) + 1);
+		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) MAX_TIMEOUT) + 1);
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
 	{
-		ARGC_ARGV("-t", "replaced_by_MAX_ALARM+1000", "localhost");
+		ARGC_ARGV("-t", "replaced_by_MAX_TIMEOUT+1000", "localhost");
 
-		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) MAX_ALARM) + 1000);
+		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) MAX_TIMEOUT) + 1000);
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
 }
@@ -2099,7 +2099,7 @@ ATF_TP_ADD_TCS(tp)
 	ATF_TP_ADD_TC(tp, option_packet_size);
 	ATF_TP_ADD_TC(tp, privileged_option_packet_size);
 	ATF_TP_ADD_TC(tp, unprivileged_option_packet_size);
-	ATF_TP_ADD_TC(tp, option_alarm_timeout);
+	ATF_TP_ADD_TC(tp, option_timeout);
 	ATF_TP_ADD_TC(tp, option_verbose);
 	ATF_TP_ADD_TC(tp, option_wait_time);
 	ATF_TP_ADD_TC(tp, option_protocol_ipv4);

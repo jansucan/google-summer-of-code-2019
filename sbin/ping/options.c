@@ -214,12 +214,12 @@ options_parse(int argc, char **argv, struct options *const options)
 			options->f_packet_size = true;
 			break;
 		case 't':
-			options->n_alarm_timeout = options_strtonum(optarg, 1, MAX_ALARM, errbuf);
+			options->n_timeout = options_strtonum(optarg, 1, MAX_TIMEOUT, errbuf);
 			if (errbuf[0] != '\0') {
 				options_print_error("invalid timeout: `%s': %s", optarg, errbuf);
 				return (EX_USAGE);
 			}
-			options->f_alarm_timeout = true;
+			options->f_timeout = true;
 			break;
 		case 'v':
 			options->f_verbose = true;

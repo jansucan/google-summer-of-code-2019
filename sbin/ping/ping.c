@@ -247,8 +247,8 @@ ping(struct options *const options)
 		setbuf(stdout, (char *)NULL);
 
 	/* TODO: alarm is obsoletet by setitimer(2) */
-	if (options->f_alarm_timeout)
-		alarm((unsigned int) options->n_alarm_timeout);
+	if (options->f_timeout)
+		alarm((unsigned int) options->n_timeout);
 
 	if ((options->f_interface) && (inet_aton(options->s_interface, &ifaddr) == 0))
 		errx(EX_USAGE, "invalid multicast interface: `%s'", options->s_interface);
@@ -574,7 +574,7 @@ ping(struct options *const options)
 		err(EX_OSERR, "sigaction");
 	}
 
-        if (options->n_alarm_timeout > 0) {
+        if (options->n_timeout > 0) {
 		si_sa.sa_handler = stopit;
 		if (sigaction(SIGALRM, &si_sa, 0) == -1)
 			err(EX_OSERR, "sigaction SIGALRM");

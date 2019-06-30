@@ -267,8 +267,8 @@ ping6(struct options *const options)
 		setbuf(stdout, (char *)NULL);
 
 	/* TODO: alarm is obsoletet by setitimer(2) */
-	if (options->f_alarm_timeout)
-		alarm((unsigned int) options->n_alarm_timeout);
+	if (options->f_timeout)
+		alarm((unsigned int) options->n_timeout);
 
 	if (options->f_ping_filled) {
 		fill((char *)datap, MAXDATALEN - 8 + sizeof(struct tv32) + options->ping_filled_size,
@@ -762,7 +762,7 @@ ping6(struct options *const options)
 		err(EX_OSERR, "sigaction SIGINFO");
 	seeninfo = 0;
 #endif
-	if (options->n_alarm_timeout > 0) {
+	if (options->n_timeout > 0) {
 		if (sigaction(SIGALRM, &si_sa, 0) == -1)
 			err(EX_OSERR, "sigaction SIGALRM");
 	}
