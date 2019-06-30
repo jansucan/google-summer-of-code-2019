@@ -762,7 +762,7 @@ ping6(struct options *const options)
 		err(EX_OSERR, "sigaction SIGINFO");
 	seeninfo = 0;
 #endif
-	if (options->n_timeout > 0) {
+	if (options->f_timeout) {
 		if (sigaction(SIGALRM, &si_sa, 0) == -1)
 			err(EX_OSERR, "sigaction SIGALRM");
 	}

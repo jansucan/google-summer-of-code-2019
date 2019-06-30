@@ -574,7 +574,7 @@ ping(struct options *const options)
 		err(EX_OSERR, "sigaction");
 	}
 
-        if (options->n_timeout > 0) {
+        if (options->f_timeout) {
 		si_sa.sa_handler = stopit;
 		if (sigaction(SIGALRM, &si_sa, 0) == -1)
 			err(EX_OSERR, "sigaction SIGALRM");
