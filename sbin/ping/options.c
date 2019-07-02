@@ -614,6 +614,10 @@ options_get_target_type(struct options *const options)
 		options_print_error("inet_pton: %s", strerror(errno));
 		return EX_OSERR;
 	} else if ((r_pton == 1) || options->f_protocol_ipv4) {
+		/*
+		 * IPv4 was requested by the user either by providing
+		 * an IPv4 address or the command line option -4.
+		 */
 		if (r_pton == 1)
 			options->target_type = TARGET_ADDRESS_IPV4;
 		hints.ai_family = AF_INET;
@@ -625,6 +629,11 @@ options_get_target_type(struct options *const options)
 			options_print_error("inet_pton: %s", strerror(errno));
 			return EX_OSERR;
 		} else if ((r_pton == 1) || options->f_protocol_ipv6) {
+			/*
+			 * IPv6 was requested by the user either by
+			 * providing an IPv6 address or the command
+			 * line option -6.
+			 */
 			if (r_pton == 1)
 				options->target_type = TARGET_ADDRESS_IPV6;
 			hints.ai_flags = AI_CANONNAME;
