@@ -198,6 +198,14 @@ ATF_TC_BODY(options_no, tc)
 	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 }
 
+ATF_TC_WITHOUT_HEAD(missing_argument);
+ATF_TC_BODY(missing_argument, tc)
+{
+	ARGC_ARGV("-c");
+
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
+}
+
 ATF_TC_WITHOUT_HEAD(option_missed);
 ATF_TC_BODY(option_missed, tc)
 {
@@ -221,11 +229,6 @@ ATF_TC_BODY(option_audible, tc)
 ATF_TC_WITHOUT_HEAD(option_count);
 ATF_TC_BODY(option_count, tc)
 {
-	{
-		ARGC_ARGV("-c");
-
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
-	}
 	{
 		ARGC_ARGV("-c", "-1000", "localhost");
 
@@ -338,11 +341,6 @@ ATF_TC_WITHOUT_HEAD(option_interface);
 ATF_TC_BODY(option_interface, tc)
 {
 	{
-		ARGC_ARGV("-I");
-
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
-	}
-	{
 		ARGC_ARGV("-I", "interface1234", "localhost");
 #if !defined(INET6) || !defined(USE_SIN6_SCOPE_ID)
 		options.f_interface = false;
@@ -370,11 +368,6 @@ ATF_TC_BODY(option_interval, tc)
 		ATF_REQUIRE(options.f_interval == false);
 		ATF_REQUIRE(options.n_interval.tv_sec == DEFAULT_INTERVAL_TV_SEC);
 		ATF_REQUIRE(options.n_interval.tv_usec == DEFAULT_INTERVAL_TV_USEC);
-	}
-	{
-		ARGC_ARGV("-i");
-
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
 	{
 		ARGC_ARGV("-i", "-1000", "localhost");
@@ -469,11 +462,6 @@ ATF_TC_BODY(unprivileged_option_interval, tc)
 ATF_TC_WITHOUT_HEAD(option_preload);
 ATF_TC_BODY(option_preload, tc)
 {
-	{
-		ARGC_ARGV("-l");
-
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
-	}
 	{
 		ARGC_ARGV("-l", "-1000", "localhost");
 
@@ -571,11 +559,6 @@ ATF_TC_WITHOUT_HEAD(option_ping_filled);
 ATF_TC_BODY(option_ping_filled, tc)
 {
 	{
-		ARGC_ARGV("-p");
-
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
-	}
-	{
 		ARGC_ARGV("-p", "0123abcDEFG", "localhost");
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
@@ -643,18 +626,11 @@ ATF_TC_BODY(option_quiet, tc)
 ATF_TC_WITHOUT_HEAD(option_source);
 ATF_TC_BODY(option_source, tc)
 {
-	{
-		ARGC_ARGV("-S");
+	ARGC_ARGV("-S", "source1234", "localhost");
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
-	}
-	{
-		ARGC_ARGV("-S", "source1234", "localhost");
-
-		options.s_source = NULL;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
-		ATF_REQUIRE_STREQ("source1234", options.s_source);
-	}
+	options.s_source = NULL;
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+	ATF_REQUIRE_STREQ("source1234", options.s_source);
 }
 
 ATF_TC_WITHOUT_HEAD(option_packet_size);
@@ -679,11 +655,6 @@ ATF_TC_BODY(option_packet_size, tc)
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
 		ATF_REQUIRE(options.f_packet_size == false);
 		ATF_REQUIRE(options.n_packet_size == DEFAULT_DATALEN_IPV4);
-	}
-	{
-		ARGC_ARGV("-s");
-
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
 	{
 		ARGC_ARGV("-s", "-1000", "localhost");
@@ -826,11 +797,6 @@ ATF_TC_WITHOUT_HEAD(option_timeout);
 ATF_TC_BODY(option_timeout, tc)
 {
 	{
-		ARGC_ARGV("-t");
-
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
-	}
-	{
 		ARGC_ARGV("-t", "-1000", "localhost");
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
@@ -905,11 +871,6 @@ ATF_TC_BODY(option_wait_time, tc)
 		ATF_REQUIRE(options.n_wait_time == DEFAULT_WAIT_TIME);
 	}
 	{
-		ARGC_ARGV("-W");
-
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
-	}
-	{
 		ARGC_ARGV("-W", "-1000", "localhost");
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
@@ -974,11 +935,6 @@ ATF_TC_BODY(option_protocol_ipv4, tc)
 ATF_TC_WITHOUT_HEAD(option_sweep_max);
 ATF_TC_BODY(option_sweep_max, tc)
 {
-	{
-		ARGC_ARGV("-G");
-
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
-	}
 	{
 		ARGC_ARGV("-G", "-1000", "localhost");
 
@@ -1070,11 +1026,6 @@ ATF_TC_BODY(unprivileged_option_sweep_max, tc)
 ATF_TC_WITHOUT_HEAD(option_sweep_min);
 ATF_TC_BODY(option_sweep_min, tc)
 {
-	{
-		ARGC_ARGV("-g");
-
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
-	}
 	{
 		ARGC_ARGV("-g", "-1000", "localhost");
 
@@ -1185,11 +1136,6 @@ ATF_TC_BODY(option_sweep_incr, tc)
 		ATF_REQUIRE(options.n_sweep_incr == DEFAULT_SWEEP_INCR);
 	}
 	{
-		ARGC_ARGV("-h");
-
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
-	}
-	{
 		ARGC_ARGV("-h", "-1000", "localhost");
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
@@ -1294,11 +1240,6 @@ ATF_TC_WITHOUT_HEAD(option_mask_time);
 ATF_TC_BODY(option_mask_time, tc)
 {
 	{
-		ARGC_ARGV("-M");
-
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
-	}
-	{
 		ARGC_ARGV("-M", "x", "localhost");
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
@@ -1359,11 +1300,6 @@ ATF_TC_BODY(option_mask_time, tc)
 ATF_TC_WITHOUT_HEAD(option_ttl);
 ATF_TC_BODY(option_ttl, tc)
 {
-	{
-		ARGC_ARGV("-m");
-
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
-	}
 	{
 		ARGC_ARGV("-m", "-1000", "localhost");
 
@@ -1450,11 +1386,6 @@ ATF_TC_WITHOUT_HEAD(option_multicast_ttl);
 ATF_TC_BODY(option_multicast_ttl, tc)
 {
 	{
-		ARGC_ARGV("-T");
-
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
-	}
-	{
 		ARGC_ARGV("-T", "-1000", "localhost");
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
@@ -1509,11 +1440,6 @@ ATF_TC_BODY(option_multicast_ttl, tc)
 ATF_TC_WITHOUT_HEAD(option_tos);
 ATF_TC_BODY(option_tos, tc)
 {
-	{
-		ARGC_ARGV("-z");
-
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
-	}
 	{
 		ARGC_ARGV("-z", "-1000", "localhost");
 
@@ -1582,11 +1508,6 @@ ATF_TC_BODY(option_sock_buf_size, tc)
 {
 #if defined(SO_SNDBUF) && defined(SO_RCVBUF)
 	{
-		ARGC_ARGV("-b");
-
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
-	}
-	{
 		ARGC_ARGV("-b", "-1000", "localhost");
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
@@ -1647,28 +1568,16 @@ ATF_TC_BODY(option_sock_buf_size, tc)
 ATF_TC_WITHOUT_HEAD(option_gateway);
 ATF_TC_BODY(option_gateway, tc)
 {
-	{
-		ARGC_ARGV("-e");
+	ARGC_ARGV("-e", "gateway1234", "localhost");
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
-	}
-	{
-		ARGC_ARGV("-e", "gateway1234", "localhost");
-
-		options.s_gateway = NULL;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
-		ATF_REQUIRE_STREQ("gateway1234", options.s_gateway);
-	}
+	options.s_gateway = NULL;
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+	ATF_REQUIRE_STREQ("gateway1234", options.s_gateway);
 }
 
 ATF_TC_WITHOUT_HEAD(option_hoplimit);
 ATF_TC_BODY(option_hoplimit, tc)
 {
-	{
-		ARGC_ARGV("-j");
-
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
-	}
 	{
 		ARGC_ARGV("-j", "-1000", "localhost");
 
@@ -1724,11 +1633,6 @@ ATF_TC_BODY(option_hoplimit, tc)
 ATF_TC_WITHOUT_HEAD(option_nodeaddr);
 ATF_TC_BODY(option_nodeaddr, tc)
 {
-	{
-		ARGC_ARGV("-k");
-
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
-	}
 	{
 		ARGC_ARGV("-k", "aclsgX", "localhost");
 
@@ -1995,11 +1899,6 @@ ATF_TC_WITHOUT_HEAD(option_policy);
 ATF_TC_BODY(option_policy, tc)
 {
 	{
-		ARGC_ARGV("-P");
-
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
-	}
-	{
 		ARGC_ARGV("-P", "unknown", "localhost");
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
@@ -2076,6 +1975,7 @@ ATF_TP_ADD_TCS(tp)
 	ATF_TP_ADD_TC(tp, compatibility_options_target);
 #endif
 	ATF_TP_ADD_TC(tp, options_no);
+	ATF_TP_ADD_TC(tp, missing_argument);
 	ATF_TP_ADD_TC(tp, option_missed);
 	ATF_TP_ADD_TC(tp, option_audible);
 	ATF_TP_ADD_TC(tp, option_count);
