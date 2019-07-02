@@ -650,8 +650,7 @@ options_getaddrinfo(const char *const hostname, const struct addrinfo *const hin
 	const int r = getaddrinfo(hostname, NULL, hints, res);
 	if (r != 0) {
 		options_print_error("getaddrinfo for `%s': %s", hostname, gai_strerror(r));
-		/* TODO: Which sysexits(3) code to use? */
-		return (1);
+		return (r);
 	} else if (res == NULL) {
 		options_print_error("getaddrinfo for `%s'", hostname);
 		return (1);
