@@ -491,18 +491,6 @@ options_check(struct options *const options)
 	} else if (options->f_protocol_ipv4 && options_has_ipv6_only(options)) {
 		options_print_error("IPv4 requested but IPv6 option provided");
 		return (EX_USAGE);
-	} else if (options->f_protocol_ipv4 && (options->target_type == TARGET_ADDRESS_IPV6)) {
-		options_print_error("IPv4 requested but IPv6 target address provided");
-		return (EX_USAGE);
-	} else if (options->f_protocol_ipv6 && (options->target_type == TARGET_ADDRESS_IPV4)) {
-		options_print_error("IPv6 requested but IPv4 target address provided");
-		return (EX_USAGE);
-	} else if (options->f_protocol_ipv4 && (options->target_type == TARGET_HOSTNAME_IPV6)) {
-		options_print_error("IPv4 requested but the hostname has been resolved to IPv6");
-		return (EX_USAGE);
-	} else if (options->f_protocol_ipv6 && (options->target_type == TARGET_HOSTNAME_IPV4)) {
-		options_print_error("IPv6 requested but the hostname has been resolved to IPv4");
-		return (EX_USAGE);
 	}
 #endif
 	/*
@@ -618,7 +606,10 @@ options_get_target_type(struct options *const options)
 		 * IPv4 was requested by the user either by providing
 		 * an IPv4 address or the command line option -4.
 		 */
-		if (r_pton == 1)
+		if (options->f_protocol_ipv6) {
+			options_print_error("IPv4 requested but IPv6 target address provided");
+			return (EX_USAGE);
+		} else if (r_pton == 1)
 			options->target_type = TARGET_ADDRESS_IPV4;
 		hints.ai_family = AF_INET;
 	}
@@ -634,7 +625,10 @@ options_get_target_type(struct options *const options)
 			 * providing an IPv6 address or the command
 			 * line option -6.
 			 */
-			if (r_pton == 1)
+			if (options->f_protocol_ipv4) {
+				options_print_error("IPv6 requested but IPv4 target address provided");
+				return (EX_USAGE);
+			} else if (r_pton == 1)
 				options->target_type = TARGET_ADDRESS_IPV6;
 			hints.ai_flags = AI_CANONNAME;
 			hints.ai_family = AF_INET6;
@@ -642,9 +636,19 @@ options_get_target_type(struct options *const options)
 		}
 	}
 #endif
-	const int r = options_getaddrinfo(options->target, &hints, &options->target_addrinfo);
-	if (r != EX_OK)
-		return (r);
+	const int r_ai = getaddrinfo(options->target, NULL, &hints, &options->target_addrinfo);
+	if ((r_ai != 0) && (r_ai != EAI_NONAME)) {
+		options_print_error("getaddrinfo: %s", gai_strerror(r_ai));
+		return (r_ai);
+	} else if (r_ai == EAI_NONAME) {
+		if (options->f_protocol_ipv4) {
+			options_print_error("IPv4 requested but no IPv4 address associated with that hostname");
+			return (EX_USAGE);
+		} else if (options->f_protocol_ipv6) {
+			options_print_error("IPv6 requested but no IPv6 address associated with that hostname");
+			return (EX_USAGE);
+		}
+	}
 
 	if (r_pton == 0) {
 		if (options->target_addrinfo->ai_family == AF_INET)
