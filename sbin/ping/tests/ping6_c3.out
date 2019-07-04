@@ -1,0 +1,8 @@
+PING6(56=40+8+8 bytes) localhost --> localhost
+16 bytes from localhost, icmp_seq=0 hlim=64 time= ms
+16 bytes from localhost, icmp_seq=1 hlim=64 time= ms
+16 bytes from localhost, icmp_seq=2 hlim=64 time= ms
+
+--- localhost ping6 statistics ---
+3 packets transmitted, 3 packets received, 0.0% packet loss
+round-trip min/avg/max/std-dev = /// ms

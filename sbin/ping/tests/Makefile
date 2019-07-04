@@ -6,7 +6,7 @@ PACKAGE=	tests
 
 ATF_TESTS_SH=	ping_test
 
-${PACKAGE}FILES+=       opts_c3.out
+${PACKAGE}FILES+=       ping_c3.out ping6_c3.out
 
 ATF_TESTS_C=	options_test
 
