@@ -61,5 +61,11 @@
 #define	DEFAULT_INTERVAL_TV_USEC	0
 /* Default wait time for response in milliseconds. */
 #define	DEFAULT_WAIT_TIME		10000
+/*
+ * MAX_DUP_CHK is the number of bits in received table, i.e. the
+ * maximum number of received sequence numbers we can keep track
+ * of. Change 128 to 8192 for complete accuracy.
+ */
+#define	MAX_DUP_CHK	(8 * 8192)
 
 #endif

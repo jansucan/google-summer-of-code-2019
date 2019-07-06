@@ -109,13 +109,6 @@ __FBSDID("$FreeBSD$");
 #define	MAXIPLEN	(sizeof(struct ip) + MAX_IPOPTLEN)
 #define	MAXICMPLEN	(ICMP_ADVLENMIN + MAX_IPOPTLEN)
 
-/*
- * MAX_DUP_CHK is the number of bits in received table, i.e. the maximum
- * number of received sequence numbers we can keep track of.  Change 128
- * to 8192 for complete accuracy...
- */
-#define	MAX_DUP_CHK	(8 * 128)
-
 struct shared_variables {
 	char rcvd_tbl[MAX_DUP_CHK / 8];
 	struct sockaddr_in whereto;	/* who to ping */

@@ -154,13 +154,6 @@ __FBSDID("$FreeBSD$");
 
 #define SIN6(s)	((struct sockaddr_in6 *)(s))
 
-/*
- * MAX_DUP_CHK is the number of bits in received table, i.e. the maximum
- * number of received sequence numbers we can keep track of.  Change 128
- * to 8192 for complete accuracy...
- */
-#define	MAX_DUP_CHK	(8 * 8192)
-
 struct shared_variables {
 	char rcvd_tbl[MAX_DUP_CHK / 8];
 	struct sockaddr_in6 dst;	/* who to ping6 */
