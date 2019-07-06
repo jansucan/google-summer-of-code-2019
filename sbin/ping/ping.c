@@ -96,6 +96,7 @@ __FBSDID("$FreeBSD$");
 #include <string.h>
 #include <sysexits.h>
 
+#include "defaults_limits.h"
 #include "ping.h"
 #include "timing.h"
 #include "utils.h"
