@@ -727,6 +727,8 @@ options_parse_hosts(int argc, char **argv, struct options *const options)
 				options_print_error("bad addr family of an intermediate addr");
 				return (EX_USAGE);
 			}
+
+			options->hops[i] = argv[i];
 		}
 	}
 
