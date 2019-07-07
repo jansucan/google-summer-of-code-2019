@@ -516,8 +516,7 @@ options_check(struct options *const options)
 	}
 
 	if (options->f_packet_size) {
-		if ((options->target_type == TARGET_ADDRESS_IPV4) ||
-		    (options->target_type == TARGET_HOSTNAME_IPV4)) {
+		if (options->target_type == TARGET_IPV4) {
 			const int r = options_check_packet_size(options->n_packet_size, DEFAULT_DATALEN_IPV4);
 			if (r != EX_OK)
 				return (r);
@@ -680,20 +679,20 @@ options_get_target_type(struct options *const options)
 	/* Determine the target type. */
 	if (options->f_protocol_ipv4) {
 		options->target_addrinfo = ai_ipv4;
-		options->target_type = TARGET_HOSTNAME_IPV4;
+		options->target_type = TARGET_IPV4;
 	}
 #ifdef INET6
 	else if (options->f_protocol_ipv6) {
 		options->target_addrinfo = ai_ipv6;
-		options->target_type = TARGET_HOSTNAME_IPV6;
+		options->target_type = TARGET_IPV6;
 	} else if (ai_first->ai_family == AF_INET6) {
 		options->target_addrinfo = ai_first;
-		options->target_type = TARGET_HOSTNAME_IPV6;
+		options->target_type = TARGET_IPV6;
 	}
 #endif
 	else {
 		options->target_addrinfo = ai_first;
-		options->target_type = TARGET_HOSTNAME_IPV4;
+		options->target_type = TARGET_IPV4;
 	}
 
 	return (EX_OK);
@@ -740,8 +739,7 @@ options_parse_hosts(int argc, char **argv, struct options *const options)
 	/* Everything else are IPv6 hops. */
 	if (argc != 0) {
 		/* Ping to IPv4 host cannot have any hops specified. */
-		if ((options->target_type == TARGET_ADDRESS_IPV4) ||
-		    (options->target_type == TARGET_HOSTNAME_IPV4)) {
+		if (options->target_type == TARGET_IPV4) {
 			usage();
 			return (EX_USAGE);
 		}
@@ -797,8 +795,7 @@ options_set_defaults(struct options *const options)
 	if (!options->f_wait_time)
 		options->n_wait_time = DEFAULT_WAIT_TIME;
 	if (!options->f_packet_size) {
-		if ((options->target_type == TARGET_ADDRESS_IPV4) ||
-		    (options->target_type == TARGET_HOSTNAME_IPV4))
+		if (options->target_type == TARGET_IPV4)
 			options->n_packet_size = DEFAULT_DATALEN_IPV4;
 		else
 			options->n_packet_size = DEFAULT_DATALEN_IPV6;

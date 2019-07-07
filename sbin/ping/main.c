@@ -45,8 +45,7 @@ main(int argc, char *argv[])
 	if (r != EX_OK)
 		exit(r);
 
-	if ((options.target_type == TARGET_ADDRESS_IPV4) ||
-	    (options.target_type == TARGET_HOSTNAME_IPV4))
+	if (options.target_type == TARGET_IPV4)
 		ping(&options);
 	else
 		ping6(&options);
