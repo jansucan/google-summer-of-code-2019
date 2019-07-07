@@ -699,7 +699,6 @@ options_parse_hosts(int argc, char **argv, struct options *const options)
 	}
 
 	--argc;
-	++argv;
 
 	/* Everything else are IPv6 hops. */
 	if (argc != 0) {
