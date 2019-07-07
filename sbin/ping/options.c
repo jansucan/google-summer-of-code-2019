@@ -725,7 +725,7 @@ options_parse_hosts(int argc, char **argv, struct options *const options)
 
 			if (options->hops_addrinfo[i]->ai_addr->sa_family != AF_INET6) {
 				options_print_error("bad addr family of an intermediate addr");
-				return (1);
+				return (EX_USAGE);
 			}
 		}
 	}
