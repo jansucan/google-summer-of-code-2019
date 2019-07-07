@@ -63,7 +63,7 @@ struct options {
 	 *   c_ - occurence count of the option
 	 *   a_ - array argument
 	 */
-	
+
 	/* TODO: ordering of the variables vs. number of #ifdef directives */
 	/* TODO: rationalize the data types */
 	bool f_protocol_ipv4;
@@ -74,7 +74,7 @@ struct options {
 	/* Max packets to transmit */
 	bool f_packets;
 	long n_packets;
-	
+
 	bool f_so_debug;
 	bool f_numeric;
 	bool f_once;
@@ -84,14 +84,14 @@ struct options {
 	int  a_ping_filled[16];
 	/* Number of bytes of the pattern */
 	size_t ping_filled_size;
-	
+
 	bool f_somewhat_quiet;
 	bool f_quiet;
 	bool f_rroute;
 	bool f_so_dontroute;
-	
+
 	const char *s_source;
-	
+
 	bool f_verbose;
 	bool f_no_loop;
 	bool f_dont_fragment;
@@ -135,17 +135,17 @@ struct options {
 	bool f_encrypt;
 #endif /* INET6 && IPSEC_POLICY_IPSEC */
 #endif /* IPSEC */
-	
+
 	/* -I */
 #if !defined(INET6) || !defined(USE_SIN6_SCOPE_ID)
 	bool        f_interface;
 #endif
 	const char *s_interface;
-	
+
 	/* Wait between sending packets */
 	bool    f_interval;
 	struct timeval n_interval;
-	
+
 	/* Size of packet to send */
 	bool f_packet_size;
 	long n_packet_size;
@@ -163,7 +163,7 @@ struct options {
 
 	bool f_nigroup;
 	int  c_nigroup;
-	
+
 #if defined(INET6) && defined(IPV6_USE_MIN_MTU)
 	int  c_use_min_mtu;
 #endif
@@ -193,6 +193,19 @@ struct options {
 #endif
 	/* TODO: cannot be const becuse of nigroup() in ping6 */
 	char *target;
+	/*
+	 * The target can be resolved to multiple protocols by
+	 * getaddrinfo(). Pointer to the head of the linked list of
+	 * the addrinfo structures is saved in target_addrinfo_root
+	 * variable so it can be used as an argument to
+	 * freeaddrinfo().
+	 */
+	struct addrinfo *target_addrinfo_root;
+	/*
+	 * This is a pointer to a chosen protocol version addrinfo
+	 * structure in the linked list of the addrinfo structures
+	 * from getaddrinfo().
+	 */
 	struct addrinfo *target_addrinfo;
 	enum target_type target_type;
 };

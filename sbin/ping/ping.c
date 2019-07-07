@@ -188,8 +188,9 @@ ping(struct options *const options)
 	 * Ping to IPv6 does use target_addrinfo but this ping to IPv4
 	 * host does not use it.
 	 */
-	freeaddrinfo(options->target_addrinfo);
 	options->target_addrinfo = NULL;
+	freeaddrinfo(options->target_addrinfo_root);
+	options->target_addrinfo_root = NULL;
 
 	memset(&vars, 0, sizeof(vars));
 	vars.icmp_type = ICMP_ECHO;

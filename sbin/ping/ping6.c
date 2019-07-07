@@ -331,8 +331,9 @@ ping6(struct options *const options)
 		    options->target_addrinfo->ai_socktype,
 		    IPPROTO_ICMPV6)) < 0)
 		err(1, "socket");
-	freeaddrinfo(options->target_addrinfo);
 	options->target_addrinfo = NULL;
+	freeaddrinfo(options->target_addrinfo_root);
+	options->target_addrinfo_root = NULL;
 
 	/* set the source address if specified. */
 	if (options->s_source != NULL) {

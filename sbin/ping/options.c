@@ -104,9 +104,9 @@ options_free(struct options *const options)
 		options->s_policy_out = NULL;
 	}
 
-	if (options->target_addrinfo != NULL) {
-		freeaddrinfo(options->target_addrinfo);
-		options->target_addrinfo = NULL;
+	if (options->target_addrinfo_root != NULL) {
+		freeaddrinfo(options->target_addrinfo_root);
+		options->target_addrinfo_root = NULL;
 	}
 
 	if (options->hops_addrinfo != NULL) {
@@ -587,76 +587,113 @@ static int
 options_get_target_type(struct options *const options)
 {
 	struct in_addr a;
+	int r_pton;
 #ifdef INET6
 	struct in6_addr a6;
+	int r6_pton;
 #endif
-	struct addrinfo hints;
-
-	options->target_type = TARGET_UNKNOWN;
-	memset(&hints, 0, sizeof(hints));
-	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_RAW;
-
-	int r_pton = inet_pton(AF_INET, options->target, &a);
-	if (r_pton == -1) {
+	if ((r_pton = inet_pton(AF_INET, options->target, &a)) == -1) {
 		options_print_error("inet_pton: %s", strerror(errno));
 		return EX_OSERR;
-	} else if ((r_pton == 1) || options->f_protocol_ipv4) {
-		/*
-		 * IPv4 was requested by the user either by providing
-		 * an IPv4 address or the command line option -4.
-		 */
-		if (options->f_protocol_ipv6) {
-			options_print_error("IPv4 requested but IPv6 target address provided");
-			return (EX_USAGE);
-		} else if (r_pton == 1)
-			options->target_type = TARGET_ADDRESS_IPV4;
-		hints.ai_family = AF_INET;
 	}
 #ifdef INET6
-	if (r_pton == 0) {
-		r_pton = inet_pton(AF_INET6, options->target, &a6);
-		if (r_pton == -1) {
+	else if (r_pton == 0) {
+		if ((r6_pton = inet_pton(AF_INET6, options->target, &a6)) == -1) {
 			options_print_error("inet_pton: %s", strerror(errno));
 			return EX_OSERR;
-		} else if ((r_pton == 1) || options->f_protocol_ipv6) {
-			/*
-			 * IPv6 was requested by the user either by
-			 * providing an IPv6 address or the command
-			 * line option -6.
-			 */
-			if (options->f_protocol_ipv4) {
-				options_print_error("IPv6 requested but IPv4 target address provided");
-				return (EX_USAGE);
-			} else if (r_pton == 1)
-				options->target_type = TARGET_ADDRESS_IPV6;
-			hints.ai_flags = AI_CANONNAME;
-			hints.ai_family = AF_INET6;
-			hints.ai_protocol = IPPROTO_ICMPV6;
 		}
 	}
 #endif
-	const int r_ai = getaddrinfo(options->target, NULL, &hints, &options->target_addrinfo);
-	if ((r_ai != 0) && (r_ai != EAI_NONAME)) {
-		options_print_error("getaddrinfo: %s", gai_strerror(r_ai));
+	struct addrinfo hints;
+
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_flags = AI_CANONNAME;
+	hints.ai_socktype = SOCK_RAW;
+
+	if ((options->f_protocol_ipv4) || (r_pton == 1))
+		hints.ai_family = AF_INET;
+#ifdef INET6
+	else if ((options->f_protocol_ipv6) || (r6_pton == 1)) {
+		hints.ai_family = AF_INET6;
+	}
+#endif
+	else
+		hints.ai_family = AF_UNSPEC;
+
+	struct addrinfo *ai_first = NULL;
+	struct addrinfo *ai_ipv4 = NULL;
+#ifdef INET6
+	struct addrinfo *ai_ipv6 = NULL;
+#endif
+
+	const int r_ai = getaddrinfo(options->target, NULL, &hints, &options->target_addrinfo_root);
+	if ((r_ai != 0) && (r_ai != EAI_NONAME))
 		return (r_ai);
-	} else if (r_ai == EAI_NONAME) {
-		if (options->f_protocol_ipv4) {
+	else if (r_ai == 0) {
+		/*
+		 * Find AF_INET and AF_INET6 addrinfo structures in
+		 * the results.
+		 */
+		for (struct addrinfo *ai = options->target_addrinfo_root; ai != NULL; ai = ai->ai_next) {
+			if ((ai->ai_family == AF_INET) || (ai->ai_family == AF_INET6)) {
+				if (ai_first == NULL)
+					ai_first = ai;
+				if ((ai_ipv4 == NULL) && (ai->ai_family == AF_INET))
+					ai_ipv4 = ai;
+#ifdef INET6
+				else if ((ai_ipv6 == NULL) && (ai->ai_family == AF_INET6))
+					ai_ipv6 = ai;
+#endif
+			}
+		}
+	}
+
+	/* Check for errors. */
+	if (options->f_protocol_ipv4) {
+#ifdef INET6
+		if (r6_pton == 1) {
+			options_print_error("IPv4 requested but IPv6 target address provided");
+			return (EX_USAGE);
+		} else
+#endif
+		if (ai_ipv4 == NULL) {
 			options_print_error("IPv4 requested but no IPv4 address associated with that hostname");
 			return (EX_USAGE);
-		} else if (options->f_protocol_ipv6) {
+		}
+	}
+#ifdef INET6
+	else if (options->f_protocol_ipv6) {
+		if (r_pton == 1) {
+			options_print_error("IPv6 requested but IPv4 target address provided");
+			return (EX_USAGE);
+		} else if (ai_ipv6 == NULL) {
 			options_print_error("IPv6 requested but no IPv6 address associated with that hostname");
 			return (EX_USAGE);
 		}
 	}
-
-	if (r_pton == 0) {
-		if (options->target_addrinfo->ai_family == AF_INET)
-			options->target_type = TARGET_HOSTNAME_IPV4;
-#ifdef INET6
-		else if (options->target_addrinfo->ai_family == AF_INET6)
-			options->target_type = TARGET_HOSTNAME_IPV6;
 #endif
+	else if (ai_first == NULL) {
+		options_print_error("no IPv4 or IPv6 address was resolved");
+		return (EX_NOHOST);
+	}
+
+	/* Determine the target type. */
+	if (options->f_protocol_ipv4) {
+		options->target_addrinfo = ai_ipv4;
+		options->target_type = TARGET_HOSTNAME_IPV4;
+	}
+#ifdef INET6
+	else if (options->f_protocol_ipv6) {
+		options->target_addrinfo = ai_ipv6;
+		options->target_type = TARGET_HOSTNAME_IPV6;
+	} else if (ai_first->ai_family == AF_INET6) {
+		options->target_addrinfo = ai_first;
+		options->target_type = TARGET_HOSTNAME_IPV6;
+	}
+#endif
+	else {
+		options->target_addrinfo = ai_first;
+		options->target_type = TARGET_HOSTNAME_IPV4;
 	}
 
 	return (EX_OK);

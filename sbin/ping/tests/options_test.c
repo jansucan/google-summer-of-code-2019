@@ -44,6 +44,8 @@ __FBSDID("$FreeBSD$");
 #include <string.h>
 #include <sysexits.h>
 
+#include "test_argc_argv.h"
+
 #include "../options.h"
 #include "../defaults_limits.h"
 
@@ -60,41 +62,6 @@ __FBSDID("$FreeBSD$");
 #define STRINGIFY(s) #s
 #define DEFINED_NUM_TO_STR(s) STRINGIFY(s)
 
-#define GETOPT_RESET \
-	optreset = optind = 1
-
-#define ARGC_ARGV_EMPTY      				                    \
-	char *test_argv[] = { "ping", NULL };        		            \
-	const int test_argc = sizeof(test_argv) / sizeof(test_argv[0]) - 1; \
-	GETOPT_RESET
-
-#define ARGC_ARGV(...)           				            \
-	char *test_argv[] = { "ping", __VA_ARGS__, NULL };	            \
-	const int test_argc = sizeof(test_argv) / sizeof(test_argv[0]) - 1; \
-	GETOPT_RESET
-
-#define	ARGV_BUFFER_SIZE	64
-
-#define ARGV_SET_FROM_EXPR(argv, idx, expr)						\
-	const unsigned long ul_##idx = expr;						\
-	char ul_str_##idx[ARGV_BUFFER_SIZE];						\
-	const int sr##idx = snprintf(ul_str_##idx, ARGV_BUFFER_SIZE, "%lu", ul_##idx);	\
-	if (sr##idx < 0)								\
-		atf_tc_fail("snprintf() error");					\
-	else if (sr##idx >= ARGV_BUFFER_SIZE)						\
-		atf_tc_fail("snprintf() buffer too small");				\
-	argv[idx] = ul_str_##idx
-
-#define ARGV_SET_LDBL_FROM_EXPR(argv, idx, expr)						\
-	const long double ldbl_##idx = expr;							\
-	char ldbl_str_##idx[ARGV_BUFFER_SIZE];							\
-	const int sr##idx = snprintf(ldbl_str_##idx, ARGV_BUFFER_SIZE, "%Lg", ldbl_##idx);	\
-	if (sr##idx < 0)									\
-		atf_tc_fail("snprintf() error");						\
-	else if (sr##idx >= ARGV_BUFFER_SIZE)							\
-		atf_tc_fail("snprintf() buffer too small");					\
-	argv[idx] = ldbl_str_##idx
-
 /*
  * Global variables.
  */
@@ -104,91 +71,6 @@ static struct options options;
 /*
  * Test cases.
  */
-
-ATF_TC_WITHOUT_HEAD(parse_hosts);
-ATF_TC_BODY(parse_hosts, tc)
-{
-	{
-		ARGC_ARGV("127.0.0.1", "127.0.0.1");
-
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
-	}
-	{
-		ARGC_ARGV("127.0.0.1");
-
-		options.target = NULL;
-		options.target_addrinfo = NULL;
-		options.target_type = TARGET_UNKNOWN;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
-		ATF_REQUIRE_STREQ("127.0.0.1", options.target);
-		ATF_REQUIRE(options.target_addrinfo != NULL);
-		ATF_REQUIRE(options.target_addrinfo->ai_family == AF_INET);
-		ATF_REQUIRE(options.target_type == TARGET_ADDRESS_IPV4);
-	}
-	{
-		ARGC_ARGV("-4", "localhost");
-
-		options.target = NULL;
-		options.target_addrinfo = NULL;
-		options.target_type = TARGET_UNKNOWN;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
-		ATF_REQUIRE_STREQ("localhost", options.target);
-		ATF_REQUIRE(options.target_addrinfo != NULL);
-		ATF_REQUIRE(options.target_addrinfo->ai_family == AF_INET);
-		ATF_REQUIRE(options.target_type == TARGET_HOSTNAME_IPV4);
-	}
-#ifdef INET6
-	{
-		ARGC_ARGV("::1");
-
-		options.target = NULL;
-		options.target_addrinfo = NULL;
-		options.target_type = TARGET_UNKNOWN;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
-		ATF_REQUIRE_STREQ("::1", options.target);
-		ATF_REQUIRE(options.target_addrinfo != NULL);
-		ATF_REQUIRE(options.target_addrinfo->ai_family == AF_INET6);
-		ATF_REQUIRE(options.target_type == TARGET_ADDRESS_IPV6);
-	}
-	{
-		ARGC_ARGV("-6", "localhost");
-
-		options.target = NULL;
-		options.target_addrinfo = NULL;
-		options.target_type = TARGET_UNKNOWN;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
-		ATF_REQUIRE_STREQ("localhost", options.target);
-		ATF_REQUIRE(options.target_addrinfo != NULL);
-		ATF_REQUIRE(options.target_addrinfo->ai_family == AF_INET6);
-		ATF_REQUIRE(options.target_type == TARGET_HOSTNAME_IPV6);
-	}
-	/* TODO: hops */
-#endif /* INET6 */
-}
-
-#ifdef INET6
-ATF_TC_WITHOUT_HEAD(compatibility_options_target);
-ATF_TC_BODY(compatibility_options_target, tc)
-{
-	{
-		ARGC_ARGV("-6", "-G", "localhost");
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
-	}
-	{
-		ARGC_ARGV("-4", "-e", "localhost");
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
-	}
-	/* { */
-	/* 	ARGC_ARGV("-4", "::1"); */
-	/* 	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE); */
-	/* } */
-	/* { */
-	/* 	ARGC_ARGV("-6", "127.0.0.1"); */
-	/* 	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE); */
-	/* } */
-	/* TODO: how to test hostname resolving only to IPv4 or IPv6? */
-}
-#endif /* INET6 */
 
 ATF_TC_WITHOUT_HEAD(options_no);
 ATF_TC_BODY(options_no, tc)
@@ -1970,10 +1852,6 @@ ATF_TC_BODY(option_encrypt, tc)
 
 ATF_TP_ADD_TCS(tp)
 {
-	ATF_TP_ADD_TC(tp, parse_hosts);
-#ifdef INET6
-	ATF_TP_ADD_TC(tp, compatibility_options_target);
-#endif
 	ATF_TP_ADD_TC(tp, options_no);
 	ATF_TP_ADD_TC(tp, missing_argument);
 	ATF_TP_ADD_TC(tp, option_missed);
