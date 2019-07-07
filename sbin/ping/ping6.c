@@ -329,7 +329,7 @@ ping6(struct options *const options)
 
 	if ((vars.s = socket(options->target_addrinfo->ai_family,
 		    options->target_addrinfo->ai_socktype,
-		    options->target_addrinfo->ai_protocol)) < 0)
+		    IPPROTO_ICMPV6)) < 0)
 		err(1, "socket");
 	freeaddrinfo(options->target_addrinfo);
 	options->target_addrinfo = NULL;
