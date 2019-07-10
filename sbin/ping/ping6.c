@@ -204,7 +204,7 @@ static bool	 myechoreply(const struct icmp6_hdr *, int);
 static int	 mynireply(const struct icmp6_nodeinfo *, const uint8_t *const);
 static char *dnsdecode(const u_char **, const u_char *, const u_char *,
     char *, size_t);
-static void	 pr_pack(u_char *, int, struct msghdr *, const struct options *const,
+static void	 pr_pack(int, struct msghdr *, const struct options *const,
     struct shared_variables *const, struct counters *const, struct timing *const);
 static void	 pr_exthdrs(struct msghdr *);
 static void	 pr_ip6opt(void *, size_t);
@@ -842,7 +842,7 @@ ping6(struct options *const options)
 				 * an ICMPv6 message (probably an echoreply)
 				 * arrived.
 				 */
-				pr_pack(vars.packet, cc, &m, options, &vars, &counters, &timing);
+				pr_pack(cc, &m, options, &vars, &counters, &timing);
 			}
 			if ((options->f_once != 0 && counters.nreceived > 0) ||
 			    (options->n_packets > 0 && counters.nreceived >= options->n_packets))
@@ -1138,7 +1138,7 @@ dnsdecode(const u_char **sp, const u_char *ep, const u_char *base, char *buf,
  * program to be run without having intermingled output (or statistics!).
  */
 static void
-pr_pack(u_char *buf, int cc, struct msghdr *mhdr, const struct options *const options,
+pr_pack(int cc, struct msghdr *mhdr, const struct options *const options,
     struct shared_variables *const vars, struct counters *const counters,
     struct timing *const timing)
 {
@@ -1149,7 +1149,7 @@ pr_pack(u_char *buf, int cc, struct msghdr *mhdr, const struct options *const op
 	int hoplim;
 	struct sockaddr *from;
 	int fromlen;
-	u_char *cp = NULL, *dp, *end = buf + cc;
+	u_char *cp = NULL, *dp, *end = vars->packet + cc;
 	struct in6_pktinfo *pktinfo = NULL;
 	struct timeval tv, tp;
 	struct tv32 *tpp;
@@ -1180,8 +1180,8 @@ pr_pack(u_char *buf, int cc, struct msghdr *mhdr, const struct options *const op
 	if (((mhdr->msg_flags & MSG_CTRUNC) != 0) &&
 	    options->f_verbose)
 		warnx("some control data discarded, insufficient buffer size");
-	icp = (struct icmp6_hdr *)buf;
-	ni = (struct icmp6_nodeinfo *)buf;
+	icp = (struct icmp6_hdr *)vars->packet;
+	ni = (struct icmp6_nodeinfo *)vars->packet;
 	off = 0;
 
 	if ((hoplim = get_hoplim(mhdr)) == -1) {
@@ -1253,7 +1253,7 @@ pr_pack(u_char *buf, int cc, struct msghdr *mhdr, const struct options *const op
 			if (dupflag)
 				(void)printf("(DUP!)");
 			/* check the data */
-			cp = buf + off + ICMP6ECHOLEN + ICMP6ECHOTMLEN;
+			cp = vars->packet + off + ICMP6ECHOLEN + ICMP6ECHOTMLEN;
 			dp = vars->outpack + ICMP6ECHOLEN + ICMP6ECHOTMLEN;
 			for (i = 8; cp < end; ++i, ++cp, ++dp) {
 				if (*cp != *dp) {
@@ -1307,7 +1307,7 @@ pr_pack(u_char *buf, int cc, struct msghdr *mhdr, const struct options *const op
 		case NI_QTYPE_FQDN:
 		default:	/* XXX: for backward compatibility */
 			cp = (u_char *)ni + ICMP6_NIRLEN;
-			if (buf[off + ICMP6_NIRLEN] ==
+			if (vars->packet[off + ICMP6_NIRLEN] ==
 			    cc - off - ICMP6_NIRLEN - 1)
 				oldfqdn = 1;
 			else
@@ -1363,7 +1363,7 @@ pr_pack(u_char *buf, int cc, struct msghdr *mhdr, const struct options *const op
 					printf(")");
 					goto fqdnend;
 				}
-				ttl = (int32_t)ntohl(*(u_long *)&buf[off+ICMP6ECHOLEN+8]);
+				ttl = (int32_t)ntohl(*(u_long *)&vars->packet[off+ICMP6ECHOLEN+8]);
 				if (comma)
 					printf(",");
 				if (!(ni->ni_flags & NI_FQDN_FLAG_VALIDTTL)) {
@@ -1393,12 +1393,12 @@ pr_pack(u_char *buf, int cc, struct msghdr *mhdr, const struct options *const op
 					}
 				}
 
-				if (buf[off + ICMP6_NIRLEN] !=
+				if (vars->packet[off + ICMP6_NIRLEN] !=
 				    cc - off - ICMP6_NIRLEN - 1 && oldfqdn) {
 					if (comma)
 						printf(",");
 					(void)printf("invalid namelen:%d/%lu",
-					    buf[off + ICMP6_NIRLEN],
+					    vars->packet[off + ICMP6_NIRLEN],
 					    (u_long)cc - off - ICMP6_NIRLEN - 1);
 					comma++;
 				}
