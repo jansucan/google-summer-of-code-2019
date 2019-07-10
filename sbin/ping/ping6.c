@@ -226,8 +226,7 @@ ping6(struct options *const options)
 	struct shared_variables vars;
 	struct counters counters;
 	struct timing timing;
-	int cc, i;
-	int almost_done, hold, packlen, optval, error;
+	int hold, packlen, optval, error;
 	u_char *datap;
 	char *scmsg = 0;
 	int ip6optlen = 0;
@@ -433,7 +432,7 @@ ping6(struct options *const options)
 	if (!(vars.packet = (u_char *)malloc((u_int)packlen)))
 		err(1, "Unable to allocate packet");
 	if (!options->f_ping_filled)
-		for (i = ICMP6ECHOLEN; i < packlen; ++i)
+		for (int i = ICMP6ECHOLEN; i < packlen; ++i)
 			*datap++ = i;
 
 	vars.ident = getpid() & 0xFFFF;
@@ -766,7 +765,7 @@ ping6(struct options *const options)
 		options->n_interval.tv_usec = 10000;
 	}
 
-	almost_done = 0;
+	bool almost_done = false;
 	while (seenint == 0) {
 		struct timeval now, timeout;
 		fd_set rfds;
@@ -815,7 +814,7 @@ ping6(struct options *const options)
 			m.msg_control = (void *)cm;
 			m.msg_controllen = CONTROLLEN;
 
-			cc = recvmsg(vars.s, &m, 0);
+			const int cc = recvmsg(vars.s, &m, 0);
 			if (cc < 0) {
 				if (errno != EINTR) {
 					warn("recvmsg");
@@ -854,7 +853,7 @@ ping6(struct options *const options)
 			else {
 				if (almost_done)
 					break;
-				almost_done = 1;
+				almost_done = true;
 			/*
 			 * If we're not transmitting any more packets,
 			 * change the timer to wait two round-trip times
