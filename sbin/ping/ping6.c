@@ -180,7 +180,7 @@ static volatile sig_atomic_t seenint;
 #ifdef SIGINFO
 static volatile sig_atomic_t seeninfo;
 #endif
-/* 
+/*
  * This pointer is used in the signal handler for accessing nreceived
  * member variable of the local 'struct counters' variable. Thus, the
  * nreceived variable does not have to be global.
@@ -769,10 +769,7 @@ ping6(struct options *const options)
 	almost_done = 0;
 	while (seenint == 0) {
 		struct timeval now, timeout;
-		struct msghdr m;
-		struct iovec iov[2];
 		fd_set rfds;
-		int n;
 
 		/* signal handling */
 		if (seenint)
@@ -800,10 +797,13 @@ ping6(struct options *const options)
 		if (timeout.tv_sec < 0)
 			timeout.tv_sec = timeout.tv_usec = 0;
 
-		n = select(vars.s + 1, &rfds, NULL, NULL, &timeout);
+		const int n = select(vars.s + 1, &rfds, NULL, NULL, &timeout);
 		if (n < 0)
 			continue;	/* EINTR */
 		if (n == 1) {
+			struct msghdr m;
+			struct iovec iov[2];
+
 			m.msg_name = (caddr_t)&from;
 			m.msg_namelen = sizeof(from);
 			memset(&iov, 0, sizeof(iov));
@@ -1438,7 +1438,7 @@ pr_exthdrs(struct msghdr *mhdr)
 
 		bufsize = CONTROLLEN - ((caddr_t)CMSG_DATA(cm) - (caddr_t)bufp);
 		if (bufsize <= 0)
-			continue; 
+			continue;
 		switch (cm->cmsg_type) {
 		case IPV6_HOPOPTS:
 			printf("  HbH Options: ");
@@ -2363,7 +2363,7 @@ nigroup(char *name, int nig_oldmcprefix)
 	}
 	if (valid != 1)
 		return NULL;	/*XXX*/
-	
+
 	if (nig_oldmcprefix) {
 		/* draft-ietf-ipngwg-icmp-name-lookup */
 		bcopy(digest, &in6.s6_addr[12], 4);
