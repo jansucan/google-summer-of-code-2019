@@ -200,7 +200,7 @@ static void	 pr_icmph(struct icmp6_hdr *, u_char *, bool);
 static void	 pr_iph(struct ip6_hdr *);
 static void	 pr_suptypes(struct icmp6_nodeinfo *, size_t, bool verbose);
 static void	 pr_nodeaddr(struct icmp6_nodeinfo *, int, bool verbose);
-static int	 myechoreply(const struct icmp6_hdr *, int);
+static bool	 myechoreply(const struct icmp6_hdr *, int);
 static int	 mynireply(const struct icmp6_nodeinfo *, const uint8_t *const);
 static char *dnsdecode(const u_char **, const u_char *, const u_char *,
     char *, size_t);
@@ -1053,13 +1053,10 @@ pinger(struct options *const options, struct shared_variables *const vars,
 	return(0);
 }
 
-static int
+static bool
 myechoreply(const struct icmp6_hdr *icp, int ident)
 {
-	if (ntohs(icp->icmp6_id) == ident)
-		return 1;
-	else
-		return 0;
+	return (ntohs(icp->icmp6_id) == ident);
 }
 
 static int
