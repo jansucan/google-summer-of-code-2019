@@ -58,17 +58,17 @@ getaddrinfo(const char *hostname, const char *servname,
                 NULL, (struct sockaddr*)&sin, NULL
         };
 
-	if ((strcmp(hostname, "target_ipv4") == 0) ||
+	if ((strcmp(hostname, "host_ipv4") == 0) ||
 	    (strcmp(hostname, "127.0.0.1") == 0)) {
 		ai.ai_family = AF_INET;
 		ai.ai_addr = (struct sockaddr*)&sin;
 #ifdef INET6
-	} else if ((strcmp(hostname, "target_ipv6") == 0) ||
+	} else if ((strcmp(hostname, "host_ipv6") == 0) ||
 	    (strcmp(hostname, "::1") == 0)) {
 		ai.ai_family = AF_INET6;
 		ai.ai_addr = (struct sockaddr*)&sin6;
 #endif
-	} else if (strcmp(hostname, "target_unknown") == 0) {
+	} else if (strcmp(hostname, "host_unknown") == 0) {
 		return (EAI_NONAME);
 	} else {
 		atf_tc_fail("mock getaddrinfo: Invalid hostname: %s", hostname);

@@ -51,17 +51,17 @@ ATF_TC_WITHOUT_HEAD(target);
 ATF_TC_BODY(target, tc)
 {
 	{
-		ARGC_ARGV("target_unknown");
+		ARGC_ARGV("host_unknown");
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_NOHOST);
 	}
 	{
-		ARGC_ARGV("target_ipv4");
+		ARGC_ARGV("host_ipv4");
 		options.target = NULL;
 		options.target_addrinfo = NULL;
 		options.target_type = TARGET_UNKNOWN;
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
-		ATF_REQUIRE_STREQ("target_ipv4", options.target);
+		ATF_REQUIRE_STREQ("host_ipv4", options.target);
 		ATF_REQUIRE(options.target_addrinfo != NULL);
 		ATF_REQUIRE(options.target_addrinfo->ai_family == AF_INET);
 		ATF_REQUIRE(options.target_type == TARGET_IPV4);
@@ -79,13 +79,13 @@ ATF_TC_BODY(target, tc)
 		ATF_REQUIRE(options.target_type == TARGET_IPV4);
 	}
 	{
-		ARGC_ARGV("-4", "target_ipv4");
+		ARGC_ARGV("-4", "host_ipv4");
 		options.target = NULL;
 		options.target_addrinfo = NULL;
 		options.target_type = TARGET_UNKNOWN;
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
-		ATF_REQUIRE_STREQ("target_ipv4", options.target);
+		ATF_REQUIRE_STREQ("host_ipv4", options.target);
 		ATF_REQUIRE(options.target_addrinfo != NULL);
 		ATF_REQUIRE(options.target_addrinfo->ai_family == AF_INET);
 		ATF_REQUIRE(options.target_type == TARGET_IPV4);
@@ -100,13 +100,13 @@ ATF_TC_BODY(target, tc)
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
 	{
-		ARGC_ARGV("target_ipv6");
+		ARGC_ARGV("host_ipv6");
 		options.target = NULL;
 		options.target_addrinfo = NULL;
 		options.target_type = TARGET_UNKNOWN;
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
-		ATF_REQUIRE_STREQ("target_ipv6", options.target);
+		ATF_REQUIRE_STREQ("host_ipv6", options.target);
 		ATF_REQUIRE(options.target_addrinfo != NULL);
 		ATF_REQUIRE(options.target_addrinfo->ai_family == AF_INET6);
 		ATF_REQUIRE(options.target_type == TARGET_IPV6);
@@ -124,23 +124,23 @@ ATF_TC_BODY(target, tc)
 		ATF_REQUIRE(options.target_type == TARGET_IPV6);
 	}
 	{
-		ARGC_ARGV("-6", "target_ipv6");
+		ARGC_ARGV("-6", "host_ipv6");
 		options.target = NULL;
 		options.target_addrinfo = NULL;
 		options.target_type = TARGET_UNKNOWN;
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
-		ATF_REQUIRE_STREQ("target_ipv6", options.target);
+		ATF_REQUIRE_STREQ("host_ipv6", options.target);
 		ATF_REQUIRE(options.target_addrinfo != NULL);
 		ATF_REQUIRE(options.target_addrinfo->ai_family == AF_INET6);
 		ATF_REQUIRE(options.target_type == TARGET_IPV6);
 	}
 	{
-		ARGC_ARGV("-4", "target_ipv6");
+		ARGC_ARGV("-4", "host_ipv6");
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
 	{
-		ARGC_ARGV("-6", "target_ipv4");
+		ARGC_ARGV("-6", "host_ipv4");
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
 #endif	/* IENT6 */
@@ -150,23 +150,23 @@ ATF_TC_WITHOUT_HEAD(hops);
 ATF_TC_BODY(hops, tc)
 {
  	{
-		ARGC_ARGV("target_ipv4", "target_ipv4");
+		ARGC_ARGV("host_ipv4", "host_ipv4");
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
 #ifdef INET6
 	{
-		ARGC_ARGV("target_ipv6", "target_unknown", "target_ipv6");
+		ARGC_ARGV("host_ipv6", "host_unknown", "host_ipv6");
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_NOHOST);
 	}
 	{
-		ARGC_ARGV("target_ipv6", "target_ipv4", "target_ipv6");
+		ARGC_ARGV("host_ipv6", "host_ipv4", "host_ipv6");
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_USAGE);
 	}
  	{
-		ARGC_ARGV("target_ipv6", "::1", "target_ipv6");
+		ARGC_ARGV("host_ipv6", "::1", "host_ipv6");
 		options.hops = NULL;
 		options.hops_addrinfo = NULL;
 		options.hop_count = 0;
@@ -177,7 +177,7 @@ ATF_TC_BODY(hops, tc)
 		ATF_REQUIRE(options.hops_addrinfo != NULL);
 		ATF_REQUIRE(options.hop_count == 2);
 
-		ATF_REQUIRE_STREQ("target_ipv6", options.hops[0]);
+		ATF_REQUIRE_STREQ("host_ipv6", options.hops[0]);
 		ATF_REQUIRE(options.hops_addrinfo[0] != NULL);
 		ATF_REQUIRE(options.hops_addrinfo[0]->ai_family == AF_INET6);
 
