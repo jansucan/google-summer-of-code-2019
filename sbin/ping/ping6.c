@@ -938,7 +938,7 @@ pingerlen(const struct options *const options, size_t sin6_addr_size)
 
 static int
 pinger(struct options *const options, struct shared_variables *const vars,
-    struct counters *const counters ,struct timing *const timing)
+    struct counters *const counters, struct timing *const timing)
 {
 	struct icmp6_hdr *icp;
 	struct iovec iov[2];
