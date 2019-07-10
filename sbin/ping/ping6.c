@@ -197,26 +197,26 @@ static int	 pinger(struct options *const, struct shared_variables *const,
     struct counters *const, struct timing *const);
 static bool	 myechoreply(const struct icmp6_hdr *const, int);
 static bool	 mynireply(const struct icmp6_nodeinfo *const, const uint8_t *const);
-static char *dnsdecode(const u_char **, const u_char *, const u_char *,
-    char *, size_t);
-static int	 setpolicy(int, char *);
-static char	*nigroup(char *, int);
+static char *dnsdecode(const u_char **const, const u_char *const, const u_char *const,
+    char *const, size_t);
+static int	 setpolicy(int, char *const);
+static char	*nigroup(char *const, int);
 static u_short   get_node_address_flags(const struct options *const);
 
-static const char *pr_addr(struct sockaddr *, int, bool);
-static void	 pr_icmph(struct icmp6_hdr *, u_char *, bool);
-static void	 pr_iph(struct ip6_hdr *);
-static void	 pr_suptypes(struct icmp6_nodeinfo *, size_t, bool verbose);
-static void	 pr_nodeaddr(struct icmp6_nodeinfo *, int, bool verbose);
+static const char *pr_addr(const struct sockaddr *const, int, bool);
+static void	 pr_icmph(const struct icmp6_hdr *const, const u_char *const, bool);
+static void	 pr_iph(const struct ip6_hdr *const);
+static void	 pr_suptypes(const struct icmp6_nodeinfo *const, size_t, bool verbose);
+static void	 pr_nodeaddr(const struct icmp6_nodeinfo *const, int, bool verbose);
 static void	 pr_pack(int, struct msghdr *, const struct options *const,
     struct shared_variables *const, struct counters *const, struct timing *const);
-static void	 pr_exthdrs(struct msghdr *);
+static void	 pr_exthdrs(const struct msghdr *const);
 static void      pr_heading(const struct sockaddr_in6 *const, const struct sockaddr_in6 *const,
     const struct options *const);
-static void	 pr_ip6opt(void *, size_t);
-static void	 pr_rthdr(void *, size_t);
+static void	 pr_ip6opt(void *const, size_t);
+static void	 pr_rthdr(const void *const, size_t);
 static int	 pr_bitrange(uint32_t, int, int);
-static void	 pr_retip(struct ip6_hdr *, u_char *);
+static void	 pr_retip(const struct ip6_hdr *const, const u_char *const);
 static void	 pr_summary(const struct counters *const, const struct timing *const, const char *const);
 
 void
@@ -1067,7 +1067,7 @@ mynireply(const struct icmp6_nodeinfo *const nip, const uint8_t *const nonce)
 }
 
 static char *
-dnsdecode(const u_char **sp, const u_char *ep, const u_char *base, char *buf,
+dnsdecode(const u_char **const sp, const u_char *const ep, const u_char *const base, char *const buf,
 	size_t bufsiz)
 	/*base for compressed name*/
 {
@@ -1422,7 +1422,7 @@ pr_pack(int cc, struct msghdr *mhdr, const struct options *const options,
 }
 
 static void
-pr_exthdrs(struct msghdr *mhdr)
+pr_exthdrs(const struct msghdr *const mhdr)
 {
 	ssize_t	bufsize;
 	void	*bufp;
@@ -1470,7 +1470,7 @@ pr_heading(const struct sockaddr_in6 *const src, const struct sockaddr_in6 *cons
 
 #ifdef USE_RFC2292BIS
 static void
-pr_ip6opt(void *extbuf, size_t bufsize)
+pr_ip6opt(void *const extbuf, size_t bufsize)
 {
 	struct ip6_hbh *ext;
 	int currentlen;
@@ -1533,7 +1533,7 @@ pr_ip6opt(void *extbuf, size_t bufsize)
 #else  /* !USE_RFC2292BIS */
 /* ARGSUSED */
 static void
-pr_ip6opt(void *extbuf, size_t bufsize __unused)
+pr_ip6opt(void *const extbuf, size_t bufsize __unused)
 {
 	printf("\n");
 	return;
@@ -1542,7 +1542,7 @@ pr_ip6opt(void *extbuf, size_t bufsize __unused)
 
 #ifdef USE_RFC2292BIS
 static void
-pr_rthdr(void *extbuf, size_t bufsize)
+pr_rthdr(const void *const extbuf, size_t bufsize)
 {
 	struct in6_addr *in6;
 	char ntopbuf[INET6_ADDRSTRLEN];
@@ -1599,7 +1599,7 @@ pr_rthdr(void *extbuf, size_t bufsize)
 #else  /* !USE_RFC2292BIS */
 /* ARGSUSED */
 static void
-pr_rthdr(void *extbuf, size_t bufsize __unused)
+pr_rthdr(const void *const extbuf, size_t bufsize __unused)
 {
 	printf("\n");
 	return;
@@ -1653,7 +1653,7 @@ pr_bitrange(uint32_t v, int soff, int ii)
 }
 
 static void
-pr_suptypes(struct icmp6_nodeinfo *ni, size_t nilen, bool verbose)
+pr_suptypes(const struct icmp6_nodeinfo *const ni, size_t nilen, bool verbose)
 	/* ni->qtype must be SUPTYPES */
 {
 	size_t clen;
@@ -1719,7 +1719,7 @@ pr_suptypes(struct icmp6_nodeinfo *ni, size_t nilen, bool verbose)
 }
 
 static void
-pr_nodeaddr(struct icmp6_nodeinfo *ni, int nilen, bool verbose)
+pr_nodeaddr(const struct icmp6_nodeinfo *const ni, int nilen, bool verbose)
 	/* ni->qtype must be NODEADDR */
 {
 	u_char *cp = (u_char *)(ni + 1);
@@ -1937,7 +1937,7 @@ pr_summary(const struct counters *const counters, const struct timing *const tim
  *	Print a descriptive string about an ICMP header.
  */
 static void
-pr_icmph(struct icmp6_hdr *icp, u_char *end, bool verbose)
+pr_icmph(const struct icmp6_hdr *const icp, const u_char *const end, bool verbose)
 {
 	/* subject type */
 	const char *niqcode[] = {
@@ -2179,7 +2179,7 @@ pr_icmph(struct icmp6_hdr *icp, u_char *end, bool verbose)
  *	Print an IP6 header.
  */
 static void
-pr_iph(struct ip6_hdr *ip6)
+pr_iph(const struct ip6_hdr *const ip6)
 {
 	uint32_t flow = ip6->ip6_flow & IPV6_FLOWLABEL_MASK;
 	uint8_t tc;
@@ -2207,7 +2207,7 @@ pr_iph(struct ip6_hdr *ip6)
  * a hostname.
  */
 static const char *
-pr_addr(struct sockaddr *addr, int addrlen, bool numeric)
+pr_addr(const struct sockaddr *const addr, int addrlen, bool numeric)
 {
 	static char buf[NI_MAXHOST];
 	int flag = 0;
@@ -2226,7 +2226,7 @@ pr_addr(struct sockaddr *addr, int addrlen, bool numeric)
  *	Dump some info on a returned (via ICMPv6) IPv6 packet.
  */
 static void
-pr_retip(struct ip6_hdr *ip6, u_char *end)
+pr_retip(const struct ip6_hdr *const ip6, const u_char *const end)
 {
 	u_char *cp = (u_char *)ip6, nh;
 	int hlen;
@@ -2308,7 +2308,7 @@ pr_retip(struct ip6_hdr *ip6, u_char *end)
 #ifdef IPSEC
 #ifdef IPSEC_POLICY_IPSEC
 static int
-setpolicy(int socket, char *policy)
+setpolicy(int socket, char *const policy)
 {
 	char *buf;
 
@@ -2329,7 +2329,7 @@ setpolicy(int socket, char *policy)
 #endif
 
 static char *
-nigroup(char *name, int nig_oldmcprefix)
+nigroup(char *const name, int nig_oldmcprefix)
 {
 	char *p;
 	char *q;
