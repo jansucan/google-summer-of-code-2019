@@ -201,7 +201,7 @@ static void	 pr_iph(struct ip6_hdr *);
 static void	 pr_suptypes(struct icmp6_nodeinfo *, size_t, bool verbose);
 static void	 pr_nodeaddr(struct icmp6_nodeinfo *, int, bool verbose);
 static bool	 myechoreply(const struct icmp6_hdr *const, int);
-static int	 mynireply(const struct icmp6_nodeinfo *const, const uint8_t *const);
+static bool	 mynireply(const struct icmp6_nodeinfo *const, const uint8_t *const);
 static char *dnsdecode(const u_char **, const u_char *, const u_char *,
     char *, size_t);
 static void	 pr_pack(int, struct msghdr *, const struct options *const,
@@ -1059,15 +1059,12 @@ myechoreply(const struct icmp6_hdr *const icp, int ident)
 	return (ntohs(icp->icmp6_id) == ident);
 }
 
-static int
+static bool
 mynireply(const struct icmp6_nodeinfo *const nip, const uint8_t *const nonce)
 {
-	if (memcmp(nip->icmp6_ni_nonce + sizeof(uint16_t),
-	    nonce + sizeof(uint16_t),
-	    sizeof(nonce) - sizeof(uint16_t)) == 0)
-		return 1;
-	else
-		return 0;
+	return (memcmp(nip->icmp6_ni_nonce + sizeof(uint16_t),
+		nonce + sizeof(uint16_t),
+		sizeof(nonce) - sizeof(uint16_t)) == 0);
 }
 
 static char *
