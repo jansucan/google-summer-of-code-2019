@@ -195,15 +195,19 @@ static void	 onint(int);
 static size_t	 pingerlen(const struct options *const, size_t);
 static int	 pinger(struct options *const, struct shared_variables *const,
     struct counters *const, struct timing *const);
+static bool	 myechoreply(const struct icmp6_hdr *const, int);
+static bool	 mynireply(const struct icmp6_nodeinfo *const, const uint8_t *const);
+static char *dnsdecode(const u_char **, const u_char *, const u_char *,
+    char *, size_t);
+static int	 setpolicy(int, char *);
+static char	*nigroup(char *, int);
+static u_short   get_node_address_flags(const struct options *const);
+
 static const char *pr_addr(struct sockaddr *, int, bool);
 static void	 pr_icmph(struct icmp6_hdr *, u_char *, bool);
 static void	 pr_iph(struct ip6_hdr *);
 static void	 pr_suptypes(struct icmp6_nodeinfo *, size_t, bool verbose);
 static void	 pr_nodeaddr(struct icmp6_nodeinfo *, int, bool verbose);
-static bool	 myechoreply(const struct icmp6_hdr *const, int);
-static bool	 mynireply(const struct icmp6_nodeinfo *const, const uint8_t *const);
-static char *dnsdecode(const u_char **, const u_char *, const u_char *,
-    char *, size_t);
 static void	 pr_pack(int, struct msghdr *, const struct options *const,
     struct shared_variables *const, struct counters *const, struct timing *const);
 static void	 pr_exthdrs(struct msghdr *);
@@ -214,9 +218,6 @@ static void	 pr_rthdr(void *, size_t);
 static int	 pr_bitrange(uint32_t, int, int);
 static void	 pr_retip(struct ip6_hdr *, u_char *);
 static void	 pr_summary(const struct counters *const, const struct timing *const, const char *const);
-static int	 setpolicy(int, char *);
-static char	*nigroup(char *, int);
-static u_short   get_node_address_flags(const struct options *const);
 
 void
 ping6(struct options *const options)
