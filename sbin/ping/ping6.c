@@ -207,6 +207,8 @@ static char *dnsdecode(const u_char **, const u_char *, const u_char *,
 static void	 pr_pack(int, struct msghdr *, const struct options *const,
     struct shared_variables *const, struct counters *const, struct timing *const);
 static void	 pr_exthdrs(struct msghdr *);
+static void      pr_heading(const struct sockaddr_in6 *const, const struct sockaddr_in6 *const,
+    const struct options *const);
 static void	 pr_ip6opt(void *, size_t);
 static void	 pr_rthdr(void *, size_t);
 static int	 pr_bitrange(uint32_t, int, int);
@@ -730,10 +732,7 @@ ping6(struct options *const options)
 		warn("setsockopt(IPV6_HOPLIMIT)"); /* XXX err? */
 #endif
 
-	printf("PING6(%lu=40+8+%lu bytes) ", (unsigned long)(40 + pingerlen(options, sizeof(vars.dst.sin6_addr))),
-	    (unsigned long)(pingerlen(options, sizeof(vars.dst.sin6_addr)) - 8));
-	printf("%s --> ", pr_addr((struct sockaddr *)&src, sizeof(src), options->f_numeric));
-	printf("%s\n", pr_addr((struct sockaddr *)&vars.dst, sizeof(vars.dst), options->f_numeric));
+	pr_heading(&src, &vars.dst, options);
 
 	if (options->n_preload == 0)
 		pinger(options, &vars, &counters, &timing);
@@ -1456,6 +1455,16 @@ pr_exthdrs(struct msghdr *mhdr)
 			break;
 		}
 	}
+}
+
+static void
+pr_heading(const struct sockaddr_in6 *const src, const struct sockaddr_in6 *const dst,
+    const struct options *const options)
+{
+	printf("PING6(%lu=40+8+%lu bytes) ", (unsigned long)(40 + pingerlen(options, sizeof(dst->sin6_addr))),
+	    (unsigned long)(pingerlen(options, sizeof(dst->sin6_addr)) - 8));
+	printf("%s --> ", pr_addr((struct sockaddr *)src, sizeof(*src), options->f_numeric));
+	printf("%s\n", pr_addr((struct sockaddr *)dst, sizeof(*dst), options->f_numeric));
 }
 
 #ifdef USE_RFC2292BIS
