@@ -201,7 +201,7 @@ static void	 pr_iph(struct ip6_hdr *);
 static void	 pr_suptypes(struct icmp6_nodeinfo *, size_t, bool verbose);
 static void	 pr_nodeaddr(struct icmp6_nodeinfo *, int, bool verbose);
 static int	 myechoreply(const struct icmp6_hdr *, int);
-static int	 mynireply(const struct icmp6_nodeinfo *, const struct shared_variables *const);
+static int	 mynireply(const struct icmp6_nodeinfo *, const uint8_t *const);
 static char *dnsdecode(const u_char **, const u_char *, const u_char *,
     char *, size_t);
 static void	 pr_pack(u_char *, int, struct msghdr *, const struct options *const,
@@ -1063,11 +1063,11 @@ myechoreply(const struct icmp6_hdr *icp, int ident)
 }
 
 static int
-mynireply(const struct icmp6_nodeinfo *nip, const struct shared_variables *const vars)
+mynireply(const struct icmp6_nodeinfo *nip, const uint8_t *const nonce)
 {
 	if (memcmp(nip->icmp6_ni_nonce + sizeof(uint16_t),
-	    vars->nonce + sizeof(uint16_t),
-	    sizeof(vars->nonce) - sizeof(uint16_t)) == 0)
+	    nonce + sizeof(uint16_t),
+	    sizeof(nonce) - sizeof(uint16_t)) == 0)
 		return 1;
 	else
 		return 0;
@@ -1265,7 +1265,7 @@ pr_pack(u_char *buf, int cc, struct msghdr *mhdr, const struct options *const op
 				}
 			}
 		}
-	} else if (icp->icmp6_type == ICMP6_NI_REPLY && mynireply(ni, vars)) {
+	} else if (icp->icmp6_type == ICMP6_NI_REPLY && mynireply(ni, vars->nonce)) {
 		seq = ntohs(*(uint16_t *)ni->icmp6_ni_nonce);
 		++(counters->nreceived);
 		if (BIT_ARRAY_IS_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK)) {
