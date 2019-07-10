@@ -78,3 +78,14 @@ getaddrinfo(const char *hostname, const char *servname,
 
         return (0);
 }
+
+void
+freeaddrinfo(struct addrinfo *ai __unused)
+{
+	/*
+	 * When the mock getaddrinfo() is defined, freeaddrinfo() must
+	 * also be defined because there is no dynamically allocated
+	 * memory to be freed.
+	 */
+	;
+}
