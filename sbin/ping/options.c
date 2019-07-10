@@ -485,12 +485,34 @@ static int
 options_check(struct options *const options)
 {
 #ifdef INET6
+	/* TODO: chaining 'else if'? */
 	if (options->f_protocol_ipv6 && options_has_ipv4_only(options)) {
 		options_print_error("IPv6 requested but IPv4 option provided");
 		return (EX_USAGE);
 	} else if (options->f_protocol_ipv4 && options_has_ipv6_only(options)) {
 		options_print_error("IPv4 requested but IPv6 option provided");
 		return (EX_USAGE);
+	}
+
+	if (options->s_source != NULL) {
+		struct addrinfo hints, *res;
+
+		memset(&hints, 0, sizeof(struct addrinfo));
+		hints.ai_flags = AI_NUMERICHOST; /* allow hostname? */
+		hints.ai_family = AF_INET6;
+		hints.ai_socktype = SOCK_RAW;
+		hints.ai_protocol = IPPROTO_ICMPV6;
+
+		const int r = options_getaddrinfo(options->s_source, &hints, &res);
+		if (r != 0)
+			return (r);
+		/*
+		 * res->ai_family must be AF_INET6 and res->ai_addrlen
+		 * must be sizeof(src).
+		 */
+		memcpy(&options->source_sockaddr, res->ai_addr, res->ai_addrlen);
+		options->source_len = res->ai_addrlen;
+		freeaddrinfo(res);
 	}
 #endif
 	/*

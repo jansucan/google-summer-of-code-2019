@@ -505,16 +505,6 @@ ATF_TC_BODY(option_quiet, tc)
 	ATF_REQUIRE(options.f_quiet == true);
 }
 
-ATF_TC_WITHOUT_HEAD(option_source);
-ATF_TC_BODY(option_source, tc)
-{
-	ARGC_ARGV("-S", "source1234", "localhost");
-
-	options.s_source = NULL;
-	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
-	ATF_REQUIRE_STREQ("source1234", options.s_source);
-}
-
 ATF_TC_WITHOUT_HEAD(option_packet_size);
 ATF_TC_BODY(option_packet_size, tc)
 {
@@ -1873,7 +1863,6 @@ ATF_TP_ADD_TCS(tp)
 	ATF_TP_ADD_TC(tp, option_once);
 	ATF_TP_ADD_TC(tp, option_ping_filled);
 	ATF_TP_ADD_TC(tp, option_quiet);
-	ATF_TP_ADD_TC(tp, option_source);
 	ATF_TP_ADD_TC(tp, option_packet_size);
 	ATF_TP_ADD_TC(tp, privileged_option_packet_size);
 	ATF_TP_ADD_TC(tp, unprivileged_option_packet_size);

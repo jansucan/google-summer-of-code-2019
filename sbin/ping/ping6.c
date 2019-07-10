@@ -224,7 +224,7 @@ void
 ping6(struct options *const options)
 {
 	struct timeval last;
-	struct sockaddr_in6 from, *sin6, src;
+	struct sockaddr_in6 from, *sin6;
 	struct sigaction si_sa;
 	struct shared_variables vars;
 	struct counters counters;
@@ -240,7 +240,6 @@ ping6(struct options *const options)
 #ifdef USE_RFC2292BIS
 	struct ip6_rthdr *rthdr = NULL;
 #endif
-	socklen_t srclen;
 	size_t rthlen;
 
 	memset(&vars, 0, sizeof(vars));
@@ -271,30 +270,6 @@ ping6(struct options *const options)
 		    options);
 		if (!options->f_quiet)
 			print_fill_pattern((char *)datap, options->ping_filled_size);
-	}
-
-	/* TODO: Move gettaddrinfo() of the source to options.c? */
-	if (options->s_source != NULL) {
-		struct addrinfo hints, *res;
-
-		memset(&hints, 0, sizeof(struct addrinfo));
-		hints.ai_flags = AI_NUMERICHOST; /* allow hostname? */
-		hints.ai_family = AF_INET6;
-		hints.ai_socktype = SOCK_RAW;
-		hints.ai_protocol = IPPROTO_ICMPV6;
-
-		error = getaddrinfo(options->s_source, NULL, &hints, &res);
-		if (error) {
-			errx(1, "invalid source address: %s",
-			    gai_strerror(error));
-		}
-		/*
-		 * res->ai_family must be AF_INET6 and res->ai_addrlen
-		 * must be sizeof(src).
-		 */
-		memcpy(&src, res->ai_addr, res->ai_addrlen);
-		srclen = res->ai_addrlen;
-		freeaddrinfo(res);
 	}
 
 	if (options->hop_count != 0) {
@@ -342,16 +317,16 @@ ping6(struct options *const options)
 	/* set the source address if specified. */
 	if (options->s_source != NULL) {
 		/* properly fill sin6_scope_id */
-		if (IN6_IS_ADDR_LINKLOCAL(&src.sin6_addr) && (
+		if (IN6_IS_ADDR_LINKLOCAL(&options->source_sockaddr.sin6_addr) && (
 		    IN6_IS_ADDR_LINKLOCAL(&vars.dst.sin6_addr) ||
 		    IN6_IS_ADDR_MC_LINKLOCAL(&vars.dst.sin6_addr) ||
 		    IN6_IS_ADDR_MC_NODELOCAL(&vars.dst.sin6_addr))) {
-			if (src.sin6_scope_id == 0)
-				src.sin6_scope_id = vars.dst.sin6_scope_id;
+			if (options->source_sockaddr.sin6_scope_id == 0)
+				options->source_sockaddr.sin6_scope_id = vars.dst.sin6_scope_id;
 			if (vars.dst.sin6_scope_id == 0)
-				vars.dst.sin6_scope_id = src.sin6_scope_id;
+				vars.dst.sin6_scope_id = options->source_sockaddr.sin6_scope_id;
 		}
-		if (bind(vars.s, (struct sockaddr *)&src, srclen) != 0)
+		if (bind(vars.s, (struct sockaddr *)&options->source_sockaddr, options->source_len) != 0)
 			err(1, "bind");
 	}
 	/* TODO: Move gettaddrinfo() of the source to options.c? */
@@ -643,15 +618,15 @@ ping6(struct options *const options)
 		 * privilege, we cannot use a raw socket for this.
 		 */
 		int dummy;
-		socklen_t len = sizeof(src);
+		socklen_t len = sizeof(options->source_sockaddr);
 
 		if ((dummy = socket(AF_INET6, SOCK_DGRAM, 0)) < 0)
 			err(1, "UDP socket");
 
-		src.sin6_family = AF_INET6;
-		src.sin6_addr = vars.dst.sin6_addr;
-		src.sin6_port = ntohs(DUMMY_PORT);
-		src.sin6_scope_id = vars.dst.sin6_scope_id;
+		options->source_sockaddr.sin6_family = AF_INET6;
+		options->source_sockaddr.sin6_addr = vars.dst.sin6_addr;
+		options->source_sockaddr.sin6_port = ntohs(DUMMY_PORT);
+		options->source_sockaddr.sin6_scope_id = vars.dst.sin6_scope_id;
 
 #ifdef USE_RFC2292BIS
 		if (pktinfo &&
@@ -680,10 +655,10 @@ ping6(struct options *const options)
 			err(1, "UDP setsockopt(IPV6_PKTOPTIONS)");
 #endif
 
-		if (connect(dummy, (struct sockaddr *)&src, len) < 0)
+		if (connect(dummy, (struct sockaddr *)&options->source_sockaddr, len) < 0)
 			err(1, "UDP connect");
 
-		if (getsockname(dummy, (struct sockaddr *)&src, &len) < 0)
+		if (getsockname(dummy, (struct sockaddr *)&options->source_sockaddr, &len) < 0)
 			err(1, "getsockname");
 
 		close(dummy);
@@ -737,7 +712,7 @@ ping6(struct options *const options)
 		warn("setsockopt(IPV6_HOPLIMIT)"); /* XXX err? */
 #endif
 
-	pr_heading(&src, &vars.dst, options);
+	pr_heading(&options->source_sockaddr, &vars.dst, options);
 
 	if (options->n_preload == 0)
 		pinger(options, &vars, &counters, &timing);
