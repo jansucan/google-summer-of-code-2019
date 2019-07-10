@@ -1534,7 +1534,7 @@ pr_ip6opt(void *const extbuf, size_t bufsize)
 #else  /* !USE_RFC2292BIS */
 /* ARGSUSED */
 static void
-pr_ip6opt(void *const extbuf, size_t bufsize __unused)
+pr_ip6opt(void *const extbuf __unused, size_t bufsize __unused)
 {
 	printf("\n");
 	return;
@@ -1600,7 +1600,7 @@ pr_rthdr(const void *const extbuf, size_t bufsize)
 #else  /* !USE_RFC2292BIS */
 /* ARGSUSED */
 static void
-pr_rthdr(const void *const extbuf, size_t bufsize __unused)
+pr_rthdr(const void *const extbuf __unused, size_t bufsize __unused)
 {
 	printf("\n");
 	return;
