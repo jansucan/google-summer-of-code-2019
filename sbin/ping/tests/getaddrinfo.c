@@ -61,11 +61,13 @@ getaddrinfo(const char *hostname, const char *servname,
 	if ((strcmp(hostname, "host_ipv4") == 0) ||
 	    (strcmp(hostname, "127.0.0.1") == 0)) {
 		ai.ai_family = AF_INET;
+		ai.ai_addrlen = sizeof(struct sockaddr_in);
 		ai.ai_addr = (struct sockaddr*)&sin;
 #ifdef INET6
 	} else if ((strcmp(hostname, "host_ipv6") == 0) ||
 	    (strcmp(hostname, "::1") == 0)) {
 		ai.ai_family = AF_INET6;
+		ai.ai_addrlen = sizeof(struct sockaddr_in6);
 		ai.ai_addr = (struct sockaddr*)&sin6;
 #endif
 	} else if (strcmp(hostname, "host_unknown") == 0) {
