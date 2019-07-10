@@ -213,7 +213,7 @@ static void	 pr_ip6opt(void *, size_t);
 static void	 pr_rthdr(void *, size_t);
 static int	 pr_bitrange(uint32_t, int, int);
 static void	 pr_retip(struct ip6_hdr *, u_char *);
-static void	 summary(const struct counters *const, const struct timing *const, const char *const);
+static void	 pr_summary(const struct counters *const, const struct timing *const, const char *const);
 static int	 setpolicy(int, char *);
 static char	*nigroup(char *, int);
 static u_short   get_node_address_flags(const struct options *const);
@@ -774,7 +774,7 @@ ping6(struct options *const options)
 			onint(SIGINT);
 #ifdef SIGINFO
 		if (seeninfo) {
-			summary(&counters, &timing, vars.hostname);
+			pr_summary(&counters, &timing, vars.hostname);
 			seeninfo = 0;
 			continue;
 		}
@@ -882,7 +882,7 @@ ping6(struct options *const options)
 	si_sa.sa_handler = SIG_IGN;
 	sigaction(SIGINT, &si_sa, 0);
 	sigaction(SIGALRM, &si_sa, 0);
-	summary(&counters, &timing, vars.hostname);
+	pr_summary(&counters, &timing, vars.hostname);
 
         if(vars.packet != NULL)
                 free(vars.packet);
@@ -1899,7 +1899,7 @@ onint(int notused __unused)
  *	Print out statistics.
  */
 static void
-summary(const struct counters *const counters, const struct timing *const timing, const char *const hostname)
+pr_summary(const struct counters *const counters, const struct timing *const timing, const char *const hostname)
 {
 
 	(void)printf("\n--- %s ping6 statistics ---\n", hostname);
