@@ -225,7 +225,6 @@ ping6(struct options *const options)
 {
 	struct timeval last;
 	struct sockaddr_in6 from, *sin6, src;
-	struct addrinfo hints, *res;
 	struct sigaction si_sa;
 	struct shared_variables vars;
 	struct counters counters;
@@ -276,6 +275,8 @@ ping6(struct options *const options)
 
 	/* TODO: Move gettaddrinfo() of the source to options.c? */
 	if (options->s_source != NULL) {
+		struct addrinfo hints, *res;
+
 		memset(&hints, 0, sizeof(struct addrinfo));
 		hints.ai_flags = AI_NUMERICHOST; /* allow hostname? */
 		hints.ai_family = AF_INET6;
@@ -356,6 +357,8 @@ ping6(struct options *const options)
 	/* TODO: Move gettaddrinfo() of the source to options.c? */
 	/* set the gateway (next hop) if specified */
 	if (options->s_gateway) {
+		struct addrinfo hints, *res;
+
 		memset(&hints, 0, sizeof(hints));
 		hints.ai_family = AF_INET6;
 		hints.ai_socktype = SOCK_RAW;
