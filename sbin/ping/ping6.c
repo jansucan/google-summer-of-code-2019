@@ -187,9 +187,10 @@ static volatile sig_atomic_t seeninfo;
  */
 static const long *sig_counters_nreceived;
 
-static int	 get_hoplim(struct msghdr *);
-static int	 get_pathmtu(struct msghdr *, const struct options *const, const struct sockaddr_in6 *const);
-static struct in6_pktinfo *get_rcvpktinfo(struct msghdr *);
+static int	 get_hoplim(const struct msghdr *const);
+static int	 get_pathmtu(const struct msghdr *const , const struct options *const,
+    const struct sockaddr_in6 *const);
+static struct in6_pktinfo *get_rcvpktinfo(const struct msghdr *const);
 static void	 onsignal(int);
 static void	 onint(int);
 static size_t	 pingerlen(const struct options *const, size_t);
@@ -1785,7 +1786,7 @@ pr_nodeaddr(const struct icmp6_nodeinfo *const ni, int nilen, bool verbose)
 }
 
 static int
-get_hoplim(struct msghdr *mhdr)
+get_hoplim(const struct msghdr *const mhdr)
 {
 	struct cmsghdr *cm;
 
@@ -1804,7 +1805,7 @@ get_hoplim(struct msghdr *mhdr)
 }
 
 static struct in6_pktinfo *
-get_rcvpktinfo(struct msghdr *mhdr)
+get_rcvpktinfo(const struct msghdr *const mhdr)
 {
 	struct cmsghdr *cm;
 
@@ -1823,7 +1824,8 @@ get_rcvpktinfo(struct msghdr *mhdr)
 }
 
 static int
-get_pathmtu(struct msghdr *mhdr, const struct options *const options, const struct sockaddr_in6 *const dst)
+get_pathmtu(const struct msghdr *const mhdr, const struct options *const options,
+    const struct sockaddr_in6 *const dst)
 {
 #ifdef IPV6_RECVPATHMTU
 	struct cmsghdr *cm;
