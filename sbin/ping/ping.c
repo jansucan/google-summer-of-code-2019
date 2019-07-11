@@ -107,9 +107,6 @@ __FBSDID("$FreeBSD$");
 #define	TS_LEN		(ICMP_TSLEN - ICMP_MINLEN)
 #define	FLOOD_BACKOFF	20000		/* usecs to back off if F_FLOOD mode */
 					/* runs out of buffer space */
-#define	MAXIPLEN	(sizeof(struct ip) + MAX_IPOPTLEN)
-#define	MAXICMPLEN	(ICMP_ADVLENMIN + MAX_IPOPTLEN)
-
 struct shared_variables {
 	char rcvd_tbl[MAX_DUP_CHK / 8];
 	struct sockaddr_in whereto;	/* who to ping */

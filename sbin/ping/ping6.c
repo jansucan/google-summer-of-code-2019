@@ -146,10 +146,7 @@ __FBSDID("$FreeBSD$");
 /* FQDN case, 64 bits of nonce + 32 bits ttl */
 #define ICMP6_NIRLEN	(ICMP6ECHOLEN + 12)
 #define	EXTRA		256	/* for AH and various other headers. weird. */
-#define	NROUTES		9		/* number of record route slots */
 
-#define IN6LEN		sizeof(struct in6_addr)
-#define SA6LEN		sizeof(struct sockaddr_in6)
 #define DUMMY_PORT	10101
 
 #define SIN6(s)	((struct sockaddr_in6 *)(s))
