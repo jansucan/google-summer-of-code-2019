@@ -31,12 +31,13 @@
 #ifndef OPTIONS_H
 #define OPTIONS_H 1
 
+#include <sys/param.h>
+#include <sys/time.h>
+
 /*
  * This block of includes is needed here. It contains preprocessor
  * symbols for configuration of 'struct options' during build-time.
  */
-#include <sys/time.h>
-
 #include <net/if.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -88,9 +89,13 @@ struct options {
 	bool f_rroute;
 	bool f_so_dontroute;
 
-	const char *s_source;
-	struct sockaddr_in6 source_sockaddr_in6;
-	socklen_t source_len;
+	/* TODO: MAXHOSTNAMELEN + 1? */
+	bool f_source;
+	char s_source[MAXHOSTNAMELEN];
+	union {
+		struct sockaddr_in	in;
+		struct sockaddr_in6	in6;
+	} source_sockaddr;
 
 	bool f_verbose;
 	bool f_no_loop;

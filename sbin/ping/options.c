@@ -212,7 +212,11 @@ options_parse(int argc, char **argv, struct options *const options)
 			options->f_quiet = true;
 			break;
 		case 'S':
-			options->s_source = optarg;
+			if (strlcpy(options->s_source, optarg, MAXHOSTNAMELEN) >= MAXHOSTNAMELEN) {
+				options_print_error("source is longer than %d chars", MAXHOSTNAMELEN - 1);
+				return (EX_USAGE);
+			}
+			options->f_source = true;
 			break;
 		case 's':
 			options->n_packet_size = options_strtonum(optarg, 1, LONG_MAX, errbuf);
@@ -493,28 +497,8 @@ options_check(struct options *const options)
 		options_print_error("IPv4 requested but IPv6 option provided");
 		return (EX_USAGE);
 	}
-
-	if (options->s_source != NULL) {
-		struct addrinfo hints, *res;
-
-		memset(&hints, 0, sizeof(struct addrinfo));
-		hints.ai_flags = AI_NUMERICHOST; /* allow hostname? */
-		hints.ai_family = AF_INET6;
-		hints.ai_socktype = SOCK_RAW;
-		hints.ai_protocol = IPPROTO_ICMPV6;
-
-		const int r = options_getaddrinfo(options->s_source, &hints, &res);
-		if (r != 0)
-			return (r);
-		/*
-		 * res->ai_family must be AF_INET6 and res->ai_addrlen
-		 * must be sizeof(src).
-		 */
-		memcpy(&options->source_sockaddr_in6, res->ai_addr, res->ai_addrlen);
-		options->source_len = res->ai_addrlen;
-		freeaddrinfo(res);
-	}
 #endif
+
 	/*
 	 * Check options common to both IPv4 and IPv6 targets.
 	 */
@@ -537,8 +521,39 @@ options_check(struct options *const options)
 		warnx("too small interval, raised to .000001");
 	}
 
+	if (options->f_source) {
+		struct addrinfo hints, *res;
 
+		memset(&hints, 0, sizeof(struct addrinfo));
+		hints.ai_socktype = SOCK_RAW;
 
+		if (options->target_type == TARGET_IPV4) {
+			hints.ai_family = AF_INET;
+			hints.ai_protocol = IPPROTO_ICMP;
+		} else {
+			hints.ai_flags = AI_NUMERICHOST; /* allow hostname? */
+			hints.ai_family = AF_INET6;
+			hints.ai_protocol = IPPROTO_ICMPV6;
+		}
+
+		const int r = options_getaddrinfo(options->s_source, &hints, &res);
+		if (r != 0)
+			return (r);
+
+		/*
+		 * res->ai_family must be AF_INET or AF_INET6, and
+		 * res->ai_addrlen must be
+		 * sizeof(options->source_sockaddr_in) or
+		 * sizeof(options->source_sockaddr_in6), respectively.
+		 */
+		if (options->target_type == TARGET_IPV4)
+			memcpy(&options->source_sockaddr.in, res->ai_addr, res->ai_addrlen);
+#ifdef INET6
+		else
+			memcpy(&options->source_sockaddr.in6, res->ai_addr, res->ai_addrlen);
+#endif	/* INET6 */
+		freeaddrinfo(res);
+	}
 
 	if (options->f_packet_size) {
 		if (options->target_type == TARGET_IPV4) {

@@ -51,21 +51,32 @@ ATF_TC_WITHOUT_HEAD(option_source);
 ATF_TC_BODY(option_source, tc)
 {
 	{
-		ARGC_ARGV("-S", "host_unknown", "host_ipv6");
+		ARGC_ARGV("-S", "host_unknown", "host_ipv4");
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_NOHOST);
 	}
 	{
+		ARGC_ARGV("-S", "host_ipv4", "host_ipv4");
+		options.s_source[0] = '\0';
+		options.source_sockaddr.in.sin_family = 0;
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
+		ATF_REQUIRE_STREQ("host_ipv4", options.s_source);
+		ATF_REQUIRE(options.source_sockaddr.in.sin_family == AF_INET);
+		ATF_REQUIRE(options.source_sockaddr.in.sin_len == sizeof(struct sockaddr_in));
+	}
+#ifdef INET6
+	{
 		ARGC_ARGV("-S", "host_ipv6", "host_ipv6");
-		options.s_source = NULL;
-		options.source_len = 0;
-		options.source_sockaddr_in6.sin6_family = 0;
+		options.s_source[0] = '\0';
+		options.source_sockaddr.in6.sin6_family = 0;
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
 		ATF_REQUIRE_STREQ("host_ipv6", options.s_source);
-		ATF_REQUIRE(options.source_len == sizeof(struct sockaddr_in6));
-		ATF_REQUIRE(options.source_sockaddr_in6.sin6_family == AF_INET6);
+		ATF_REQUIRE(options.source_sockaddr.in6.sin6_family == AF_INET6);
+		ATF_REQUIRE(options.source_sockaddr.in6.sin6_len == sizeof(struct sockaddr_in6));
 	}
+#endif	/* INET6 */
 }
 
 /*

@@ -137,7 +137,7 @@ struct counters {
 static struct options *sig_options;
 static volatile sig_atomic_t finish_up;
 static volatile sig_atomic_t siginfo_p;
-/* 
+/*
  * This pointer is used in the signal handler for accessing nreceived
  * member variable of the local 'struct counters' variable. Thus, the
  * nreceived variable does not have to be global.
@@ -165,7 +165,7 @@ static void stopit(int);
 void
 ping(struct options *const options)
 {
-	struct sockaddr_in from, sock_in;
+	struct sockaddr_in from;
 	struct in_addr ifaddr;
 	struct timeval last;
 	struct iovec iov;
@@ -176,7 +176,6 @@ ping(struct options *const options)
 	struct counters counters;
 	struct timing timing;
 	u_char *datap, packet[IP_MAXPACKET] __aligned(4);
-	const char *shostname;
 	struct sockaddr_in *to;
 	int hold, icmp_len;
 	int ssend_errno, srecv_errno;
@@ -247,7 +246,7 @@ ping(struct options *const options)
 
 	if ((options->f_interface) && (inet_aton(options->s_interface, &ifaddr) == 0))
 		errx(EX_USAGE, "invalid multicast interface: `%s'", options->s_interface);
-	
+
 	if (options->f_mask) {
 		vars.icmp_type = ICMP_MASKREQ;
 		vars.icmp_type_rsp = ICMP_MASKREPLY;
@@ -262,7 +261,7 @@ ping(struct options *const options)
 			(void)printf("ICMP_TSTAMP\n");
 
 	}
-	
+
 	icmp_len = sizeof(struct ip) + ICMP_MINLEN + vars.phdr_len;
 	if (options->f_rroute)
 		icmp_len += MAX_IPOPTLEN;
@@ -281,36 +280,10 @@ ping(struct options *const options)
 			print_fill_pattern((char *)datap, options->ping_filled_size);
 	}
 	vars.capdns = capdns_setup();
-	if (options->s_source) {
-		bzero((char *)&sock_in, sizeof(sock_in));
-		sock_in.sin_family = AF_INET;
-		if (inet_aton(options->s_source, &sock_in.sin_addr) != 0) {
-			shostname = options->s_source;
-		} else {
-			char snamebuf[MAXHOSTNAMELEN];
-
-			const struct hostent *const hp =
-				cap_gethostbyname2(vars.capdns, options->s_source, AF_INET);
-
-			if (!hp)
-				errx(EX_NOHOST, "cannot resolve %s: %s",
-				    options->s_source, hstrerror(h_errno));
-
-			sock_in.sin_len = sizeof sock_in;
-			if ((unsigned)hp->h_length > sizeof(sock_in.sin_addr) ||
-			    hp->h_length < 0)
-				errx(1, "gethostbyname2: illegal address");
-			memcpy(&sock_in.sin_addr, hp->h_addr_list[0],
-			    sizeof(sock_in.sin_addr));
-			(void)strncpy(snamebuf, hp->h_name,
-			    sizeof(snamebuf) - 1);
-			snamebuf[sizeof(snamebuf) - 1] = '\0';
-			shostname = snamebuf;
-		}
-		if (bind(vars.ssend, (struct sockaddr *)&sock_in, sizeof sock_in) ==
-		    -1)
-			err(1, "bind");
-	}
+	if ((options->f_source) &&
+	    (bind(vars.ssend, (struct sockaddr *)&options->source_sockaddr.in,
+		sizeof options->source_sockaddr.in) == -1))
+		err(1, "bind");
 
 	bzero(&vars.whereto, sizeof(vars.whereto));
 	to = &vars.whereto;
@@ -424,7 +397,7 @@ ping(struct options *const options)
 		ip->ip_off = htons(options->f_dont_fragment ? IP_DF : 0);
 		ip->ip_ttl = options->n_ttl;
 		ip->ip_p = IPPROTO_ICMP;
-		ip->ip_src.s_addr = options->s_source ? sock_in.sin_addr.s_addr : INADDR_ANY;
+		ip->ip_src.s_addr = options->f_source ? options->source_sockaddr.in.sin_addr.s_addr : INADDR_ANY;
 		ip->ip_dst = to->sin_addr;
         }
 
@@ -535,8 +508,8 @@ ping(struct options *const options)
 	if (to->sin_family == AF_INET) {
 		(void)printf("PING %s (%s)", vars.hostname,
 		    inet_ntoa(to->sin_addr));
-		if (options->s_source)
-			(void)printf(" from %s", shostname);
+		if (options->f_source)
+			(void)printf(" from %s", options->s_source);
 		if (options->n_sweep_max)
 			(void)printf(": (%d ... %d) data bytes\n",
 			    options->n_sweep_min, options->n_sweep_max);
@@ -803,7 +776,7 @@ pinger(const struct options *const options, struct shared_variables *const vars,
  */
 static void
 pr_pack(char *buf, int cc, struct sockaddr_in *from, struct timeval *tv,
-    const struct options *const options, struct shared_variables *const vars, 
+    const struct options *const options, struct shared_variables *const vars,
     struct counters *const counters, struct timing *const timing)
 {
 	struct in_addr ina;
