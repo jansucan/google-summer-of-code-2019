@@ -537,15 +537,21 @@ options_check(struct options *const options)
 		warnx("too small interval, raised to .000001");
 	}
 
+
+
+
 	if (options->f_packet_size) {
 		if (options->target_type == TARGET_IPV4) {
 			const int r = options_check_packet_size(options->n_packet_size, DEFAULT_DATALEN_IPV4);
 			if (r != EX_OK)
 				return (r);
-		} else if (options->n_packet_size > MAXDATALEN) {
+		}
+#ifdef INET6
+		else if (options->n_packet_size > MAXDATALEN) {
 			options_print_error("datalen value too large, maximum is %d", MAXDATALEN);
 			return (EX_USAGE);
 		}
+#endif
 	}
 
 	/*
