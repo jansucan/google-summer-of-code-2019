@@ -300,9 +300,6 @@ ping6(struct options *const options)
 	else
 		vars.hostname = options->target;
 
-	if (!options->target_addrinfo->ai_addr)
-		errx(1, "getaddrinfo failed");
-
 	(void)memcpy(&vars.dst, options->target_addrinfo->ai_addr,
 	    options->target_addrinfo->ai_addrlen);
 
