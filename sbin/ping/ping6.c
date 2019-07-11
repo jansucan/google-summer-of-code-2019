@@ -229,7 +229,7 @@ ping6(struct options *const options)
 	struct shared_variables vars;
 	struct counters counters;
 	struct timing timing;
-	int hold, packlen, optval, error;
+	int hold, packlen, optval;
 	u_char *datap;
 	char *scmsg = 0;
 	int ip6optlen = 0;
@@ -327,30 +327,14 @@ ping6(struct options *const options)
 			sizeof(options->source_sockaddr.in6)) != 0)
 			err(1, "bind");
 	}
-	/* TODO: Move gettaddrinfo() of the source to options.c? */
+
 	/* set the gateway (next hop) if specified */
-	if (options->s_gateway) {
-		struct addrinfo hints, *res;
-
-		memset(&hints, 0, sizeof(hints));
-		hints.ai_family = AF_INET6;
-		hints.ai_socktype = SOCK_RAW;
-		hints.ai_protocol = IPPROTO_ICMPV6;
-
-		error = getaddrinfo(options->s_gateway, NULL, &hints, &res);
-		if (error) {
-			errx(1, "getaddrinfo for the gateway %s: %s",
-			     options->s_gateway, gai_strerror(error));
-		}
-		if (res->ai_next && options->f_verbose)
-			warnx("gateway resolves to multiple addresses");
-
+	if (options->s_gateway != NULL) {
 		if (setsockopt(vars.s, IPPROTO_IPV6, IPV6_NEXTHOP,
-		    res->ai_addr, res->ai_addrlen)) {
+			&options->gateway_sockaddr_in6,
+			options->gateway_sockaddr_in6.sin6_len)) {
 			err(1, "setsockopt(IPV6_NEXTHOP)");
 		}
-
-		freeaddrinfo(res);
 	}
 
 	/*

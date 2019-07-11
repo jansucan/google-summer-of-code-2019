@@ -16,6 +16,8 @@ SRCS.options_source_test=	options_source_test.c getaddrinfo.c ../options.c
 
 .if ${MK_INET6_SUPPORT} != "no"
 CFLAGS+= -DINET6 -DKAME_SCOPEID -DUSE_RFC2292BIS
+ATF_TESTS_C+=	options_gateway_test
+SRCS.options_gateway_test=	options_gateway_test.c getaddrinfo.c ../options.c
 .endif
 
 .if ${MK_CASPER} != "no" && !defined(RESCUE)

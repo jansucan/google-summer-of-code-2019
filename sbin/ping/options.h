@@ -164,7 +164,10 @@ struct options {
 	unsigned long n_sock_buff_size;
 #endif
 
+#ifdef INET6
 	const char *s_gateway;
+	struct  sockaddr_in6 gateway_sockaddr_in6;
+#endif
 
 	bool f_nigroup;
 	int  c_nigroup;

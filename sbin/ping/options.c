@@ -497,6 +497,28 @@ options_check(struct options *const options)
 		options_print_error("IPv4 requested but IPv6 option provided");
 		return (EX_USAGE);
 	}
+
+	/*
+	 * Check options only for IPv6 target.
+	 */
+	if (options->s_gateway != NULL) {
+		struct addrinfo hints, *res;
+
+		memset(&hints, 0, sizeof(hints));
+		hints.ai_family = AF_INET6;
+		hints.ai_socktype = SOCK_RAW;
+		hints.ai_protocol = IPPROTO_ICMPV6;
+
+		const int r = options_getaddrinfo(options->s_gateway, &hints, &res);
+		if (r != 0)
+			return (r);
+
+		if ((res->ai_next != NULL) && options->f_verbose)
+			warnx("gateway resolves to multiple addresses");
+
+		memcpy(&options->gateway_sockaddr_in6, res->ai_addr, res->ai_addrlen);
+		freeaddrinfo(res);
+	}
 #endif
 
 	/*

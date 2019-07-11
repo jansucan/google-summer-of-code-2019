@@ -1437,16 +1437,6 @@ ATF_TC_BODY(option_sock_buf_size, tc)
 #endif /* SO_SNDBUF && SO_RCVBUF */
 }
 
-ATF_TC_WITHOUT_HEAD(option_gateway);
-ATF_TC_BODY(option_gateway, tc)
-{
-	ARGC_ARGV("-e", "gateway1234", "localhost");
-
-	options.s_gateway = NULL;
-	ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
-	ATF_REQUIRE_STREQ("gateway1234", options.s_gateway);
-}
-
 ATF_TC_WITHOUT_HEAD(option_hoplimit);
 ATF_TC_BODY(option_hoplimit, tc)
 {
@@ -1891,7 +1881,6 @@ ATF_TP_ADD_TCS(tp)
 #ifdef INET6
 	ATF_TP_ADD_TC(tp, option_protocol_ipv6);
 	ATF_TP_ADD_TC(tp, option_sock_buf_size);
-	ATF_TP_ADD_TC(tp, option_gateway);
 	ATF_TP_ADD_TC(tp, option_hoplimit);
 	ATF_TP_ADD_TC(tp, option_nodeaddr);
 	ATF_TP_ADD_TC(tp, option_nigroup);
