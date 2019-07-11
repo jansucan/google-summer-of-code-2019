@@ -104,6 +104,7 @@ __FBSDID("$FreeBSD$");
  */
 
 #include <sys/param.h>
+#include <sys/capsicum.h>
 #include <sys/uio.h>
 #include <sys/socket.h>
 
@@ -116,6 +117,10 @@ __FBSDID("$FreeBSD$");
 #include <arpa/inet.h>
 #include <arpa/nameser.h>
 #include <netdb.h>
+
+#include <capsicum_helpers.h>
+#include <casper/cap_dns.h>
+#include <libcasper.h>
 
 #include <ctype.h>
 #include <err.h>
@@ -155,6 +160,7 @@ struct shared_variables {
 	char rcvd_tbl[MAX_DUP_CHK / 8];
 	struct sockaddr_in6 dst;	/* who to ping6 */
 	int s;			/* socket file descriptor */
+	int srecv;
 	u_char outpack[MAXPACKETLEN];
 	char *hostname;
 	int ident;		/* process id to identify our packets */
@@ -162,6 +168,7 @@ struct shared_variables {
 	u_char *packet;
 	/* for ancillary data(advanced API) */
 	struct msghdr smsghdr;
+	cap_channel_t *capdns;
 };
 
 struct counters {
@@ -184,9 +191,10 @@ static volatile sig_atomic_t seeninfo;
  */
 static const long *sig_counters_received;
 
+static cap_channel_t *capdns_setup(void);
 static int	 get_hoplim(const struct msghdr *const);
 static int	 get_pathmtu(const struct msghdr *const , const struct options *const,
-    const struct sockaddr_in6 *const);
+    const struct sockaddr_in6 *const, cap_channel_t *const);
 static struct in6_pktinfo *get_rcvpktinfo(const struct msghdr *const);
 static void	 onsignal(int);
 static void	 onint(int);
@@ -201,7 +209,7 @@ static int	 setpolicy(int, char *const);
 static char	*nigroup(char *const, int);
 static u_short   get_node_address_flags(const struct options *const);
 
-static const char *pr_addr(const struct sockaddr *const, int, bool);
+static const char *pr_addr(const struct sockaddr *const, int, bool, cap_channel_t *const);
 static void	 pr_icmph(const struct icmp6_hdr *const, const u_char *const, bool);
 static void	 pr_iph(const struct ip6_hdr *const);
 static void	 pr_suptypes(const struct icmp6_nodeinfo *const, size_t, bool verbose);
@@ -210,7 +218,7 @@ static void	 pr_pack(int, struct msghdr *, const struct options *const,
     struct shared_variables *const, struct counters *const, struct timing *const);
 static void	 pr_exthdrs(const struct msghdr *const);
 static void      pr_heading(const struct sockaddr_in6 *const, const struct sockaddr_in6 *const,
-    const struct options *const);
+    const struct options *const, cap_channel_t *const);
 static void	 pr_ip6opt(void *const, size_t);
 static void	 pr_rthdr(const void *const, size_t);
 static int	 pr_bitrange(uint32_t, int, int);
@@ -254,6 +262,8 @@ ping6(struct options *const options)
 	/* The signal handler needs pointer to options so it can free
 	 * the dynamically allocated memory. */
 	sig_options = options;
+
+	vars.capdns = capdns_setup();
 
 	if (options->f_flood)
 		setbuf(stdout, (char *)NULL);
@@ -303,10 +313,21 @@ ping6(struct options *const options)
 	if ((vars.s = socket(options->target_addrinfo->ai_family,
 		    options->target_addrinfo->ai_socktype,
 		    IPPROTO_ICMPV6)) < 0)
-		err(1, "socket");
+		err(1, "s socket");
+	if ((vars.srecv = socket(options->target_addrinfo->ai_family,
+		    options->target_addrinfo->ai_socktype,
+		    IPPROTO_ICMPV6)) < 0)
+		err(1, "srecv socket");
+
 	options->target_addrinfo = NULL;
 	freeaddrinfo(options->target_addrinfo_root);
 	options->target_addrinfo_root = NULL;
+
+	/* revoke root privilege */
+	if (seteuid(getuid()) != 0)
+		err(1, "seteuid() failed");
+	if (setuid(getuid()) != 0)
+		err(1, "setuid() failed");
 
 	/* set the source address if specified. */
 	if (options->f_source) {
@@ -323,7 +344,77 @@ ping6(struct options *const options)
 		if (bind(vars.s, (struct sockaddr *)&options->source_sockaddr.in6,
 			sizeof(options->source_sockaddr.in6)) != 0)
 			err(1, "bind");
+	} else {
+		/*
+		 * get the source address. XXX since we revoked the root
+		 * privilege, we cannot use a raw socket for this.
+		 */
+		int dummy;
+		socklen_t len = sizeof(options->source_sockaddr.in6);
+
+		if ((dummy = socket(AF_INET6, SOCK_DGRAM, 0)) < 0)
+			err(1, "UDP socket");
+
+		options->source_sockaddr.in6.sin6_family = AF_INET6;
+		options->source_sockaddr.in6.sin6_addr = vars.dst.sin6_addr;
+		options->source_sockaddr.in6.sin6_port = ntohs(DUMMY_PORT);
+		options->source_sockaddr.in6.sin6_scope_id = vars.dst.sin6_scope_id;
+
+#ifdef USE_RFC2292BIS
+		if (pktinfo &&
+		    setsockopt(dummy, IPPROTO_IPV6, IPV6_PKTINFO,
+		    (void *)pktinfo, sizeof(*pktinfo)))
+			err(1, "UDP setsockopt(IPV6_PKTINFO)");
+
+		if (options->f_hoplimit &&
+		    setsockopt(dummy, IPPROTO_IPV6, IPV6_UNICAST_HOPS,
+			(void *)&(options->n_hoplimit), sizeof(options->n_hoplimit)))
+			err(1, "UDP setsockopt(IPV6_UNICAST_HOPS)");
+
+		if (options->f_hoplimit &&
+		    setsockopt(dummy, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
+			(void *)&(options->n_hoplimit), sizeof(options->n_hoplimit)))
+			err(1, "UDP setsockopt(IPV6_MULTICAST_HOPS)");
+
+		if (rthdr &&
+		    setsockopt(dummy, IPPROTO_IPV6, IPV6_RTHDR,
+		    (void *)rthdr, (rthdr->ip6r_len + 1) << 3))
+			err(1, "UDP setsockopt(IPV6_RTHDR)");
+#else  /* old advanced API */
+		if (smsghdr.msg_control &&
+		    setsockopt(dummy, IPPROTO_IPV6, IPV6_PKTOPTIONS,
+		    (void *)smsghdr.msg_control, smsghdr.msg_controllen))
+			err(1, "UDP setsockopt(IPV6_PKTOPTIONS)");
+#endif
+		if (connect(dummy, (struct sockaddr *)&options->source_sockaddr.in6, len) < 0)
+			err(1, "UDP connect");
+
+		if (getsockname(dummy, (struct sockaddr *)&options->source_sockaddr.in6, &len) < 0)
+			err(1, "getsockname");
+
+		close(dummy);
 	}
+
+	if (connect(vars.s, (struct sockaddr *)&vars.dst, sizeof(vars.dst)) != 0)
+		err(1, "connect");
+
+	/*
+	 * Here we enter capability mode. Further down access to global
+	 * namespaces (e.g filesystem) is restricted (see capsicum(4)).
+	 * We must connect(2) our socket before this point.
+	 */
+	caph_cache_catpages();
+	if (caph_enter_casper() < 0)
+		err(1, "cap_enter");
+
+	cap_rights_t rights;
+
+	cap_rights_init(&rights, CAP_RECV, CAP_EVENT, CAP_SETSOCKOPT);
+	if (caph_rights_limit(vars.srecv, &rights) < 0)
+		err(1, "cap_rights_limit srecv");
+	cap_rights_init(&rights, CAP_SEND, CAP_SETSOCKOPT);
+	if (caph_rights_limit(vars.s, &rights) < 0)
+		err(1, "cap_rights_limit ssend");
 
 	/* set the gateway (next hop) if specified */
 	if (options->s_gateway != NULL) {
@@ -342,35 +433,29 @@ ping6(struct options *const options)
 		const int opton = 1;
 
 #ifdef IPV6_RECVHOPOPTS
-		if (setsockopt(vars.s, IPPROTO_IPV6, IPV6_RECVHOPOPTS, &opton,
+		if (setsockopt(vars.srecv, IPPROTO_IPV6, IPV6_RECVHOPOPTS, &opton,
 		    sizeof(opton)))
 			err(1, "setsockopt(IPV6_RECVHOPOPTS)");
 #else  /* old adv. API */
-		if (setsockopt(vars.s, IPPROTO_IPV6, IPV6_HOPOPTS, &opton,
+		if (setsockopt(vars.srecv, IPPROTO_IPV6, IPV6_HOPOPTS, &opton,
 		    sizeof(opton)))
 			err(1, "setsockopt(IPV6_HOPOPTS)");
 #endif
 #ifdef IPV6_RECVDSTOPTS
-		if (setsockopt(vars.s, IPPROTO_IPV6, IPV6_RECVDSTOPTS, &opton,
+		if (setsockopt(vars.srecv, IPPROTO_IPV6, IPV6_RECVDSTOPTS, &opton,
 		    sizeof(opton)))
 			err(1, "setsockopt(IPV6_RECVDSTOPTS)");
 #else  /* old adv. API */
-		if (setsockopt(vars.s, IPPROTO_IPV6, IPV6_DSTOPTS, &opton,
+		if (setsockopt(vars.srec, IPPROTO_IPV6, IPV6_DSTOPTS, &opton,
 		    sizeof(opton)))
 			err(1, "setsockopt(IPV6_DSTOPTS)");
 #endif
 #ifdef IPV6_RECVRTHDRDSTOPTS
-		if (setsockopt(vars.s, IPPROTO_IPV6, IPV6_RECVRTHDRDSTOPTS, &opton,
+		if (setsockopt(vars.srec, IPPROTO_IPV6, IPV6_RECVRTHDRDSTOPTS, &opton,
 		    sizeof(opton)))
 			err(1, "setsockopt(IPV6_RECVRTHDRDSTOPTS)");
 #endif
 	}
-
-	/* revoke root privilege */
-	if (seteuid(getuid()) != 0)
-		err(1, "seteuid() failed");
-	if (setuid(getuid()) != 0)
-		err(1, "setuid() failed");
 
 	if (!options->f_nodeaddr && !options->f_fqdn && !options->f_fqdn_old && !options->f_subtypes) {
 		if (options->n_packet_size >= (long)sizeof(struct tv32)) {
@@ -405,9 +490,12 @@ ping6(struct options *const options)
 			err(1, "IPV6_DONTFRAG");
 	hold = 1;
 
-	if (options->f_so_debug)
+	if (options->f_so_debug) {
 		(void)setsockopt(vars.s, SOL_SOCKET, SO_DEBUG, (char *)&hold,
 		    sizeof(hold));
+		(void)setsockopt(vars.srecv, SOL_SOCKET, SO_DEBUG, (char *)&hold,
+		    sizeof(hold));
+	}
 	optval = IPV6_DEFHLIM;
 	if (IN6_IS_ADDR_MULTICAST(&vars.dst.sin6_addr))
 		if (setsockopt(vars.s, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
@@ -424,7 +512,7 @@ ping6(struct options *const options)
 #ifdef IPV6_RECVPATHMTU
 	else {
 		optval = 1;
-		if (setsockopt(vars.s, IPPROTO_IPV6, IPV6_RECVPATHMTU,
+		if (setsockopt(vars.srecv, IPPROTO_IPV6, IPV6_RECVPATHMTU,
 		    &optval, sizeof(optval)) == -1)
 			err(1, "setsockopt(IPV6_RECVPATHMTU)");
 	}
@@ -434,7 +522,7 @@ ping6(struct options *const options)
 #ifdef IPSEC
 #ifdef IPSEC_POLICY_IPSEC
 	if (options->f_policy) {
-		if (setpolicy(vars.s, options->s_policy_in) < 0)
+		if (setpolicy(vars.srecv, options->s_policy_in) < 0)
 			errx(1, "%s", ipsec_strerror());
 		if (setpolicy(vars.s, options->s_policy_out) < 0)
 			errx(1, "%s", ipsec_strerror());
@@ -443,19 +531,28 @@ ping6(struct options *const options)
 	if (options->f_authhdr) {
 		optval = IPSEC_LEVEL_REQUIRE;
 #ifdef IPV6_AUTH_TRANS_LEVEL
-		if (setsockopt(s, IPPROTO_IPV6, IPV6_AUTH_TRANS_LEVEL,
+		if (setsockopt(vars.s, IPPROTO_IPV6, IPV6_AUTH_TRANS_LEVEL,
 		    &optval, sizeof(optval)) == -1)
 			err(1, "setsockopt(IPV6_AUTH_TRANS_LEVEL)");
+		if (setsockopt(vars.srecv, IPPROTO_IPV6, IPV6_AUTH_TRANS_LEVEL,
+			&optval, sizeof(optval)) == -1)
+			err(1, "setsockopt(IPV6_AUTH_TRANS_LEVEL)");
 #else /* old def */
-		if (setsockopt(s, IPPROTO_IPV6, IPV6_AUTH_LEVEL,
+		if (setsockopt(vars.s, IPPROTO_IPV6, IPV6_AUTH_LEVEL,
 		    &optval, sizeof(optval)) == -1)
+			err(1, "setsockopt(IPV6_AUTH_LEVEL)");
+		if (setsockopt(vars.srecv, IPPROTO_IPV6, IPV6_AUTH_LEVEL,
+			&optval, sizeof(optval)) == -1)
 			err(1, "setsockopt(IPV6_AUTH_LEVEL)");
 #endif
 	}
 	if (options->f_encrypt) {
 		optval = IPSEC_LEVEL_REQUIRE;
-		if (setsockopt(s, IPPROTO_IPV6, IPV6_ESP_TRANS_LEVEL,
+		if (setsockopt(vars.s, IPPROTO_IPV6, IPV6_ESP_TRANS_LEVEL,
 		    &optval, sizeof(optval)) == -1)
+			err(1, "setsockopt(IPV6_ESP_TRANS_LEVEL)");
+		if (setsockopt(vars.srecv, IPPROTO_IPV6, IPV6_ESP_TRANS_LEVEL,
+			&optval, sizeof(optval)) == -1)
 			err(1, "setsockopt(IPV6_ESP_TRANS_LEVEL)");
 	}
 #endif /*IPSEC_POLICY_IPSEC*/
@@ -474,7 +571,7 @@ ping6(struct options *const options)
 	} else {
 		ICMP6_FILTER_SETPASSALL(&filt);
 	}
-	if (setsockopt(vars.s, IPPROTO_ICMPV6, ICMP6_FILTER, &filt,
+	if (setsockopt(vars.srecv, IPPROTO_ICMPV6, ICMP6_FILTER, &filt,
 	    sizeof(filt)) < 0)
 		err(1, "setsockopt(ICMP6_FILTER)");
     }
@@ -485,11 +582,11 @@ ping6(struct options *const options)
 		int opton = 1;
 
 #ifdef IPV6_RECVRTHDR
-		if (setsockopt(vars.s, IPPROTO_IPV6, IPV6_RECVRTHDR, &opton,
+		if (setsockopt(vars.srecv, IPPROTO_IPV6, IPV6_RECVRTHDR, &opton,
 		    sizeof(opton)))
 			err(1, "setsockopt(IPV6_RECVRTHDR)");
 #else  /* old adv. API */
-		if (setsockopt(vars.s, IPPROTO_IPV6, IPV6_RTHDR, &opton,
+		if (setsockopt(vars.srecv, IPPROTO_IPV6, IPV6_RTHDR, &opton,
 		    sizeof(opton)))
 			err(1, "setsockopt(IPV6_RTHDR)");
 #endif
@@ -498,7 +595,7 @@ ping6(struct options *const options)
 /*
 	optval = 1;
 	if (IN6_IS_ADDR_MULTICAST(&dst.sin6_addr))
-		if (setsockopt(s, IPPROTO_IPV6, IPV6_MULTICAST_LOOP,
+		if (setsockopt(vars.s, IPPROTO_IPV6, IPV6_MULTICAST_LOOP,
 		    &optval, sizeof(optval)) == -1)
 			err(1, "IPV6_MULTICAST_LOOP");
 */
@@ -591,58 +688,6 @@ ping6(struct options *const options)
 		scmsgp = CMSG_NXTHDR(&vars.smsghdr, scmsgp);
 	}
 
-	if (!options->f_source) {
-		/*
-		 * get the source address. XXX since we revoked the root
-		 * privilege, we cannot use a raw socket for this.
-		 */
-		int dummy;
-		socklen_t len = sizeof(options->source_sockaddr.in6);
-
-		if ((dummy = socket(AF_INET6, SOCK_DGRAM, 0)) < 0)
-			err(1, "UDP socket");
-
-		options->source_sockaddr.in6.sin6_family = AF_INET6;
-		options->source_sockaddr.in6.sin6_addr = vars.dst.sin6_addr;
-		options->source_sockaddr.in6.sin6_port = ntohs(DUMMY_PORT);
-		options->source_sockaddr.in6.sin6_scope_id = vars.dst.sin6_scope_id;
-
-#ifdef USE_RFC2292BIS
-		if (pktinfo &&
-		    setsockopt(dummy, IPPROTO_IPV6, IPV6_PKTINFO,
-		    (void *)pktinfo, sizeof(*pktinfo)))
-			err(1, "UDP setsockopt(IPV6_PKTINFO)");
-
-		if (options->f_hoplimit &&
-		    setsockopt(dummy, IPPROTO_IPV6, IPV6_UNICAST_HOPS,
-			(void *)&(options->n_hoplimit), sizeof(options->n_hoplimit)))
-			err(1, "UDP setsockopt(IPV6_UNICAST_HOPS)");
-
-		if (options->f_hoplimit &&
-		    setsockopt(dummy, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
-			(void *)&(options->n_hoplimit), sizeof(options->n_hoplimit)))
-			err(1, "UDP setsockopt(IPV6_MULTICAST_HOPS)");
-
-		if (rthdr &&
-		    setsockopt(dummy, IPPROTO_IPV6, IPV6_RTHDR,
-		    (void *)rthdr, (rthdr->ip6r_len + 1) << 3))
-			err(1, "UDP setsockopt(IPV6_RTHDR)");
-#else  /* old advanced API */
-		if (smsghdr.msg_control &&
-		    setsockopt(dummy, IPPROTO_IPV6, IPV6_PKTOPTIONS,
-		    (void *)smsghdr.msg_control, smsghdr.msg_controllen))
-			err(1, "UDP setsockopt(IPV6_PKTOPTIONS)");
-#endif
-
-		if (connect(dummy, (struct sockaddr *)&options->source_sockaddr.in6, len) < 0)
-			err(1, "UDP connect");
-
-		if (getsockname(dummy, (struct sockaddr *)&options->source_sockaddr.in6, &len) < 0)
-			err(1, "getsockname");
-
-		close(dummy);
-	}
-
 #if defined(SO_SNDBUF) && defined(SO_RCVBUF)
 	if (options->f_sock_buff_size) {
 		if (options->n_packet_size > (long)options->n_sock_buff_size)
@@ -650,7 +695,7 @@ ping6(struct options *const options)
 		if (setsockopt(vars.s, SOL_SOCKET, SO_SNDBUF, &(options->n_sock_buff_size),
 		    sizeof(options->n_sock_buff_size)) < 0)
 			err(1, "setsockopt(SO_SNDBUF)");
-		if (setsockopt(vars.s, SOL_SOCKET, SO_RCVBUF, &(options->n_sock_buff_size),
+		if (setsockopt(vars.srecv, SOL_SOCKET, SO_RCVBUF, &(options->n_sock_buff_size),
 		    sizeof(options->n_sock_buff_size)) < 0)
 			err(1, "setsockopt(SO_RCVBUF)");
 	}
@@ -664,7 +709,7 @@ ping6(struct options *const options)
 		 * to get some stuff for /etc/ethers.
 		 */
 		hold = 48 * 1024;
-		setsockopt(vars.s, SOL_SOCKET, SO_RCVBUF, (char *)&hold,
+		setsockopt(vars.srecv, SOL_SOCKET, SO_RCVBUF, (char *)&hold,
 		    sizeof(hold));
 	}
 #endif
@@ -672,26 +717,35 @@ ping6(struct options *const options)
 	optval = 1;
 #ifndef USE_SIN6_SCOPE_ID
 #ifdef IPV6_RECVPKTINFO
-	if (setsockopt(vars.s, IPPROTO_IPV6, IPV6_RECVPKTINFO, &optval,
+	if (setsockopt(vars.srecv, IPPROTO_IPV6, IPV6_RECVPKTINFO, &optval,
 	    sizeof(optval)) < 0)
 		warn("setsockopt(IPV6_RECVPKTINFO)"); /* XXX err? */
 #else  /* old adv. API */
-	if (setsockopt(vars.s, IPPROTO_IPV6, IPV6_PKTINFO, &optval,
+	if (setsockopt(vars.srecv, IPPROTO_IPV6, IPV6_PKTINFO, &optval,
 	    sizeof(optval)) < 0)
 		warn("setsockopt(IPV6_PKTINFO)"); /* XXX err? */
 #endif
 #endif /* USE_SIN6_SCOPE_ID */
 #ifdef IPV6_RECVHOPLIMIT
-	if (setsockopt(vars.s, IPPROTO_IPV6, IPV6_RECVHOPLIMIT, &optval,
+	if (setsockopt(vars.srecv, IPPROTO_IPV6, IPV6_RECVHOPLIMIT, &optval,
 	    sizeof(optval)) < 0)
 		warn("setsockopt(IPV6_RECVHOPLIMIT)"); /* XXX err? */
 #else  /* old adv. API */
-	if (setsockopt(vars.s, IPPROTO_IPV6, IPV6_HOPLIMIT, &optval,
+	if (setsockopt(vars.srecv, IPPROTO_IPV6, IPV6_HOPLIMIT, &optval,
 	    sizeof(optval)) < 0)
 		warn("setsockopt(IPV6_HOPLIMIT)"); /* XXX err? */
 #endif
 
-	pr_heading(&options->source_sockaddr.in6, &vars.dst, options);
+	/* CAP_SETSOCKOPT removed */
+	cap_rights_init(&rights, CAP_RECV, CAP_EVENT);
+	if (caph_rights_limit(vars.srecv, &rights) < 0)
+		err(1, "cap_rights_limit srecv setsockopt");
+	/* CAP_SETSOCKOPT removed */
+	cap_rights_init(&rights, CAP_SEND);
+	if (caph_rights_limit(vars.s, &rights) < 0)
+		err(1, "cap_rights_limit ssend setsockopt");
+
+	pr_heading(&options->source_sockaddr.in6, &vars.dst, options, vars.capdns);
 
 	if (options->n_preload == 0)
 		pinger(options, &vars, &counters, &timing);
@@ -739,7 +793,7 @@ ping6(struct options *const options)
 		}
 #endif
 		FD_ZERO(&rfds);
-		FD_SET(vars.s, &rfds);
+		FD_SET(vars.srecv, &rfds);
 		gettimeofday(&now, NULL);
 		timeout.tv_sec = last.tv_sec + options->n_interval.tv_sec - now.tv_sec;
 		timeout.tv_usec = last.tv_usec + options->n_interval.tv_usec - now.tv_usec;
@@ -754,7 +808,7 @@ ping6(struct options *const options)
 		if (timeout.tv_sec < 0)
 			timeout.tv_sec = timeout.tv_usec = 0;
 
-		const int n = select(vars.s + 1, &rfds, NULL, NULL, &timeout);
+		const int n = select(vars.srecv + 1, &rfds, NULL, NULL, &timeout);
 		if (n < 0)
 			continue;	/* EINTR */
 		if (n == 1) {
@@ -772,7 +826,7 @@ ping6(struct options *const options)
 			m.msg_control = (void *)cm;
 			m.msg_controllen = CONTROLLEN;
 
-			const int cc = recvmsg(vars.s, &m, 0);
+			const int cc = recvmsg(vars.srecv, &m, 0);
 			if (cc < 0) {
 				if (errno != EINTR) {
 					warn("recvmsg");
@@ -787,7 +841,7 @@ ping6(struct options *const options)
 				 * exceptions (currently the only possibility is
 				 * a path MTU notification.)
 				 */
-				if ((mtu = get_pathmtu(&m, options, &vars.dst)) > 0) {
+				if ((mtu = get_pathmtu(&m, options, &vars.dst, vars.capdns)) > 0) {
 					if (options->f_verbose) {
 						printf("new path MTU (%d) is "
 						    "notified\n", mtu);
@@ -988,8 +1042,8 @@ pinger(struct options *const options, struct shared_variables *const vars,
 		errx(1, "internal error; length mismatch");
 #endif
 
-	vars->smsghdr.msg_name = (caddr_t)&vars->dst;
-	vars->smsghdr.msg_namelen = sizeof(vars->dst);
+	vars->smsghdr.msg_name = NULL;
+	vars->smsghdr.msg_namelen = 0;
 	memset(&iov, 0, sizeof(iov));
 	iov[0].iov_base = (caddr_t)vars->outpack;
 	iov[0].iov_len = cc;
@@ -1128,7 +1182,7 @@ pr_pack(int cc, struct msghdr *mhdr, const struct options *const options,
 	if (cc < (int)sizeof(struct icmp6_hdr)) {
 		if (options->f_verbose)
 			warnx("packet too short (%d bytes) from %s", cc,
-			    pr_addr(from, fromlen, options->f_numeric));
+			    pr_addr(from, fromlen, options->f_numeric, vars->capdns));
 		return;
 	}
 	if (((mhdr->msg_flags & MSG_CTRUNC) != 0) &&
@@ -1188,7 +1242,7 @@ pr_pack(int cc, struct msghdr *mhdr, const struct options *const options,
 			if (options->f_audible)
 				write_char(STDOUT_FILENO, CHAR_BBELL);
 			(void)printf("%d bytes from %s, icmp_seq=%u", cc,
-			    pr_addr(from, fromlen, options->f_numeric), seq);
+			    pr_addr(from, fromlen, options->f_numeric, vars->capdns), seq);
 			(void)printf(" hlim=%d", hoplim);
 			if (options->f_verbose) {
 				struct sockaddr_in6 dstsa;
@@ -1200,7 +1254,7 @@ pr_pack(int cc, struct msghdr *mhdr, const struct options *const options,
 				dstsa.sin6_addr = pktinfo->ipi6_addr;
 				(void)printf(" dst=%s",
 				    pr_addr((struct sockaddr *)&dstsa,
-					sizeof(dstsa), options->f_numeric));
+					sizeof(dstsa), options->f_numeric, vars->capdns));
 			}
 			if (timing->enabled)
 				(void)printf(" time=%.3f ms", triptime);
@@ -1231,7 +1285,7 @@ pr_pack(int cc, struct msghdr *mhdr, const struct options *const options,
 		if (options->f_quiet)
 			return;
 
-		(void)printf("%d bytes from %s: ", cc, pr_addr(from, fromlen, options->f_numeric));
+		(void)printf("%d bytes from %s: ", cc, pr_addr(from, fromlen, options->f_numeric, vars->capdns));
 
 		switch (ntohs(ni->ni_code)) {
 		case ICMP6_NI_SUCCESS:
@@ -1366,7 +1420,7 @@ pr_pack(int cc, struct msghdr *mhdr, const struct options *const options,
 		/* We've got something other than an ECHOREPLY */
 		if (!options->f_verbose)
 			return;
-		(void)printf("%d bytes from %s: ", cc, pr_addr(from, fromlen, options->f_numeric));
+		(void)printf("%d bytes from %s: ", cc, pr_addr(from, fromlen, options->f_numeric, vars->capdns));
 		pr_icmph(icp, end, options->f_verbose);
 	}
 
@@ -1418,12 +1472,12 @@ pr_exthdrs(const struct msghdr *const mhdr)
 
 static void
 pr_heading(const struct sockaddr_in6 *const src, const struct sockaddr_in6 *const dst,
-    const struct options *const options)
+    const struct options *const options, cap_channel_t *const capdns)
 {
 	printf("PING6(%lu=40+8+%lu bytes) ", (unsigned long)(40 + pingerlen(options, sizeof(dst->sin6_addr))),
 	    (unsigned long)(pingerlen(options, sizeof(dst->sin6_addr)) - 8));
-	printf("%s --> ", pr_addr((struct sockaddr *)src, sizeof(*src), options->f_numeric));
-	printf("%s\n", pr_addr((struct sockaddr *)dst, sizeof(*dst), options->f_numeric));
+	printf("%s --> ", pr_addr((struct sockaddr *)src, sizeof(*src), options->f_numeric, capdns));
+	printf("%s\n", pr_addr((struct sockaddr *)dst, sizeof(*dst), options->f_numeric, capdns));
 }
 
 #ifdef USE_RFC2292BIS
@@ -1782,7 +1836,7 @@ get_rcvpktinfo(const struct msghdr *const mhdr)
 
 static int
 get_pathmtu(const struct msghdr *const mhdr, const struct options *const options,
-    const struct sockaddr_in6 *const dst)
+    const struct sockaddr_in6 *const dst, cap_channel_t *const capdns)
 {
 #ifdef IPV6_RECVPATHMTU
 	struct cmsghdr *cm;
@@ -1816,7 +1870,7 @@ get_pathmtu(const struct msghdr *const mhdr, const struct options *const options
 					printf("path MTU for %s is notified. "
 					       "(ignored)\n",
 					   pr_addr((struct sockaddr *)&mtuctl->ip6m_addr,
-					       sizeof(mtuctl->ip6m_addr), options->f_numeric));
+					       sizeof(mtuctl->ip6m_addr), options->f_numeric, capdns));
 				}
 				return(0);
 			}
@@ -2166,7 +2220,8 @@ pr_iph(const struct ip6_hdr *const ip6)
  * a hostname.
  */
 static const char *
-pr_addr(const struct sockaddr *const addr, int addrlen, bool numeric)
+pr_addr(const struct sockaddr *const addr, int addrlen, bool numeric,
+    cap_channel_t *const capdns)
 {
 	static char buf[NI_MAXHOST];
 	int flag = 0;
@@ -2174,7 +2229,7 @@ pr_addr(const struct sockaddr *const addr, int addrlen, bool numeric)
 	if (numeric)
 		flag |= NI_NUMERICHOST;
 
-	if (getnameinfo(addr, addrlen, buf, sizeof(buf), NULL, 0, flag) == 0)
+	if (cap_getnameinfo(capdns, addr, addrlen, buf, sizeof(buf), NULL, 0, flag) == 0)
 		return (buf);
 	else
 		return "?";
@@ -2367,4 +2422,29 @@ get_node_address_flags(const struct options *const options)
 #endif
 
 	return naflags;
+}
+
+static cap_channel_t *
+capdns_setup(void)
+{
+	cap_channel_t *capcas, *capdnsloc;
+	const char *types[2];
+	int families[1];
+
+	capcas = cap_init();
+	if (capcas == NULL)
+		err(1, "unable to create casper process");
+	capdnsloc = cap_service_open(capcas, "system.dns");
+	/* Casper capability no longer needed. */
+	cap_close(capcas);
+	if (capdnsloc == NULL)
+		err(1, "unable to open system.dns service");
+	types[0] = "ADDR2NAME";
+	if (cap_dns_type_limit(capdnsloc, types, 1) < 0)
+		err(1, "unable to limit access to system.dns service");
+	families[0] = AF_INET6;
+	if (cap_dns_family_limit(capdnsloc, families, 1) < 0)
+		err(1, "unable to limit access to system.dns service");
+
+	return (capdnsloc);
 }
