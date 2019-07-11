@@ -344,77 +344,10 @@ ping6(struct options *const options)
 		if (bind(vars.s, (struct sockaddr *)&options->source_sockaddr.in6,
 			sizeof(options->source_sockaddr.in6)) != 0)
 			err(1, "bind");
-	} else {
-		/*
-		 * get the source address. XXX since we revoked the root
-		 * privilege, we cannot use a raw socket for this.
-		 */
-		int dummy;
-		socklen_t len = sizeof(options->source_sockaddr.in6);
-
-		if ((dummy = socket(AF_INET6, SOCK_DGRAM, 0)) < 0)
-			err(1, "UDP socket");
-
-		options->source_sockaddr.in6.sin6_family = AF_INET6;
-		options->source_sockaddr.in6.sin6_addr = vars.dst.sin6_addr;
-		options->source_sockaddr.in6.sin6_port = ntohs(DUMMY_PORT);
-		options->source_sockaddr.in6.sin6_scope_id = vars.dst.sin6_scope_id;
-
-#ifdef USE_RFC2292BIS
-		if (pktinfo &&
-		    setsockopt(dummy, IPPROTO_IPV6, IPV6_PKTINFO,
-		    (void *)pktinfo, sizeof(*pktinfo)))
-			err(1, "UDP setsockopt(IPV6_PKTINFO)");
-
-		if (options->f_hoplimit &&
-		    setsockopt(dummy, IPPROTO_IPV6, IPV6_UNICAST_HOPS,
-			(void *)&(options->n_hoplimit), sizeof(options->n_hoplimit)))
-			err(1, "UDP setsockopt(IPV6_UNICAST_HOPS)");
-
-		if (options->f_hoplimit &&
-		    setsockopt(dummy, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
-			(void *)&(options->n_hoplimit), sizeof(options->n_hoplimit)))
-			err(1, "UDP setsockopt(IPV6_MULTICAST_HOPS)");
-
-		if (rthdr &&
-		    setsockopt(dummy, IPPROTO_IPV6, IPV6_RTHDR,
-		    (void *)rthdr, (rthdr->ip6r_len + 1) << 3))
-			err(1, "UDP setsockopt(IPV6_RTHDR)");
-#else  /* old advanced API */
-		if (smsghdr.msg_control &&
-		    setsockopt(dummy, IPPROTO_IPV6, IPV6_PKTOPTIONS,
-		    (void *)smsghdr.msg_control, smsghdr.msg_controllen))
-			err(1, "UDP setsockopt(IPV6_PKTOPTIONS)");
-#endif
-		if (connect(dummy, (struct sockaddr *)&options->source_sockaddr.in6, len) < 0)
-			err(1, "UDP connect");
-
-		if (getsockname(dummy, (struct sockaddr *)&options->source_sockaddr.in6, &len) < 0)
-			err(1, "getsockname");
-
-		close(dummy);
 	}
 
 	if (connect(vars.s, (struct sockaddr *)&vars.dst, sizeof(vars.dst)) != 0)
 		err(1, "connect");
-
-	/*
-	 * Here we enter capability mode. Further down access to global
-	 * namespaces (e.g filesystem) is restricted (see capsicum(4)).
-	 * We must connect(2) our socket before this point.
-	 */
-	caph_cache_catpages();
-	if (caph_enter_casper() < 0)
-		err(1, "cap_enter");
-
-	cap_rights_t rights;
-
-	cap_rights_init(&rights, CAP_RECV, CAP_EVENT, CAP_SETSOCKOPT);
-	if (caph_rights_limit(vars.srecv, &rights) < 0)
-		err(1, "cap_rights_limit srecv");
-	cap_rights_init(&rights, CAP_SEND, CAP_SETSOCKOPT);
-	if (caph_rights_limit(vars.s, &rights) < 0)
-		err(1, "cap_rights_limit ssend");
 
 	/* set the gateway (next hop) if specified */
 	if (options->s_gateway != NULL) {
@@ -687,6 +620,75 @@ ping6(struct options *const options)
 
 		scmsgp = CMSG_NXTHDR(&vars.smsghdr, scmsgp);
 	}
+
+	if (!options->f_source) {
+		/*
+		 * get the source address. XXX since we revoked the root
+		 * privilege, we cannot use a raw socket for this.
+		 */
+		int dummy;
+		socklen_t len = sizeof(options->source_sockaddr.in6);
+
+		if ((dummy = socket(AF_INET6, SOCK_DGRAM, 0)) < 0)
+			err(1, "UDP socket");
+
+		options->source_sockaddr.in6.sin6_family = AF_INET6;
+		options->source_sockaddr.in6.sin6_addr = vars.dst.sin6_addr;
+		options->source_sockaddr.in6.sin6_port = ntohs(DUMMY_PORT);
+		options->source_sockaddr.in6.sin6_scope_id = vars.dst.sin6_scope_id;
+
+#ifdef USE_RFC2292BIS
+		if (pktinfo &&
+		    setsockopt(dummy, IPPROTO_IPV6, IPV6_PKTINFO,
+		    (void *)pktinfo, sizeof(*pktinfo)))
+			err(1, "UDP setsockopt(IPV6_PKTINFO)");
+
+		if (options->f_hoplimit &&
+		    setsockopt(dummy, IPPROTO_IPV6, IPV6_UNICAST_HOPS,
+			(void *)&(options->n_hoplimit), sizeof(options->n_hoplimit)))
+			err(1, "UDP setsockopt(IPV6_UNICAST_HOPS)");
+
+		if (options->f_hoplimit &&
+		    setsockopt(dummy, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
+			(void *)&(options->n_hoplimit), sizeof(options->n_hoplimit)))
+			err(1, "UDP setsockopt(IPV6_MULTICAST_HOPS)");
+
+		if (rthdr &&
+		    setsockopt(dummy, IPPROTO_IPV6, IPV6_RTHDR,
+		    (void *)rthdr, (rthdr->ip6r_len + 1) << 3))
+			err(1, "UDP setsockopt(IPV6_RTHDR)");
+#else  /* old advanced API */
+		if (smsghdr.msg_control &&
+		    setsockopt(dummy, IPPROTO_IPV6, IPV6_PKTOPTIONS,
+		    (void *)smsghdr.msg_control, smsghdr.msg_controllen))
+			err(1, "UDP setsockopt(IPV6_PKTOPTIONS)");
+#endif
+		if (connect(dummy, (struct sockaddr *)&options->source_sockaddr.in6, len) < 0)
+			err(1, "UDP connect");
+
+		if (getsockname(dummy, (struct sockaddr *)&options->source_sockaddr.in6, &len) < 0)
+			err(1, "getsockname");
+
+		close(dummy);
+	}
+
+	/*
+	 * Here we enter capability mode. Further down access to global
+	 * namespaces (e.g filesystem) is restricted (see capsicum(4)).
+	 * We must connect(2) our socket before this point.
+	 */
+	caph_cache_catpages();
+	if (caph_enter_casper() < 0)
+		err(1, "cap_enter");
+
+	cap_rights_t rights;
+
+	cap_rights_init(&rights, CAP_RECV, CAP_EVENT, CAP_SETSOCKOPT);
+	if (caph_rights_limit(vars.srecv, &rights) < 0)
+		err(1, "cap_rights_limit srecv");
+	cap_rights_init(&rights, CAP_SEND, CAP_SETSOCKOPT);
+	if (caph_rights_limit(vars.s, &rights) < 0)
+		err(1, "cap_rights_limit ssend");
 
 #if defined(SO_SNDBUF) && defined(SO_RCVBUF)
 	if (options->f_sock_buff_size) {
