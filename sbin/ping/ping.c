@@ -282,13 +282,13 @@ ping(struct options *const options)
 	vars.capdns = capdns_setup();
 	if ((options->f_source) &&
 	    (bind(vars.ssend, (struct sockaddr *)&options->source_sockaddr.in,
-		sizeof options->source_sockaddr.in) == -1))
+		sizeof(options->source_sockaddr.in)) == -1))
 		err(1, "bind");
 
 	bzero(&vars.whereto, sizeof(vars.whereto));
 	to = &vars.whereto;
 	to->sin_family = AF_INET;
-	to->sin_len = sizeof *to;
+	to->sin_len = sizeof(*to);
 	if (inet_aton(options->target, &to->sin_addr) != 0) {
 		/* TODO: check the return value of strncpy() */
 		(void)strncpy(vars.hostname, options->target, sizeof(vars.hostname) - 1);
@@ -303,7 +303,7 @@ ping(struct options *const options)
 
 		if ((unsigned)hp->h_length > sizeof(to->sin_addr))
 			errx(1, "gethostbyname2 returned an illegal address");
-		memcpy(&to->sin_addr, hp->h_addr_list[0], sizeof to->sin_addr);
+		memcpy(&to->sin_addr, hp->h_addr_list[0], sizeof(to->sin_addr));
 		(void)strncpy(vars.hostname, hp->h_name, sizeof(vars.hostname) - 1);
 		vars.hostname[sizeof(vars.hostname) - 1] = '\0';
 	}
@@ -617,7 +617,7 @@ ping(struct options *const options)
 #ifdef SO_TIMESTAMP
 			if (cmsg->cmsg_level == SOL_SOCKET &&
 			    cmsg->cmsg_type == SCM_TIMESTAMP &&
-			    cmsg->cmsg_len == CMSG_LEN(sizeof *tv)) {
+			    cmsg->cmsg_len == CMSG_LEN(sizeof(*tv))) {
 				/* Copy to avoid alignment problems: */
 				memcpy(&now, CMSG_DATA(cmsg), sizeof(now));
 				tv = &now;
@@ -1339,9 +1339,9 @@ pr_iph(struct ip *ip)
 	    (u_long) ntohl(ip->ip_off) & 0x1fff);
 	(void)printf("  %02x  %02x %04x", ip->ip_ttl, ip->ip_p,
 							    ntohs(ip->ip_sum));
-	memcpy(&ina, &ip->ip_src.s_addr, sizeof ina);
+	memcpy(&ina, &ip->ip_src.s_addr, sizeof(ina));
 	(void)printf(" %s ", inet_ntoa(ina));
-	memcpy(&ina, &ip->ip_dst.s_addr, sizeof ina);
+	memcpy(&ina, &ip->ip_dst.s_addr, sizeof(ina));
 	(void)printf(" %s ", inet_ntoa(ina));
 	/* dump any option bytes */
 	while (hlen-- > 20) {
