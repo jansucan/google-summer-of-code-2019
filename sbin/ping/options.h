@@ -89,7 +89,7 @@ struct options {
 	bool f_so_dontroute;
 
 	const char *s_source;
-	struct sockaddr_in6 source_sockaddr;
+	struct sockaddr_in6 source_sockaddr_in6;
 	socklen_t source_len;
 
 	bool f_verbose;

@@ -510,7 +510,7 @@ options_check(struct options *const options)
 		 * res->ai_family must be AF_INET6 and res->ai_addrlen
 		 * must be sizeof(src).
 		 */
-		memcpy(&options->source_sockaddr, res->ai_addr, res->ai_addrlen);
+		memcpy(&options->source_sockaddr_in6, res->ai_addr, res->ai_addrlen);
 		options->source_len = res->ai_addrlen;
 		freeaddrinfo(res);
 	}

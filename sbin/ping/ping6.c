@@ -317,16 +317,16 @@ ping6(struct options *const options)
 	/* set the source address if specified. */
 	if (options->s_source != NULL) {
 		/* properly fill sin6_scope_id */
-		if (IN6_IS_ADDR_LINKLOCAL(&options->source_sockaddr.sin6_addr) && (
+		if (IN6_IS_ADDR_LINKLOCAL(&options->source_sockaddr_in6.sin6_addr) && (
 		    IN6_IS_ADDR_LINKLOCAL(&vars.dst.sin6_addr) ||
 		    IN6_IS_ADDR_MC_LINKLOCAL(&vars.dst.sin6_addr) ||
 		    IN6_IS_ADDR_MC_NODELOCAL(&vars.dst.sin6_addr))) {
-			if (options->source_sockaddr.sin6_scope_id == 0)
-				options->source_sockaddr.sin6_scope_id = vars.dst.sin6_scope_id;
+			if (options->source_sockaddr_in6.sin6_scope_id == 0)
+				options->source_sockaddr_in6.sin6_scope_id = vars.dst.sin6_scope_id;
 			if (vars.dst.sin6_scope_id == 0)
-				vars.dst.sin6_scope_id = options->source_sockaddr.sin6_scope_id;
+				vars.dst.sin6_scope_id = options->source_sockaddr_in6.sin6_scope_id;
 		}
-		if (bind(vars.s, (struct sockaddr *)&options->source_sockaddr, options->source_len) != 0)
+		if (bind(vars.s, (struct sockaddr *)&options->source_sockaddr_in6, options->source_len) != 0)
 			err(1, "bind");
 	}
 	/* TODO: Move gettaddrinfo() of the source to options.c? */
@@ -618,15 +618,15 @@ ping6(struct options *const options)
 		 * privilege, we cannot use a raw socket for this.
 		 */
 		int dummy;
-		socklen_t len = sizeof(options->source_sockaddr);
+		socklen_t len = sizeof(options->source_sockaddr_in6);
 
 		if ((dummy = socket(AF_INET6, SOCK_DGRAM, 0)) < 0)
 			err(1, "UDP socket");
 
-		options->source_sockaddr.sin6_family = AF_INET6;
-		options->source_sockaddr.sin6_addr = vars.dst.sin6_addr;
-		options->source_sockaddr.sin6_port = ntohs(DUMMY_PORT);
-		options->source_sockaddr.sin6_scope_id = vars.dst.sin6_scope_id;
+		options->source_sockaddr_in6.sin6_family = AF_INET6;
+		options->source_sockaddr_in6.sin6_addr = vars.dst.sin6_addr;
+		options->source_sockaddr_in6.sin6_port = ntohs(DUMMY_PORT);
+		options->source_sockaddr_in6.sin6_scope_id = vars.dst.sin6_scope_id;
 
 #ifdef USE_RFC2292BIS
 		if (pktinfo &&
@@ -655,10 +655,10 @@ ping6(struct options *const options)
 			err(1, "UDP setsockopt(IPV6_PKTOPTIONS)");
 #endif
 
-		if (connect(dummy, (struct sockaddr *)&options->source_sockaddr, len) < 0)
+		if (connect(dummy, (struct sockaddr *)&options->source_sockaddr_in6, len) < 0)
 			err(1, "UDP connect");
 
-		if (getsockname(dummy, (struct sockaddr *)&options->source_sockaddr, &len) < 0)
+		if (getsockname(dummy, (struct sockaddr *)&options->source_sockaddr_in6, &len) < 0)
 			err(1, "getsockname");
 
 		close(dummy);
@@ -712,7 +712,7 @@ ping6(struct options *const options)
 		warn("setsockopt(IPV6_HOPLIMIT)"); /* XXX err? */
 #endif
 
-	pr_heading(&options->source_sockaddr, &vars.dst, options);
+	pr_heading(&options->source_sockaddr_in6, &vars.dst, options);
 
 	if (options->n_preload == 0)
 		pinger(options, &vars, &counters, &timing);

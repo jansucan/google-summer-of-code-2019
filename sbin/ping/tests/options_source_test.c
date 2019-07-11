@@ -59,12 +59,12 @@ ATF_TC_BODY(option_source, tc)
 		ARGC_ARGV("-S", "host_ipv6", "host_ipv6");
 		options.s_source = NULL;
 		options.source_len = 0;
-		options.source_sockaddr.sin6_family = 0;
+		options.source_sockaddr_in6.sin6_family = 0;
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
 		ATF_REQUIRE_STREQ("host_ipv6", options.s_source);
 		ATF_REQUIRE(options.source_len == sizeof(struct sockaddr_in6));
-		ATF_REQUIRE(options.source_sockaddr.sin6_family == AF_INET6);
+		ATF_REQUIRE(options.source_sockaddr_in6.sin6_family == AF_INET6);
 	}
 }
 
