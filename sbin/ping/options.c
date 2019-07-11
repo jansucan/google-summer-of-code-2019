@@ -190,7 +190,6 @@ options_parse(int argc, char **argv, struct options *const options)
 			options->f_once = true;
 			break;
 		case 'p':
-			options->f_ping_filled = true;
 			for (const char *cp = optarg; *cp; cp++) {
 				if (!isxdigit(*cp)) {
 					options_print_error("patterns must be specified as hex digits");
@@ -207,6 +206,7 @@ options_parse(int argc, char **argv, struct options *const options)
 			    &options->a_ping_filled[10], &options->a_ping_filled[11],
 			    &options->a_ping_filled[12], &options->a_ping_filled[13],
 			    &options->a_ping_filled[14], &options->a_ping_filled[15]);
+			options->f_ping_filled = true;
 			break;
 		case 'q':
 			options->f_quiet = true;
