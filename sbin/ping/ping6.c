@@ -313,11 +313,11 @@ ping6(struct options *const options)
 	if ((vars.socket_send = socket(options->target_addrinfo->ai_family,
 		    options->target_addrinfo->ai_socktype,
 		    IPPROTO_ICMPV6)) < 0)
-		err(1, "socket_send socket");
+		err(1, "socket() socket_send");
 	if ((vars.socket_recv = socket(options->target_addrinfo->ai_family,
 		    options->target_addrinfo->ai_socktype,
 		    IPPROTO_ICMPV6)) < 0)
-		err(1, "socket_recv socket");
+		err(1, "socket() socket_recv");
 
 	options->target_addrinfo = NULL;
 	freeaddrinfo(options->target_addrinfo_root);

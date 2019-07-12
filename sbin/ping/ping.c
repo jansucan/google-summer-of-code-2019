@@ -220,12 +220,12 @@ ping(struct options *const options)
 
 	if (vars.ssend < 0) {
 		errno = ssend_errno;
-		err(EX_OSERR, "ssend socket");
+		err(EX_OSERR, "socket() ssend");
 	}
 
 	if (srecv < 0) {
 		errno = srecv_errno;
-		err(EX_OSERR, "srecv socket");
+		err(EX_OSERR, "socket() srecv");
 	}
 
 	vars.outpack = vars.outpackhdr + sizeof(struct ip);
