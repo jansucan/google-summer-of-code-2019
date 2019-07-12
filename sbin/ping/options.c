@@ -75,7 +75,8 @@ __FBSDID("$FreeBSD$");
 #define OPSTR  OPSTR_COMMON OPSTR_IPV4 OPSTR_IPSEC
 #endif	/* INET6 */
 
-static int  options_check(struct options *const options);
+static int  options_check_post_hosts(struct options *const options);
+static int  options_check_pre_hosts(struct options *const options);
 static int  options_check_packet_size(long, long);
 static int  options_get_target_type(struct options *const options);
 static int  options_getaddrinfo(const char *const hostname,
@@ -86,7 +87,8 @@ static bool options_has_ipv6_only(const struct options *const options);
 #endif
 static int  options_parse_hosts(int argc, char **argv, struct options *const options);
 static void options_print_error(const char *const fmt, ...);
-static void options_set_defaults(struct options *const options);
+static void options_set_defaults_post_hosts(struct options *const options);
+static void options_set_defaults_pre_hosts(struct options *const options);
 static bool options_strtod(const char *const str, double *const val);
 static long long options_strtonum(const char *const str, long long minval,
     long long maxval, char *const errbuf);
@@ -123,7 +125,7 @@ options_free(struct options *const options)
 int
 options_parse(int argc, char **argv, struct options *const options)
 {
-	int ch;
+	int ch, r;
 	double dbl, dbl_integer_part;
 	char errbuf[OPTIONS_STRTONUM_ERRBUF_SIZE];
 
@@ -477,72 +479,27 @@ options_parse(int argc, char **argv, struct options *const options)
 	argc -= optind;
 	argv += optind;
 
-	const int r = options_parse_hosts(argc, argv, options);
-	if (r != EX_OK)
+
+	options_set_defaults_pre_hosts(options);
+
+	if (((r = options_check_pre_hosts(options)) != EX_OK) ||
+	    (r = options_parse_hosts(argc, argv, options)) != EX_OK)
 		return (r);
 
-	options_set_defaults(options);
-	return (options_check(options));
+	options_set_defaults_post_hosts(options);
+	return (options_check_post_hosts(options));
 }
 
+/*
+ * Checks of the options that need to have information about a
+ * protocol version of the target.
+ */
 static int
-options_check(struct options *const options)
+options_check_post_hosts(struct options *const options)
 {
-#ifdef INET6
-	/* TODO: chaining 'else if'? */
-	if (options->f_protocol_ipv6 && options_has_ipv4_only(options)) {
-		options_print_error("IPv6 requested but IPv4 option provided");
-		return (EX_USAGE);
-	} else if (options->f_protocol_ipv4 && options_has_ipv6_only(options)) {
-		options_print_error("IPv4 requested but IPv6 option provided");
-		return (EX_USAGE);
-	}
-
-	/*
-	 * Check options only for IPv6 target.
-	 */
-	if (options->s_gateway != NULL) {
-		struct addrinfo hints, *res;
-
-		memset(&hints, 0, sizeof(hints));
-		hints.ai_family = AF_INET6;
-		hints.ai_socktype = SOCK_RAW;
-		hints.ai_protocol = IPPROTO_ICMPV6;
-
-		const int r = options_getaddrinfo(options->s_gateway, &hints, &res);
-		if (r != 0)
-			return (r);
-
-		if ((res->ai_next != NULL) && options->f_verbose)
-			warnx("gateway resolves to multiple addresses");
-
-		memcpy(&options->gateway_sockaddr_in6, res->ai_addr, res->ai_addrlen);
-		freeaddrinfo(res);
-	}
-#endif
-
 	/*
 	 * Check options common to both IPv4 and IPv6 targets.
 	 */
-	if (options->f_flood && options->f_interval) {
-		options_print_error("-f and -i are incompatible options");
-		return (EX_USAGE);
-	}
-	if (options->f_flood && (getuid() != 0)) {
-		options_print_error("Must be superuser to flood ping");
-		return (EX_NOPERM);
-	}
-	/* Check interval between sending each packet. */
-	if ((getuid() != 0) && (options->n_interval.tv_sec < 1)) {
-		options_print_error("only root may use interval < 1s");
-		return (EX_NOPERM);
-	}
-	/* The interval less than 1 microsecond does not make sense. */
-	if (options->n_interval.tv_sec == 0 && options->n_interval.tv_usec < 1) {
-		options->n_interval.tv_usec = 1;
-		warnx("too small interval, raised to .000001");
-	}
-
 	if (options->f_source) {
 		struct addrinfo hints, *res;
 
@@ -593,6 +550,70 @@ options_check(struct options *const options)
 #endif
 	}
 
+	return (EX_OK);
+}
+
+/*
+ * Checks of the options that do not have to have information about a
+ * protocol version of the target.
+ */
+static int
+options_check_pre_hosts(struct options *const options)
+{
+	/* TODO: chaining 'else if'? */
+#ifdef INET6
+	if (options->f_protocol_ipv6 && options_has_ipv4_only(options)) {
+		options_print_error("IPv6 requested but IPv4 option provided");
+		return (EX_USAGE);
+	} else if (options->f_protocol_ipv4 && options_has_ipv6_only(options)) {
+		options_print_error("IPv4 requested but IPv6 option provided");
+		return (EX_USAGE);
+	}
+
+	/*
+	 * Check options only for IPv6 target.
+	 */
+	if (options->s_gateway != NULL) {
+		struct addrinfo hints, *res;
+
+		memset(&hints, 0, sizeof(hints));
+		hints.ai_family = AF_INET6;
+		hints.ai_socktype = SOCK_RAW;
+		hints.ai_protocol = IPPROTO_ICMPV6;
+
+		const int r = options_getaddrinfo(options->s_gateway, &hints, &res);
+		if (r != 0)
+			return (r);
+
+		if ((res->ai_next != NULL) && options->f_verbose)
+			warnx("gateway resolves to multiple addresses");
+
+		memcpy(&options->gateway_sockaddr_in6, res->ai_addr, res->ai_addrlen);
+		freeaddrinfo(res);
+	}
+#endif
+	/*
+	 * Check options common to both IPv4 and IPv6 targets.
+	 */
+	if (options->f_flood && options->f_interval) {
+		options_print_error("-f and -i are incompatible options");
+		return (EX_USAGE);
+	}
+	if (options->f_flood && (getuid() != 0)) {
+		options_print_error("Must be superuser to flood ping");
+		return (EX_NOPERM);
+	}
+	/* Check interval between sending each packet. */
+	if ((getuid() != 0) && (options->n_interval.tv_sec < 1)) {
+		options_print_error("only root may use interval < 1s");
+		return (EX_NOPERM);
+	}
+	/* The interval less than 1 microsecond does not make sense. */
+	if (options->n_interval.tv_sec == 0 && options->n_interval.tv_usec < 1) {
+		options->n_interval.tv_usec = 1;
+		warnx("too small interval, raised to .000001");
+	}
+
 	/*
 	 * Check options only for IPv4 target.
 	 */
@@ -638,6 +659,7 @@ options_check(struct options *const options)
 
 	return (EX_OK);
 }
+
 
 static int
 options_check_packet_size(long size, long max_size)
@@ -850,8 +872,27 @@ options_print_error(const char *const fmt, ...)
 	fflush(stderr);
 }
 
+/*
+ * Settings of default values of the options that need to have
+ * information about a protocol version of the target.
+ */
 static void
-options_set_defaults(struct options *const options)
+options_set_defaults_post_hosts(struct options *const options)
+{
+	if (!options->f_packet_size) {
+		if (options->target_type == TARGET_IPV4)
+			options->n_packet_size = DEFAULT_DATALEN_IPV4;
+		else
+			options->n_packet_size = DEFAULT_DATALEN_IPV6;
+	}
+}
+
+/*
+ * Settings of default values of the options that do not to have
+ * information about a protocol version of the target.
+ */
+static void
+options_set_defaults_pre_hosts(struct options *const options)
 {
 	if (!options->f_sweep_incr)
 		options->n_sweep_incr = DEFAULT_SWEEP_INCR;
@@ -861,12 +902,6 @@ options_set_defaults(struct options *const options)
 	}
 	if (!options->f_wait_time)
 		options->n_wait_time = DEFAULT_WAIT_TIME;
-	if (!options->f_packet_size) {
-		if (options->target_type == TARGET_IPV4)
-			options->n_packet_size = DEFAULT_DATALEN_IPV4;
-		else
-			options->n_packet_size = DEFAULT_DATALEN_IPV6;
-	}
 	/*
 	 * Default value is -1. By the memset(options, ...) it is
 	 * initialized to 0 and every -N option increments it. Thus,
