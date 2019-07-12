@@ -180,14 +180,6 @@ ping(struct options *const options)
 	char ctrl[CMSG_SPACE(sizeof(struct timeval))];
 	cap_rights_t rights;
 
-	/*
-	 * Ping to IPv6 does use target_addrinfo but this ping to IPv4
-	 * host does not use it.
-	 */
-	options->target_addrinfo = NULL;
-	freeaddrinfo(options->target_addrinfo_root);
-	options->target_addrinfo_root = NULL;
-
 	memset(&vars, 0, sizeof(vars));
 	vars.icmp_type = ICMP_ECHO;
 	vars.icmp_type_rsp = ICMP_ECHOREPLY;
@@ -286,24 +278,21 @@ ping(struct options *const options)
 	to = &vars.whereto;
 	to->sin_family = AF_INET;
 	to->sin_len = sizeof(*to);
+
 	if (inet_aton(options->target, &to->sin_addr) != 0) {
 		/* TODO: check the return value of strncpy() */
 		(void)strncpy(vars.hostname, options->target, sizeof(vars.hostname) - 1);
 		vars.hostname[sizeof(vars.hostname) - 1] = '\0';
 	} else {
-		const struct hostent *const hp =
-			cap_gethostbyname2(vars.capdns, options->target, AF_INET);
-
-		if (!hp)
-			errx(EX_NOHOST, "cannot resolve %s: %s",
-			    options->target, hstrerror(h_errno));
-
-		if ((unsigned)hp->h_length > sizeof(to->sin_addr))
-			errx(1, "gethostbyname2 returned an illegal address");
-		memcpy(&to->sin_addr, hp->h_addr_list[0], sizeof(to->sin_addr));
-		(void)strncpy(vars.hostname, hp->h_name, sizeof(vars.hostname) - 1);
+		const struct sockaddr_in *const sai = ((struct sockaddr_in *) (options->target_addrinfo->ai_addr));
+		memcpy(&to->sin_addr, &sai->sin_addr, sizeof(to->sin_addr));
+		(void)strncpy(vars.hostname, options->target_addrinfo->ai_canonname, sizeof(vars.hostname) - 1);
 		vars.hostname[sizeof(vars.hostname) - 1] = '\0';
 	}
+
+	options->target_addrinfo = NULL;
+	freeaddrinfo(options->target_addrinfo_root);
+	options->target_addrinfo_root = NULL;
 
 	/* From now on we will use only reverse DNS lookups. */
 	if (vars.capdns != NULL) {
