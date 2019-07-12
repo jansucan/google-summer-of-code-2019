@@ -1043,8 +1043,6 @@ pinger(struct options *const options, struct shared_variables *const vars,
 		errx(1, "internal error; length mismatch");
 #endif
 
-	vars->smsghdr.msg_name = NULL;
-	vars->smsghdr.msg_namelen = 0;
 	memset(&iov, 0, sizeof(iov));
 	iov[0].iov_base = (caddr_t)vars->outpack;
 	iov[0].iov_len = cc;
