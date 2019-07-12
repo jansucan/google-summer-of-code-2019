@@ -479,7 +479,6 @@ options_parse(int argc, char **argv, struct options *const options)
 	argc -= optind;
 	argv += optind;
 
-
 	options_set_defaults_pre_hosts(options);
 
 	if (((r = options_check_pre_hosts(options)) != EX_OK) ||
