@@ -246,6 +246,8 @@ ping6(struct options *const options)
 	struct ip6_rthdr *rthdr = NULL;
 #endif
 	size_t rthlen;
+	cap_rights_t rights;
+	bool almost_done;
 
 	memset(&vars, 0, sizeof(vars));
 
@@ -681,8 +683,6 @@ ping6(struct options *const options)
 	if (caph_enter_casper() < 0)
 		err(1, "cap_enter");
 
-	cap_rights_t rights;
-
 	cap_rights_init(&rights, CAP_RECV, CAP_EVENT, CAP_SETSOCKOPT);
 	if (caph_rights_limit(vars.socket_recv, &rights) < 0)
 		err(1, "cap_rights_limit socket_recv");
@@ -779,7 +779,7 @@ ping6(struct options *const options)
 		options->n_interval.tv_usec = 10000;
 	}
 
-	bool almost_done = false;
+	almost_done = false;
 	while (seenint == 0) {
 		struct timeval now, timeout;
 		fd_set rfds;
