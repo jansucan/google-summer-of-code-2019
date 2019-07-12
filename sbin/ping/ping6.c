@@ -256,7 +256,6 @@ ping6(struct options *const options)
 
 	timing_init(&timing);
 
-	/* just to be sure */
 	memset(&vars.smsghdr, 0, sizeof(vars.smsghdr));
 
 	datap = &vars.outpack[ICMP6ECHOLEN + ICMP6ECHOTMLEN];
