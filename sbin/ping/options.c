@@ -552,12 +552,14 @@ options_check(struct options *const options)
 		if (options->target_type == TARGET_IPV4) {
 			hints.ai_family = AF_INET;
 			hints.ai_protocol = IPPROTO_ICMP;
-		} else {
+		}
+#ifdef INET6
+		else {
 			hints.ai_flags = AI_NUMERICHOST; /* allow hostname? */
 			hints.ai_family = AF_INET6;
 			hints.ai_protocol = IPPROTO_ICMPV6;
 		}
-
+#endif
 		const int r = options_getaddrinfo(options->s_source, &hints, &res);
 		if (r != 0)
 			return (r);
