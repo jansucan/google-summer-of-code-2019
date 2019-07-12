@@ -250,13 +250,12 @@ ping6(struct options *const options)
 	bool almost_done;
 
 	memset(&vars, 0, sizeof(vars));
-
 	memset(&counters, 0, sizeof(counters));
+	memset(&vars.smsghdr, 0, sizeof(vars.smsghdr));
+
 	sig_counters_received = &counters.received;
 
 	timing_init(&timing);
-
-	memset(&vars.smsghdr, 0, sizeof(vars.smsghdr));
 
 	datap = &vars.outpack[ICMP6ECHOLEN + ICMP6ECHOTMLEN];
 
