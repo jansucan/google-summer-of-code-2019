@@ -656,7 +656,7 @@ options_get_target_type(struct options *const options)
 	int r_pton;
 #ifdef INET6
 	struct in6_addr a6;
-	int r6_pton;
+	int r6_pton = 0;
 #endif
 	if ((r_pton = inet_pton(AF_INET, options->target, &a)) == -1) {
 		options_print_error("inet_pton: %s", strerror(errno));
