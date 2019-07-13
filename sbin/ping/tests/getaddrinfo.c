@@ -42,6 +42,9 @@ int
 getaddrinfo(const char *hostname, const char *servname,
     const struct addrinfo *hints, struct addrinfo **res)
 {
+	static char host_ipv4_canonname[] = "host_ipv4_canonname";
+	static char host_ipv6_canonname[] = "host_ipv6_canonname";
+
         const static struct sockaddr_in sin = {
                 .sin_len = sizeof(struct sockaddr_in),
                 .sin_family = AF_INET,
@@ -63,14 +66,28 @@ getaddrinfo(const char *hostname, const char *servname,
 		ai.ai_family = AF_INET;
 		ai.ai_addrlen = sizeof(struct sockaddr_in);
 		ai.ai_addr = (struct sockaddr*)&sin;
+		ai.ai_canonname = NULL;
+	} else if (strcmp(hostname, "host_ipv4_with_canonname") == 0){
+		ai.ai_family = AF_INET;
+		ai.ai_addrlen = sizeof(struct sockaddr_in);
+		ai.ai_addr = (struct sockaddr*)&sin;
+		ai.ai_canonname = host_ipv4_canonname;
+	}
 #ifdef INET6
-	} else if ((strcmp(hostname, "host_ipv6") == 0) ||
+	else if ((strcmp(hostname, "host_ipv6") == 0) ||
 	    (strcmp(hostname, "::1") == 0)) {
 		ai.ai_family = AF_INET6;
 		ai.ai_addrlen = sizeof(struct sockaddr_in6);
 		ai.ai_addr = (struct sockaddr*)&sin6;
+		ai.ai_canonname = NULL;
+	} else if (strcmp(hostname, "host_ipv6_with_canonname") == 0){
+		ai.ai_family = AF_INET6;
+		ai.ai_addrlen = sizeof(struct sockaddr_in6);
+		ai.ai_addr = (struct sockaddr*)&sin6;
+		ai.ai_canonname = host_ipv6_canonname;
+	}
 #endif
-	} else if (strcmp(hostname, "host_unknown") == 0) {
+	else if (strcmp(hostname, "host_unknown") == 0) {
 		return (EAI_NONAME);
 	} else {
 		atf_tc_fail("mock getaddrinfo: Invalid hostname: %s", hostname);

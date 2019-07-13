@@ -42,6 +42,7 @@ __FBSDID("$FreeBSD$");
 #include <errno.h>
 #include <limits.h>
 #include <math.h>
+#include <md5.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -78,9 +79,10 @@ __FBSDID("$FreeBSD$");
 static int  options_check_post_hosts(struct options *const options);
 static int  options_check_pre_hosts(struct options *const options);
 static int  options_check_packet_size(long, long);
-static int  options_get_target_type(struct options *const options);
+static int  options_get_target_type(struct options *const options, bool *const is_hostname);
 static int  options_getaddrinfo(const char *const hostname,
     const struct addrinfo *const hints, struct addrinfo **const res);
+static bool options_ipv6_target_nigroup(char *const, int);
 static bool options_has_ipv4_only(const struct options *const options);
 #ifdef INET6
 static bool options_has_ipv6_only(const struct options *const options);
@@ -398,6 +400,7 @@ options_parse(int argc, char **argv, struct options *const options)
 			options->f_nodeaddr = true;
 			break;
 		case 'N':
+			/* TODO: Warn the user when -N is used more than twice */
 			options->f_nigroup = true;
 			options->c_nigroup++;
 			break;
@@ -561,6 +564,11 @@ options_check_pre_hosts(struct options *const options)
 {
 	/* TODO: chaining 'else if'? */
 #ifdef INET6
+	if (options->f_nigroup && !options->f_protocol_ipv6) {
+		warnx("-N implies IPv6 target, setting -6 option");
+		options->f_protocol_ipv6 = true;
+	}
+
 	if (options->f_protocol_ipv6 && options_has_ipv4_only(options)) {
 		options_print_error("IPv6 requested but IPv4 option provided");
 		return (EX_USAGE);
@@ -671,7 +679,7 @@ options_check_packet_size(long size, long max_size)
 }
 
 static int
-options_get_target_type(struct options *const options)
+options_get_target_type(struct options *const options, bool *const is_hostname)
 {
 	struct in_addr a;
 	int r_pton;
@@ -690,7 +698,11 @@ options_get_target_type(struct options *const options)
 			return EX_OSERR;
 		}
 	}
+	*is_hostname = ((r_pton != 1) && (r6_pton != 1));
+#else
+	*is_hostname = (r_pton != 1);
 #endif
+
 	struct addrinfo hints;
 
 	memset(&hints, 0, sizeof(hints));
@@ -806,14 +818,26 @@ options_getaddrinfo(const char *const hostname, const struct addrinfo *const hin
 static int
 options_parse_hosts(int argc, char **argv, struct options *const options)
 {
+	bool is_hostname;
+
 	/* The last argument is a target. */
 	if (argc == 0) {
 		usage();
 		return (EX_USAGE);
 	}
 
-	options->target = argv[argc - 1];
-	const int r = options_get_target_type(options);
+	if (strlcpy(options->target, argv[argc - 1], MAXHOSTNAMELEN) >= MAXHOSTNAMELEN) {
+		options_print_error("target is longer than %d chars", MAXHOSTNAMELEN - 1);
+		return (EX_USAGE);
+	}
+#ifdef INET6
+	if ((options->f_nigroup) &&
+	    (!options_ipv6_target_nigroup(options->target, options->c_nigroup))) {
+		usage();
+		exit(EX_USAGE);
+	}
+#endif
+	const int r = options_get_target_type(options, &is_hostname);
 	if (r != EX_OK)
 		return (r);
 
@@ -853,6 +877,20 @@ options_parse_hosts(int argc, char **argv, struct options *const options)
 
 			options->hops[i] = argv[i];
 		}
+	}
+
+	/*
+	 * Replace target string with its canonical name if there is
+	 * some. For IPv4 this happens only if the target is a
+	 * hostname.
+	 */
+	if ((options->target_addrinfo->ai_canonname != NULL)  &&
+	    ((options->target_type != TARGET_IPV4) || is_hostname) &&
+	    (strlcpy(options->target, options->target_addrinfo->ai_canonname, MAXHOSTNAMELEN) >=
+		MAXHOSTNAMELEN)) {
+		options_print_error("canonical name for target is longer than %d chars",
+		    MAXHOSTNAMELEN - 1);
+		return (EX_USAGE);
 	}
 
 	return (EX_OK);
@@ -948,6 +986,68 @@ options_strtonum(const char *const str, long long minval,
 }
 
 #ifdef INET6
+static bool
+options_ipv6_target_nigroup(char *const name, int nig_oldmcprefix)
+{
+	char *p;
+	char *q;
+	MD5_CTX ctxt;
+	uint8_t digest[16];
+	uint8_t c;
+	size_t l;
+	char hbuf[NI_MAXHOST];
+	struct in6_addr in6;
+	int valid;
+
+	p = strchr(name, '.');
+	if (!p)
+		p = name + strlen(name);
+	l = p - name;
+	if (l > 63 || l > sizeof(hbuf) - 1)
+		return (false);	/*label too long*/
+	strncpy(hbuf, name, l);
+	hbuf[(int)l] = '\0';
+
+	for (q = name; *q; q++) {
+		if (isupper(*(unsigned char *)q))
+			*q = tolower(*(unsigned char *)q);
+	}
+
+	/* generate 16 bytes of pseudo-random value. */
+	memset(&ctxt, 0, sizeof(ctxt));
+	MD5Init(&ctxt);
+	c = l & 0xff;
+	MD5Update(&ctxt, &c, sizeof(c));
+	MD5Update(&ctxt, (unsigned char *)name, l);
+	MD5Final(digest, &ctxt);
+
+	if (nig_oldmcprefix) {
+		/* draft-ietf-ipngwg-icmp-name-lookup */
+		valid = inet_pton(AF_INET6, "ff02::2:0000:0000", &in6);
+	} else {
+		/* RFC 4620 */
+		valid = inet_pton(AF_INET6, "ff02::2:ff00:0000", &in6);
+	}
+	if (valid != 1)
+		return (false);	/*XXX*/
+
+	if (nig_oldmcprefix) {
+		/* draft-ietf-ipngwg-icmp-name-lookup */
+		bcopy(digest, &in6.s6_addr[12], 4);
+	} else {
+		/* RFC 4620 */
+		bcopy(digest, &in6.s6_addr[13], 3);
+	}
+
+	if (inet_ntop(AF_INET6, &in6, hbuf, sizeof(hbuf)) == NULL)
+		return (false);
+
+	if (strlcpy(name, hbuf, MAXHOSTNAMELEN) >= MAXHOSTNAMELEN)
+		return (false);
+
+	return (true);
+}
+
 static bool
 options_has_ipv4_only(const struct options *const options)
 {

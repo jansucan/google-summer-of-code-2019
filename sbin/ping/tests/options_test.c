@@ -1643,29 +1643,35 @@ ATF_TC_BODY(option_nigroup, tc)
 
 		options.f_nigroup = false;
 		options.c_nigroup = 123;
+		options.target[0] = '\0';
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
 		ATF_REQUIRE(options.f_nigroup == true);
 		/* Default value of c_nigroup is -1 and every -N
 		 * increments it. */
 		ATF_REQUIRE(options.c_nigroup == 0);
+		ATF_REQUIRE_STREQ("ff02::2:ff65:d0d7", options.target);
 	}
 	{
 		ARGC_ARGV("-N", "-N" ,"localhost");
 
 		options.f_nigroup = false;
 		options.c_nigroup = 123;
+		options.target[0] = '\0';
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
 		ATF_REQUIRE(options.f_nigroup == true);
 		ATF_REQUIRE(options.c_nigroup == 1);
+		ATF_REQUIRE_STREQ("ff02::2:65d0:d71e", options.target);
 	}
 	{
 		ARGC_ARGV("-N", "-N", "-N", "-N", "-N", "-N", "-N", "localhost");
 
 		options.f_nigroup = false;
 		options.c_nigroup = 123;
+		options.target[0] = '\0';
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options) == EX_OK);
 		ATF_REQUIRE(options.f_nigroup == true);
 		ATF_REQUIRE(options.c_nigroup == 6);
+		ATF_REQUIRE_STREQ("ff02::2:65d0:d71e", options.target);
 	}
 }
 

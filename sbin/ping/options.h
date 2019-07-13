@@ -200,7 +200,7 @@ struct options {
 	unsigned hop_count;
 #endif
 	/* TODO: cannot be const becuse of nigroup() in ping6 */
-	char *target;
+	char target[MAXHOSTNAMELEN];
 	/*
 	 * The target can be resolved to multiple protocols by
 	 * getaddrinfo(). Pointer to the head of the linked list of

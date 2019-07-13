@@ -112,7 +112,6 @@ struct shared_variables {
 	struct sockaddr_in whereto;	/* who to ping */
 	int ssend;		/* send socket file descriptor */
 	u_char outpackhdr[IP_MAXPACKET], *outpack;
-	char hostname[MAXHOSTNAMELEN];
 	int ident;		/* process id to identify our packets */
 	u_char icmp_type;
 	u_char icmp_type_rsp;
@@ -145,7 +144,7 @@ static u_short in_cksum(u_short *, int);
 static cap_channel_t *capdns_setup(void);
 static void check_status(const struct counters *const, const struct timing *const);
 static void finish(const struct shared_variables *const, const struct counters *const,
-    const struct timing *const) __dead2;
+    const struct timing *const, const char *const) __dead2;
 static void pinger(const struct options *const, struct shared_variables *const,
     struct counters *const, struct timing *const);
 static char *pr_addr(struct in_addr, cap_channel_t *const, bool);
@@ -274,21 +273,13 @@ ping(struct options *const options)
 		sizeof(options->source_sockaddr.in)) == -1))
 		err(1, "bind");
 
+	/* TODO: remove whereto and/or to, they can be replaced by options->target_addrinfo */
 	bzero(&vars.whereto, sizeof(vars.whereto));
 	to = &vars.whereto;
 	to->sin_family = AF_INET;
 	to->sin_len = sizeof(*to);
-
-	if (inet_aton(options->target, &to->sin_addr) != 0) {
-		/* TODO: check the return value of strncpy() */
-		(void)strncpy(vars.hostname, options->target, sizeof(vars.hostname) - 1);
-		vars.hostname[sizeof(vars.hostname) - 1] = '\0';
-	} else {
-		const struct sockaddr_in *const sai = ((struct sockaddr_in *) (options->target_addrinfo->ai_addr));
-		memcpy(&to->sin_addr, &sai->sin_addr, sizeof(to->sin_addr));
-		(void)strncpy(vars.hostname, options->target_addrinfo->ai_canonname, sizeof(vars.hostname) - 1);
-		vars.hostname[sizeof(vars.hostname) - 1] = '\0';
-	}
+	const struct sockaddr_in *const sai = ((struct sockaddr_in *) (options->target_addrinfo->ai_addr));
+	memcpy(&to->sin_addr, &sai->sin_addr, sizeof(to->sin_addr));
 
 	options->target_addrinfo = NULL;
 	freeaddrinfo(options->target_addrinfo_root);
@@ -492,7 +483,7 @@ ping(struct options *const options)
 		err(1, "cap_rights_limit ssend setsockopt");
 
 	if (to->sin_family == AF_INET) {
-		(void)printf("PING %s (%s)", vars.hostname,
+		(void)printf("PING %s (%s)", options->target,
 		    inet_ntoa(to->sin_addr));
 		if (options->f_source)
 			(void)printf(" from %s", options->s_source);
@@ -505,9 +496,9 @@ ping(struct options *const options)
 	} else {
 		if (options->n_sweep_max)
 			(void)printf("PING %s: (%d ... %d) data bytes\n",
-			    vars.hostname, options->n_sweep_min, options->n_sweep_max);
+			    options->target, options->n_sweep_min, options->n_sweep_max);
 		else
-			(void)printf("PING %s: %ld data bytes\n", vars.hostname, options->n_packet_size);
+			(void)printf("PING %s: %ld data bytes\n", options->target, options->n_packet_size);
 	}
 
 	/*
@@ -653,7 +644,7 @@ ping(struct options *const options)
 		}
 	}
 	options_free(options);
-	finish(&vars, &counters, &timing);
+	finish(&vars, &counters, &timing, options->target);
 	/* NOTREACHED */
 	exit(0);	/* Make the compiler happy */
 }
@@ -744,7 +735,7 @@ pinger(const struct options *const options, struct shared_variables *const vars,
 			warn("sendto");
 		} else {
 			warn("%s: partial write: %d of %d bytes",
-			     vars->hostname, i, cc);
+			     options->target, i, cc);
 		}
 	}
 	counters->transmitted++;
@@ -1101,14 +1092,14 @@ check_status(const struct counters *const counters, const struct timing *const t
  */
 static void
 finish(const struct shared_variables *const vars, const struct counters *const counters,
-    const struct timing *const timing)
+    const struct timing *const timing, const char *const target)
 {
 
 	(void)signal(SIGINT, SIG_IGN);
 	(void)signal(SIGALRM, SIG_IGN);
 	(void)printf("\n");
 	(void)fflush(stdout);
-	(void)printf("--- %s ping statistics ---\n", vars->hostname);
+	(void)printf("--- %s ping statistics ---\n", target);
 	(void)printf("%ld packets transmitted, ", counters->transmitted);
 	(void)printf("%ld packets received, ", counters->received);
 	if (counters->repeats)

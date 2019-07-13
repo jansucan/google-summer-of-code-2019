@@ -139,8 +139,6 @@ __FBSDID("$FreeBSD$");
 #include <netipsec/ipsec.h>
 #endif
 
-#include <md5.h>
-
 #include "defaults_limits.h"
 #include "ping6.h"
 #include "timing.h"
@@ -162,7 +160,6 @@ struct shared_variables {
 	int socket_send;		/* socket file descriptor */
 	int socket_recv;
 	u_char outpack[MAXPACKETLEN];
-	char *hostname;
 	int ident;		/* process id to identify our packets */
 	uint8_t nonce[8];	/* nonce field for node information */
 	u_char *packet;
@@ -206,7 +203,6 @@ static bool	 mynireply(const struct icmp6_nodeinfo *const, const uint8_t *const)
 static char *dnsdecode(const u_char **const, const u_char *const, const u_char *const,
     char *const, size_t);
 static int	 setpolicy(int, char *const);
-static char	*nigroup(char *const, int);
 static u_short   get_node_address_flags(const struct options *const);
 
 static const char *pr_addr(const struct sockaddr *const, int, bool, cap_channel_t *const);
@@ -293,20 +289,7 @@ ping6(struct options *const options)
 		ip6optlen += rthlen;
 	}
 
-	if (options->f_nigroup) {
-		options->target = nigroup(options->target, options->c_nigroup);
-		if (options->target == NULL) {
-			usage();
-			exit(EX_USAGE);
-		}
-	}
-
 	/* Create socket for the ping target. */
-	if (options->target_addrinfo->ai_canonname)
-		vars.hostname = strdup(options->target_addrinfo->ai_canonname);
-	else
-		vars.hostname = options->target;
-
 	(void)memcpy(&vars.dst, options->target_addrinfo->ai_addr,
 	    options->target_addrinfo->ai_addrlen);
 
@@ -787,7 +770,7 @@ ping6(struct options *const options)
 			onint(SIGINT);
 #ifdef SIGINFO
 		if (seeninfo) {
-			pr_summary(&counters, &timing, vars.hostname);
+			pr_summary(&counters, &timing, options->target);
 			seeninfo = 0;
 			continue;
 		}
@@ -895,7 +878,7 @@ ping6(struct options *const options)
 	si_sa.sa_handler = SIG_IGN;
 	sigaction(SIGINT, &si_sa, 0);
 	sigaction(SIGALRM, &si_sa, 0);
-	pr_summary(&counters, &timing, vars.hostname);
+	pr_summary(&counters, &timing, options->target);
 
         if(vars.packet != NULL)
                 free(vars.packet);
@@ -1054,7 +1037,7 @@ pinger(struct options *const options, struct shared_variables *const vars,
 		if (i < 0)
 			warn("sendmsg");
 		(void)printf("ping6: wrote %s %d chars, ret=%d\n",
-		    vars->hostname, cc, i);
+		    options->target, cc, i);
 	}
 	if (!options->f_quiet && options->f_flood)
 		write_char(STDOUT_FILENO, CHAR_DOT);
@@ -2339,65 +2322,6 @@ setpolicy(int socket, char *const policy)
 }
 #endif
 #endif
-
-static char *
-nigroup(char *const name, int nig_oldmcprefix)
-{
-	char *p;
-	char *q;
-	MD5_CTX ctxt;
-	uint8_t digest[16];
-	uint8_t c;
-	size_t l;
-	char hbuf[NI_MAXHOST];
-	struct in6_addr in6;
-	int valid;
-
-	p = strchr(name, '.');
-	if (!p)
-		p = name + strlen(name);
-	l = p - name;
-	if (l > 63 || l > sizeof(hbuf) - 1)
-		return NULL;	/*label too long*/
-	strncpy(hbuf, name, l);
-	hbuf[(int)l] = '\0';
-
-	for (q = name; *q; q++) {
-		if (isupper(*(unsigned char *)q))
-			*q = tolower(*(unsigned char *)q);
-	}
-
-	/* generate 16 bytes of pseudo-random value. */
-	memset(&ctxt, 0, sizeof(ctxt));
-	MD5Init(&ctxt);
-	c = l & 0xff;
-	MD5Update(&ctxt, &c, sizeof(c));
-	MD5Update(&ctxt, (unsigned char *)name, l);
-	MD5Final(digest, &ctxt);
-
-	if (nig_oldmcprefix) {
-		/* draft-ietf-ipngwg-icmp-name-lookup */
-		valid = inet_pton(AF_INET6, "ff02::2:0000:0000", &in6);
-	} else {
-		/* RFC 4620 */
-		valid = inet_pton(AF_INET6, "ff02::2:ff00:0000", &in6);
-	}
-	if (valid != 1)
-		return NULL;	/*XXX*/
-
-	if (nig_oldmcprefix) {
-		/* draft-ietf-ipngwg-icmp-name-lookup */
-		bcopy(digest, &in6.s6_addr[12], 4);
-	} else {
-		/* RFC 4620 */
-		bcopy(digest, &in6.s6_addr[13], 3);
-	}
-
-	if (inet_ntop(AF_INET6, &in6, hbuf, sizeof(hbuf)) == NULL)
-		return NULL;
-
-	return strdup(hbuf);
-}
 
 static u_short
 get_node_address_flags(const struct options *const options)
