@@ -15,7 +15,7 @@ SRCS.options_hops_target_test=	options_hops_target_test.c getaddrinfo.c ../optio
 SRCS.options_source_test=	options_source_test.c getaddrinfo.c ../options.c
 
 .if ${MK_INET6_SUPPORT} != "no"
-CFLAGS+= -DINET6 -DKAME_SCOPEID -DUSE_RFC2292BIS
+CFLAGS+= -DINET6 -DKAME_SCOPEID
 ATF_TESTS_C+=	options_gateway_test
 SRCS.options_gateway_test=	options_gateway_test.c getaddrinfo.c ../options.c
 LIBADD+=	md
