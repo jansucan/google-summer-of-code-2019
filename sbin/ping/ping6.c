@@ -104,7 +104,6 @@ __FBSDID("$FreeBSD$");
  */
 
 #include <sys/param.h>
-#include <sys/capsicum.h>
 #include <sys/uio.h>
 #include <sys/socket.h>
 
@@ -117,10 +116,6 @@ __FBSDID("$FreeBSD$");
 #include <arpa/inet.h>
 #include <arpa/nameser.h>
 #include <netdb.h>
-
-#include <capsicum_helpers.h>
-#include <casper/cap_dns.h>
-#include <libcasper.h>
 
 #include <ctype.h>
 #include <err.h>
@@ -139,6 +134,7 @@ __FBSDID("$FreeBSD$");
 #include <netipsec/ipsec.h>
 #endif
 
+#include "cap.h"
 #include "defaults_limits.h"
 #include "ping6.h"
 #include "timing.h"
@@ -188,7 +184,6 @@ static volatile sig_atomic_t seeninfo;
  */
 static const long *sig_counters_received;
 
-static cap_channel_t *capdns_setup(void);
 static int	 get_hoplim(const struct msghdr *const);
 static int	 get_pathmtu(const struct msghdr *const , const struct options *const,
     const struct sockaddr_in6 *const, cap_channel_t *const);
@@ -222,7 +217,7 @@ static void	 pr_retip(const struct ip6_hdr *const, const u_char *const);
 static void	 pr_summary(const struct counters *const, const struct timing *const, const char *const);
 
 void
-ping6(struct options *const options)
+ping6(struct options *const options, cap_channel_t *const capdns)
 {
 	struct timeval last;
 	struct sockaddr_in6 from, *sin6;
@@ -257,7 +252,7 @@ ping6(struct options *const options)
 	 * the dynamically allocated memory. */
 	sig_options = options;
 
-	vars.capdns = capdns_setup();
+	vars.capdns = capdns;
 	vars.target_sockaddr = (struct sockaddr_in6 *) options->target_addrinfo->ai_addr;
 
 	if (options->f_flood)
@@ -628,9 +623,7 @@ ping6(struct options *const options)
 	 * namespaces (e.g filesystem) is restricted (see capsicum(4)).
 	 * We must connect(2) our socket before this point.
 	 */
-	caph_cache_catpages();
-	if (caph_enter_casper() < 0)
-		err(1, "cap_enter");
+	cap_enter_capability_mode();
 
 	cap_rights_init(&rights, CAP_RECV, CAP_EVENT, CAP_SETSOCKOPT);
 	if (caph_rights_limit(vars.socket_recv, &rights) < 0)
@@ -2291,29 +2284,4 @@ get_node_address_flags(const struct options *const options)
 #endif
 
 	return naflags;
-}
-
-static cap_channel_t *
-capdns_setup(void)
-{
-	cap_channel_t *capcas, *capdnsloc;
-	const char *types[2];
-	int families[1];
-
-	capcas = cap_init();
-	if (capcas == NULL)
-		err(1, "unable to create casper process");
-	capdnsloc = cap_service_open(capcas, "system.dns");
-	/* Casper capability no longer needed. */
-	cap_close(capcas);
-	if (capdnsloc == NULL)
-		err(1, "unable to open system.dns service");
-	types[0] = "ADDR2NAME";
-	if (cap_dns_type_limit(capdnsloc, types, 1) < 0)
-		err(1, "unable to limit access to system.dns service");
-	families[0] = AF_INET6;
-	if (cap_dns_family_limit(capdnsloc, families, 1) < 0)
-		err(1, "unable to limit access to system.dns service");
-
-	return (capdnsloc);
 }

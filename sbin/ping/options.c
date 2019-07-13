@@ -76,18 +76,20 @@ __FBSDID("$FreeBSD$");
 #define OPSTR  OPSTR_COMMON OPSTR_IPV4 OPSTR_IPSEC
 #endif	/* INET6 */
 
-static int  options_check_post_hosts(struct options *const options);
-static int  options_check_pre_hosts(struct options *const options);
+static int  options_check_post_hosts(struct options *const options, cap_channel_t *const capdns);
+static int  options_check_pre_hosts(struct options *const options, cap_channel_t *const capdns);
 static int  options_check_packet_size(long, long);
-static int  options_get_target_type(struct options *const options, bool *const is_hostname);
+static int  options_get_target_type(struct options *const options, bool *const is_hostname,
+    cap_channel_t *const capdns);
 static int  options_getaddrinfo(const char *const hostname,
-    const struct addrinfo *const hints, struct addrinfo **const res);
+    const struct addrinfo *const hints, struct addrinfo **const res, cap_channel_t *const capdns);
 static bool options_ipv6_target_nigroup(char *const, int);
 static bool options_has_ipv4_only(const struct options *const options);
 #ifdef INET6
 static bool options_has_ipv6_only(const struct options *const options);
 #endif
-static int  options_parse_hosts(int argc, char **argv, struct options *const options);
+static int  options_parse_hosts(int argc, char **argv, struct options *const options,
+    cap_channel_t *const capdns);
 static void options_print_error(const char *const fmt, ...);
 static void options_set_defaults_post_hosts(struct options *const options);
 static void options_set_defaults_pre_hosts(struct options *const options);
@@ -125,7 +127,7 @@ options_free(struct options *const options)
 }
 
 int
-options_parse(int argc, char **argv, struct options *const options)
+options_parse(int argc, char **argv, struct options *const options, cap_channel_t *const capdns)
 {
 	int ch, r;
 	double dbl, dbl_integer_part;
@@ -484,12 +486,13 @@ options_parse(int argc, char **argv, struct options *const options)
 
 	options_set_defaults_pre_hosts(options);
 
-	if (((r = options_check_pre_hosts(options)) != EX_OK) ||
-	    (r = options_parse_hosts(argc, argv, options)) != EX_OK)
+	if (((r = options_check_pre_hosts(options, capdns)) != EX_OK) ||
+	    (r = options_parse_hosts(argc, argv, options, capdns)) != EX_OK)
 		return (r);
 
+	capdns_limit_type(capdns, "ADDR2NAME");
 	options_set_defaults_post_hosts(options);
-	return (options_check_post_hosts(options));
+	return (options_check_post_hosts(options, capdns));
 }
 
 /*
@@ -497,7 +500,7 @@ options_parse(int argc, char **argv, struct options *const options)
  * protocol version of the target.
  */
 static int
-options_check_post_hosts(struct options *const options)
+options_check_post_hosts(struct options *const options, cap_channel_t *const capdns)
 {
 	/*
 	 * Check options common to both IPv4 and IPv6 targets.
@@ -519,7 +522,7 @@ options_check_post_hosts(struct options *const options)
 			hints.ai_protocol = IPPROTO_ICMPV6;
 		}
 #endif
-		const int r = options_getaddrinfo(options->s_source, &hints, &res);
+		const int r = options_getaddrinfo(options->s_source, &hints, &res, capdns);
 		if (r != 0)
 			return (r);
 
@@ -560,7 +563,7 @@ options_check_post_hosts(struct options *const options)
  * protocol version of the target.
  */
 static int
-options_check_pre_hosts(struct options *const options)
+options_check_pre_hosts(struct options *const options, cap_channel_t *const capdns)
 {
 	/* TODO: chaining 'else if'? */
 #ifdef INET6
@@ -588,7 +591,7 @@ options_check_pre_hosts(struct options *const options)
 		hints.ai_socktype = SOCK_RAW;
 		hints.ai_protocol = IPPROTO_ICMPV6;
 
-		const int r = options_getaddrinfo(options->s_gateway, &hints, &res);
+		const int r = options_getaddrinfo(options->s_gateway, &hints, &res, capdns);
 		if (r != 0)
 			return (r);
 
@@ -679,7 +682,7 @@ options_check_packet_size(long size, long max_size)
 }
 
 static int
-options_get_target_type(struct options *const options, bool *const is_hostname)
+options_get_target_type(struct options *const options, bool *const is_hostname, cap_channel_t *const capdns)
 {
 	struct in_addr a;
 	int r_pton;
@@ -725,7 +728,7 @@ options_get_target_type(struct options *const options, bool *const is_hostname)
 	struct addrinfo *ai_ipv6 = NULL;
 #endif
 
-	const int r_ai = getaddrinfo(options->target, NULL, &hints, &options->target_addrinfo_root);
+	const int r_ai = cap_getaddrinfo(capdns, options->target, NULL, &hints, &options->target_addrinfo_root);
 	if ((r_ai != 0) && (r_ai != EAI_NONAME))
 		return (r_ai);
 	else if (r_ai == 0) {
@@ -800,9 +803,9 @@ options_get_target_type(struct options *const options, bool *const is_hostname)
 
 static int
 options_getaddrinfo(const char *const hostname, const struct addrinfo *const hints,
-    struct addrinfo **const res)
+    struct addrinfo **const res, cap_channel_t *const capdns)
 {
-	const int r = getaddrinfo(hostname, NULL, hints, res);
+	const int r = cap_getaddrinfo(capdns, hostname, NULL, hints, res);
 
 	if (r != 0)
 		options_print_error("getaddrinfo for `%s': %s", hostname, gai_strerror(r));
@@ -816,7 +819,7 @@ options_getaddrinfo(const char *const hostname, const struct addrinfo *const hin
 }
 
 static int
-options_parse_hosts(int argc, char **argv, struct options *const options)
+options_parse_hosts(int argc, char **argv, struct options *const options, cap_channel_t *const capdns)
 {
 	bool is_hostname;
 
@@ -837,7 +840,7 @@ options_parse_hosts(int argc, char **argv, struct options *const options)
 		exit(EX_USAGE);
 	}
 #endif
-	const int r = options_get_target_type(options, &is_hostname);
+	const int r = options_get_target_type(options, &is_hostname, capdns);
 	if (r != EX_OK)
 		return (r);
 
@@ -846,9 +849,15 @@ options_parse_hosts(int argc, char **argv, struct options *const options)
 		return (EX_USAGE);
 	}
 
-	--argc;
+	/*
+	 * Now, when the target protocol family is known, the casper
+	 * DNS service can be limited.
+	 */
+	capdns_limit_family(capdns, options->target_addrinfo->ai_family);
 
 	/* Everything else are IPv6 hops. */
+	--argc;
+
 	if (argc != 0) {
 		/* Ping to IPv4 host cannot have any hops specified. */
 		if (options->target_type == TARGET_IPV4) {
@@ -866,7 +875,7 @@ options_parse_hosts(int argc, char **argv, struct options *const options)
 			memset(&hints, 0, sizeof(hints));
 			hints.ai_family = AF_INET6;
 
-			const int r = options_getaddrinfo(argv[i], &hints, &(options->hops_addrinfo[i]));
+			const int r = options_getaddrinfo(argv[i], &hints, &(options->hops_addrinfo[i]), capdns);
 			if (r != EX_OK)
 				return (r);
 

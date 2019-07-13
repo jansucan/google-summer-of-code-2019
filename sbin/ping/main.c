@@ -41,13 +41,15 @@ main(int argc, char *argv[])
 {
 	struct options options;
 
-	const int r = options_parse(argc, argv, &options);
+	cap_channel_t *const capdns = capdns_setup();
+
+	const int r = options_parse(argc, argv, &options, capdns);
 	if (r != EX_OK)
 		exit(r);
 
 	if (options.target_type == TARGET_IPV4)
-		ping(&options);
+		ping(&options, capdns);
 	else
-		ping6(&options);
+		ping6(&options, capdns);
 	/* NOTREACHED */
 }

@@ -28,12 +28,19 @@
  * $FreeBSD$
  */
 
-#ifndef GETADDRINFO_H
-#define GETADDRINFO_H 1
+#ifndef CAP_H
+#define CAP_H 1
 
-#include <netdb.h>
+#include <sys/capsicum.h>
 
-int getaddrinfo(const char *hostname, const char *servname,
-    const struct addrinfo *hints, struct addrinfo **res);
+#include <libcasper.h>
+#include <casper/cap_dns.h>
+#include <capsicum_helpers.h>
+
+cap_channel_t *capdns_setup(void);
+/* TODO: Do not exit program in these functions. Use return value. */
+void capdns_limit_family(cap_channel_t *const capdns, int family);
+void capdns_limit_type(cap_channel_t *const capdns, const char *const type);
+void cap_enter_capability_mode(void);
 
 #endif

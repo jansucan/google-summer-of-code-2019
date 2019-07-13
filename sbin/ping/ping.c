@@ -65,7 +65,6 @@ __FBSDID("$FreeBSD$");
  */
 
 #include <sys/param.h>		/* NB: we rely on this for <sys/types.h> */
-#include <sys/capsicum.h>
 #include <sys/socket.h>
 #include <sys/sysctl.h>
 #include <sys/uio.h>
@@ -77,14 +76,10 @@ __FBSDID("$FreeBSD$");
 #include <netinet/ip_var.h>
 #include <arpa/inet.h>
 
-#include <libcasper.h>
-#include <casper/cap_dns.h>
-
 #ifdef IPSEC
 #include <netipsec/ipsec.h>
 #endif /*IPSEC*/
 
-#include <capsicum_helpers.h>
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
@@ -96,6 +91,7 @@ __FBSDID("$FreeBSD$");
 #include <string.h>
 #include <sysexits.h>
 
+#include "cap.h"
 #include "defaults_limits.h"
 #include "ping.h"
 #include "timing.h"
@@ -116,8 +112,8 @@ struct shared_variables {
 	u_char icmp_type_rsp;
 	int phdr_len;
 	int send_len;
-	cap_channel_t *capdns;
 	const struct sockaddr_in *target_sockaddr;
+	cap_channel_t *capdns;
 };
 
 struct counters {
@@ -141,7 +137,6 @@ static volatile sig_atomic_t siginfo_p;
 static const long *sig_counters_received;
 
 static u_short in_cksum(u_short *, int);
-static cap_channel_t *capdns_setup(void);
 static void check_status(const struct counters *const, const struct timing *const);
 static void finish(const struct shared_variables *const, const struct counters *const,
     const struct timing *const, const char *const) __dead2;
@@ -159,7 +154,7 @@ static void status(int);
 static void stopit(int);
 
 void
-ping(struct options *const options)
+ping(struct options *const options, cap_channel_t *const capdns)
 {
 	struct sockaddr_in from;
 	struct in_addr ifaddr;
@@ -188,7 +183,7 @@ ping(struct options *const options)
 	timing_init(&timing);
 
 	vars.target_sockaddr = (struct sockaddr_in *) options->target_addrinfo->ai_addr;
-
+	vars.capdns = capdns;
 	/*
 	 * Do the stuff that we need root priv's for *first*, and
 	 * then drop our setuid bit.  Save error reporting for
@@ -268,19 +263,11 @@ ping(struct options *const options)
 		if (!options->f_quiet)
 			print_fill_pattern((char *)datap, options->ping_filled_size);
 	}
-	vars.capdns = capdns_setup();
+
 	if ((options->f_source) &&
 	    (bind(vars.ssend, (struct sockaddr *)&options->source_sockaddr.in,
 		sizeof(options->source_sockaddr.in)) == -1))
 		err(1, "bind");
-
-	/* From now on we will use only reverse DNS lookups. */
-	if (vars.capdns != NULL) {
-		const char *const types[1] = { "ADDR2NAME" };
-
-		if (cap_dns_type_limit(vars.capdns, types, 1) < 0)
-			err(1, "unable to limit access to system.dns service");
-	}
 
 	if (connect(vars.ssend, (struct sockaddr *) vars.target_sockaddr,
 		sizeof(*vars.target_sockaddr)) != 0)
@@ -373,9 +360,7 @@ ping(struct options *const options)
 	 * namespaces (e.g filesystem) is restricted (see capsicum(4)).
 	 * We must connect(2) our socket before this point.
 	 */
-	caph_cache_catpages();
-	if (caph_enter_casper() < 0)
-		err(1, "cap_enter");
+	cap_enter_capability_mode();
 
 	cap_rights_init(&rights, CAP_RECV, CAP_EVENT, CAP_SETSOCKOPT);
 	if (caph_rights_limit(srecv, &rights) < 0)
@@ -1377,30 +1362,4 @@ pr_ntime(n_time timestamp)
 	(void)snprintf(buf, sizeof(buf), "%02d:%02d:%02d", hour, min, sec);
 
 	return (buf);
-}
-
-static cap_channel_t *
-capdns_setup(void)
-{
-	cap_channel_t *capcas, *capdnsloc;
-	const char *types[2];
-	int families[1];
-
-	capcas = cap_init();
-	if (capcas == NULL)
-		err(1, "unable to create casper process");
-	capdnsloc = cap_service_open(capcas, "system.dns");
-	/* Casper capability no longer needed. */
-	cap_close(capcas);
-	if (capdnsloc == NULL)
-		err(1, "unable to open system.dns service");
-	types[0] = "NAME2ADDR";
-	types[1] = "ADDR2NAME";
-	if (cap_dns_type_limit(capdnsloc, types, 2) < 0)
-		err(1, "unable to limit access to system.dns service");
-	families[0] = AF_INET;
-	if (cap_dns_family_limit(capdnsloc, families, 1) < 0)
-		err(1, "unable to limit access to system.dns service");
-
-	return (capdnsloc);
 }

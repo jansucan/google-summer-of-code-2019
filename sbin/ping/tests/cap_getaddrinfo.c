@@ -36,11 +36,12 @@ __FBSDID("$FreeBSD$");
 #include <atf-c.h>
 #include <string.h>
 
-#include "getaddrinfo.h"
+#include "cap_getaddrinfo.h"
 
 int
-getaddrinfo(const char *hostname, const char *servname,
-    const struct addrinfo *hints, struct addrinfo **res)
+cap_getaddrinfo(cap_channel_t *chan, const char *hostname,
+    const char *servname, const struct addrinfo *hints,
+    struct addrinfo **res)
 {
 	static char host_ipv4_canonname[] = "host_ipv4_canonname";
 	static char host_ipv6_canonname[] = "host_ipv6_canonname";
@@ -90,7 +91,7 @@ getaddrinfo(const char *hostname, const char *servname,
 	else if (strcmp(hostname, "host_unknown") == 0) {
 		return (EAI_NONAME);
 	} else {
-		atf_tc_fail("mock getaddrinfo: Invalid hostname: %s", hostname);
+		atf_tc_fail("mock cap_getaddrinfo: Invalid hostname: %s", hostname);
 	}
 
 	*res = &ai;
@@ -102,9 +103,9 @@ void
 freeaddrinfo(struct addrinfo *ai __unused)
 {
 	/*
-	 * When the mock getaddrinfo() is defined, freeaddrinfo() must
-	 * also be defined because there is no dynamically allocated
-	 * memory to be freed.
+	 * When the mock cap_getaddrinfo() is defined, freeaddrinfo()
+	 * must also be defined because there is no dynamically
+	 * allocated memory to be freed.
 	 */
 	;
 }

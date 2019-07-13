@@ -47,6 +47,8 @@
 
 #include <stdbool.h>
 
+#include "cap.h"
+
 enum target_type {
 	TARGET_UNKNOWN,
 	TARGET_IPV4,
@@ -203,8 +205,8 @@ struct options {
 	char target[MAXHOSTNAMELEN];
 	/*
 	 * The target can be resolved to multiple protocols by
-	 * getaddrinfo(). Pointer to the head of the linked list of
-	 * the addrinfo structures is saved in target_addrinfo_root
+	 * cap_getaddrinfo(). Pointer to the head of the linked list
+	 * of the addrinfo structures is saved in target_addrinfo_root
 	 * variable so it can be used as an argument to
 	 * freeaddrinfo().
 	 */
@@ -212,14 +214,14 @@ struct options {
 	/*
 	 * This is a pointer to a chosen protocol version addrinfo
 	 * structure in the linked list of the addrinfo structures
-	 * from getaddrinfo().
+	 * from cap_getaddrinfo().
 	 */
 	struct addrinfo *target_addrinfo;
 	enum target_type target_type;
 };
 
 void options_free(struct options *const options);
-int  options_parse(int argc, char **argv, struct options *const options);
+int  options_parse(int argc, char **argv, struct options *const options, cap_channel_t *const capdns);
 void usage(void);
 
 #endif	/* OPTIONS_H */

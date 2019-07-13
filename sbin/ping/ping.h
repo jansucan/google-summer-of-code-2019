@@ -33,6 +33,6 @@
 
 #include "options.h"
 
-void ping(struct options *const options);
+void ping(struct options *const options, cap_channel_t *capdns);
 
 #endif

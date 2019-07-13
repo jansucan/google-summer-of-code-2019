@@ -24,15 +24,56 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- *
- * $FreeBSD$
  */
 
-#ifndef PING6_H
-#define PING6_H 1
+#include <sys/cdefs.h>
+__FBSDID("$FreeBSD$");
 
-#include "options.h"
+#include <err.h>
 
-void ping6(struct options *const options, cap_channel_t *capdns);
+#include "cap.h"
 
-#endif
+cap_channel_t *
+capdns_setup(void)
+{
+	/* TODO: cap_close(capdnsloc)? */
+	cap_channel_t *capcas, *capdnsloc;
+	const char *types[2];
+
+	capcas = cap_init();
+	if (capcas == NULL)
+		err(1, "unable to create casper process");
+	capdnsloc = cap_service_open(capcas, "system.dns");
+	/* Casper capability no longer needed. */
+	cap_close(capcas);
+	if (capdnsloc == NULL)
+		err(1, "unable to open system.dns service");
+	types[0] = "NAME2ADDR";
+	types[1] = "ADDR2NAME";
+	if (cap_dns_type_limit(capdnsloc, types, 2) < 0)
+		err(1, "unable to limit access to system.dns service");
+
+	return (capdnsloc);
+}
+
+void
+capdns_limit_family(cap_channel_t *const capdns, int family)
+{
+	if (cap_dns_family_limit(capdns, &family, 1) < 0)
+		err(1, "unable to limit access to system.dns service");
+}
+
+void
+capdns_limit_type(cap_channel_t *const capdns, const char *const type)
+{
+	if (cap_dns_type_limit(capdns, &type, 1) < 0)
+		err(1, "unable to limit access to system.dns service");
+}
+
+void
+cap_enter_capability_mode(void)
+{
+	caph_cache_catpages();
+	if (caph_enter_casper() < 0)
+		err(1, "cap_enter");
+}

@@ -28,11 +28,16 @@
  * $FreeBSD$
  */
 
-#ifndef PING6_H
-#define PING6_H 1
+#ifndef CAP_GETADDRINFO_H
+#define CAP_GETADDRINFO_H 1
 
-#include "options.h"
+#include <netdb.h>
 
-void ping6(struct options *const options, cap_channel_t *capdns);
+#include <libcasper.h>
+
+int
+cap_getaddrinfo(cap_channel_t *chan, const char *hostname,
+    const char *servname, const struct addrinfo *hints,
+    struct addrinfo **res);
 
 #endif
