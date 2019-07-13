@@ -109,7 +109,6 @@ __FBSDID("$FreeBSD$");
 					/* runs out of buffer space */
 struct shared_variables {
 	char rcvd_tbl[MAX_DUP_CHK / 8];
-	struct sockaddr_in whereto;	/* who to ping */
 	int ssend;		/* send socket file descriptor */
 	u_char outpackhdr[IP_MAXPACKET], *outpack;
 	int ident;		/* process id to identify our packets */
@@ -118,6 +117,7 @@ struct shared_variables {
 	int phdr_len;
 	int send_len;
 	cap_channel_t *capdns;
+	const struct sockaddr_in *target_sockaddr;
 };
 
 struct counters {
@@ -172,7 +172,6 @@ ping(struct options *const options)
 	struct counters counters;
 	struct timing timing;
 	u_char *datap, packet[IP_MAXPACKET] __aligned(4);
-	struct sockaddr_in *to;
 	int hold, icmp_len;
 	int ssend_errno, srecv_errno;
 	int srecv; /* receive socket file descriptor */
@@ -187,6 +186,8 @@ ping(struct options *const options)
 	sig_counters_received = &counters.received;
 
 	timing_init(&timing);
+
+	vars.target_sockaddr = (struct sockaddr_in *) options->target_addrinfo->ai_addr;
 
 	/*
 	 * Do the stuff that we need root priv's for *first*, and
@@ -273,18 +274,6 @@ ping(struct options *const options)
 		sizeof(options->source_sockaddr.in)) == -1))
 		err(1, "bind");
 
-	/* TODO: remove whereto and/or to, they can be replaced by options->target_addrinfo */
-	bzero(&vars.whereto, sizeof(vars.whereto));
-	to = &vars.whereto;
-	to->sin_family = AF_INET;
-	to->sin_len = sizeof(*to);
-	const struct sockaddr_in *const sai = ((struct sockaddr_in *) (options->target_addrinfo->ai_addr));
-	memcpy(&to->sin_addr, &sai->sin_addr, sizeof(to->sin_addr));
-
-	options->target_addrinfo = NULL;
-	freeaddrinfo(options->target_addrinfo_root);
-	options->target_addrinfo_root = NULL;
-
 	/* From now on we will use only reverse DNS lookups. */
 	if (vars.capdns != NULL) {
 		const char *const types[1] = { "ADDR2NAME" };
@@ -293,14 +282,15 @@ ping(struct options *const options)
 			err(1, "unable to limit access to system.dns service");
 	}
 
-	if (connect(vars.ssend, (struct sockaddr *)&vars.whereto, sizeof(vars.whereto)) != 0)
+	if (connect(vars.ssend, (struct sockaddr *) vars.target_sockaddr,
+		sizeof(*vars.target_sockaddr)) != 0)
 		err(1, "connect");
 
-	if (options->f_flood && IN_MULTICAST(ntohl(to->sin_addr.s_addr)))
+	if (options->f_flood && IN_MULTICAST(ntohl(vars.target_sockaddr->sin_addr.s_addr)))
 		errx(EX_USAGE,
 		    "-f flag cannot be used with multicast destination");
 	if ((options->f_interface || options->f_no_loop || options->f_multicast_ttl)
-	    && !IN_MULTICAST(ntohl(to->sin_addr.s_addr)))
+	    && !IN_MULTICAST(ntohl(vars.target_sockaddr->sin_addr.s_addr)))
 		errx(EX_USAGE,
 		    "-I, -L, -T flags cannot be used with unicast destination");
 
@@ -375,7 +365,7 @@ ping(struct options *const options)
 		ip->ip_ttl = options->n_ttl;
 		ip->ip_p = IPPROTO_ICMP;
 		ip->ip_src.s_addr = options->f_source ? options->source_sockaddr.in.sin_addr.s_addr : INADDR_ANY;
-		ip->ip_dst = to->sin_addr;
+		ip->ip_dst = vars.target_sockaddr->sin_addr;
         }
 
 	/*
@@ -482,9 +472,9 @@ ping(struct options *const options)
 	if (caph_rights_limit(vars.ssend, &rights) < 0)
 		err(1, "cap_rights_limit ssend setsockopt");
 
-	if (to->sin_family == AF_INET) {
+	if (vars.target_sockaddr->sin_family == AF_INET) {
 		(void)printf("PING %s (%s)", options->target,
-		    inet_ntoa(to->sin_addr));
+		    inet_ntoa(vars.target_sockaddr->sin_addr));
 		if (options->f_source)
 			(void)printf(" from %s", options->s_source);
 		if (options->n_sweep_max)
@@ -914,7 +904,7 @@ pr_pack(char *buf, int cc, struct sockaddr_in *from, struct timeval *tv,
 
 		if (((options->f_verbose) && getuid() == 0) ||
 		    (!(options->f_somewhat_quiet) &&
-		     (oip->ip_dst.s_addr == vars->whereto.sin_addr.s_addr) &&
+		     (oip->ip_dst.s_addr == vars->target_sockaddr->sin_addr.s_addr) &&
 		     (oip->ip_p == IPPROTO_ICMP) &&
 		     (oicmp->icmp_type == ICMP_ECHO) &&
 		     (oicmp->icmp_id == vars->ident))) {

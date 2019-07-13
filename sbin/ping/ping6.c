@@ -156,7 +156,7 @@ __FBSDID("$FreeBSD$");
 
 struct shared_variables {
 	char rcvd_tbl[MAX_DUP_CHK / 8];
-	struct sockaddr_in6 dst;	/* who to ping6 */
+	struct sockaddr_in6 *target_sockaddr;	/* who to ping6 */
 	int socket_send;		/* socket file descriptor */
 	int socket_recv;
 	u_char outpack[MAXPACKETLEN];
@@ -258,6 +258,7 @@ ping6(struct options *const options)
 	sig_options = options;
 
 	vars.capdns = capdns_setup();
+	vars.target_sockaddr = (struct sockaddr_in6 *) options->target_addrinfo->ai_addr;
 
 	if (options->f_flood)
 		setbuf(stdout, (char *)NULL);
@@ -288,9 +289,6 @@ ping6(struct options *const options)
 	}
 
 	/* Create socket for the ping target. */
-	(void)memcpy(&vars.dst, options->target_addrinfo->ai_addr,
-	    options->target_addrinfo->ai_addrlen);
-
 	if ((vars.socket_send = socket(options->target_addrinfo->ai_family,
 		    options->target_addrinfo->ai_socktype,
 		    IPPROTO_ICMPV6)) < 0)
@@ -299,10 +297,6 @@ ping6(struct options *const options)
 		    options->target_addrinfo->ai_socktype,
 		    IPPROTO_ICMPV6)) < 0)
 		err(1, "socket() socket_recv");
-
-	options->target_addrinfo = NULL;
-	freeaddrinfo(options->target_addrinfo_root);
-	options->target_addrinfo_root = NULL;
 
 	/* revoke root privilege */
 	if (seteuid(getuid()) != 0)
@@ -314,20 +308,21 @@ ping6(struct options *const options)
 	if (options->f_source) {
 		/* properly fill sin6_scope_id */
 		if (IN6_IS_ADDR_LINKLOCAL(&options->source_sockaddr.in6.sin6_addr) && (
-		    IN6_IS_ADDR_LINKLOCAL(&vars.dst.sin6_addr) ||
-		    IN6_IS_ADDR_MC_LINKLOCAL(&vars.dst.sin6_addr) ||
-		    IN6_IS_ADDR_MC_NODELOCAL(&vars.dst.sin6_addr))) {
+		    IN6_IS_ADDR_LINKLOCAL(&vars.target_sockaddr->sin6_addr) ||
+		    IN6_IS_ADDR_MC_LINKLOCAL(&vars.target_sockaddr->sin6_addr) ||
+		    IN6_IS_ADDR_MC_NODELOCAL(&vars.target_sockaddr->sin6_addr))) {
 			if (options->source_sockaddr.in6.sin6_scope_id == 0)
-				options->source_sockaddr.in6.sin6_scope_id = vars.dst.sin6_scope_id;
-			if (vars.dst.sin6_scope_id == 0)
-				vars.dst.sin6_scope_id = options->source_sockaddr.in6.sin6_scope_id;
+				options->source_sockaddr.in6.sin6_scope_id = vars.target_sockaddr->sin6_scope_id;
+			if (vars.target_sockaddr->sin6_scope_id == 0)
+				vars.target_sockaddr->sin6_scope_id = options->source_sockaddr.in6.sin6_scope_id;
 		}
 		if (bind(vars.socket_send, (struct sockaddr *)&options->source_sockaddr.in6,
 			sizeof(options->source_sockaddr.in6)) != 0)
 			err(1, "bind");
 	}
 
-	if (connect(vars.socket_send, (struct sockaddr *)&vars.dst, sizeof(vars.dst)) != 0)
+	if (connect(vars.socket_send, (struct sockaddr *) vars.target_sockaddr,
+		sizeof(*vars.target_sockaddr)) != 0)
 		err(1, "connect");
 
 	/* set the gateway (next hop) if specified */
@@ -411,7 +406,7 @@ ping6(struct options *const options)
 		    sizeof(hold));
 	}
 	optval = IPV6_DEFHLIM;
-	if (IN6_IS_ADDR_MULTICAST(&vars.dst.sin6_addr))
+	if (IN6_IS_ADDR_MULTICAST(&vars.target_sockaddr->sin6_addr))
 		if (setsockopt(vars.socket_send, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
 		    &optval, sizeof(optval)) == -1)
 			err(1, "IPV6_MULTICAST_HOPS");
@@ -595,9 +590,9 @@ ping6(struct options *const options)
 			err(1, "UDP socket");
 
 		options->source_sockaddr.in6.sin6_family = AF_INET6;
-		options->source_sockaddr.in6.sin6_addr = vars.dst.sin6_addr;
+		options->source_sockaddr.in6.sin6_addr = vars.target_sockaddr->sin6_addr;
 		options->source_sockaddr.in6.sin6_port = ntohs(DUMMY_PORT);
-		options->source_sockaddr.in6.sin6_scope_id = vars.dst.sin6_scope_id;
+		options->source_sockaddr.in6.sin6_scope_id = vars.target_sockaddr->sin6_scope_id;
 
 		if (pktinfo &&
 		    setsockopt(dummy, IPPROTO_IPV6, IPV6_PKTINFO,
@@ -701,7 +696,7 @@ ping6(struct options *const options)
 	if (caph_rights_limit(vars.socket_send, &rights) < 0)
 		err(1, "cap_rights_limit socket_send setsockopt");
 
-	pr_heading(&options->source_sockaddr.in6, &vars.dst, options, vars.capdns);
+	pr_heading(&options->source_sockaddr.in6, vars.target_sockaddr, options, vars.capdns);
 
 	if (options->n_preload == 0)
 		pinger(options, &vars, &counters, &timing);
@@ -797,7 +792,7 @@ ping6(struct options *const options)
 				 * exceptions (currently the only possibility is
 				 * a path MTU notification.)
 				 */
-				if ((mtu = get_pathmtu(&m, options, &vars.dst, vars.capdns)) > 0) {
+				if ((mtu = get_pathmtu(&m, options, vars.target_sockaddr, vars.capdns)) > 0) {
 					if (options->f_verbose) {
 						printf("new path MTU (%d) is "
 						    "notified\n", mtu);
@@ -934,9 +929,9 @@ pinger(struct options *const options, struct shared_variables *const vars,
 		    sizeof(nip->icmp6_ni_nonce));
 		*(uint16_t *)nip->icmp6_ni_nonce = ntohs(seq);
 
-		memcpy(&vars->outpack[ICMP6_NIQLEN], &vars->dst.sin6_addr,
-		    sizeof(vars->dst.sin6_addr));
-		cc = ICMP6_NIQLEN + sizeof(vars->dst.sin6_addr);
+		memcpy(&vars->outpack[ICMP6_NIQLEN], &vars->target_sockaddr->sin6_addr,
+		    sizeof(vars->target_sockaddr->sin6_addr));
+		cc = ICMP6_NIQLEN + sizeof(vars->target_sockaddr->sin6_addr);
 		options->n_packet_size = 0;
 	} else if (options->f_fqdn_old) {
 		/* packet format in 03 draft - no Subject data on queries */
@@ -961,9 +956,9 @@ pinger(struct options *const options, struct shared_variables *const vars,
 		    sizeof(nip->icmp6_ni_nonce));
 		*(uint16_t *)nip->icmp6_ni_nonce = ntohs(seq);
 
-		memcpy(&vars->outpack[ICMP6_NIQLEN], &vars->dst.sin6_addr,
-		    sizeof(vars->dst.sin6_addr));
-		cc = ICMP6_NIQLEN + sizeof(vars->dst.sin6_addr);
+		memcpy(&vars->outpack[ICMP6_NIQLEN], &vars->target_sockaddr->sin6_addr,
+		    sizeof(vars->target_sockaddr->sin6_addr));
+		cc = ICMP6_NIQLEN + sizeof(vars->target_sockaddr->sin6_addr);
 		options->n_packet_size = 0;
 	} else if (options->f_subtypes) {
 		icp->icmp6_type = ICMP6_NI_QUERY;
