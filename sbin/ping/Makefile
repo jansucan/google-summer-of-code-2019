@@ -15,7 +15,7 @@ LIBADD=	m
 .if ${MK_INET6_SUPPORT} != "no"
 CFLAGS+= -DINET6 -DKAME_SCOPEID -DUSE_RFC2292BIS
 SRCS+= ping6.c
-LIBADD=	md
+LIBADD+=	md
 .endif
 
 .if ${MK_DYNAMICROOT} == "no"
