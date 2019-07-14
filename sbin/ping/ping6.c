@@ -144,8 +144,6 @@ __FBSDID("$FreeBSD$");
 
 #define DUMMY_PORT	10101
 
-#define SIN6(s)	((struct sockaddr_in6 *)(s))
-
 struct shared_variables {
 	char rcvd_tbl[MAX_DUP_CHK / 8];
 	struct sockaddr_in6 *target_sockaddr;	/* who to ping6 */
