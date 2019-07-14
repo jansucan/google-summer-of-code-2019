@@ -61,6 +61,11 @@ cap_getaddrinfo(cap_channel_t *chan, const char *hostname,
                 sizeof(struct sockaddr_in),
                 NULL, (struct sockaddr*)&sin, NULL
         };
+        static struct addrinfo ai2 = {
+                0, AF_INET, SOCK_STREAM, IPPROTO_TCP,
+                sizeof(struct sockaddr_in),
+                NULL, (struct sockaddr*)&sin, NULL
+        };
 
 	if ((strcmp(hostname, "host_ipv4") == 0) ||
 	    (strcmp(hostname, "127.0.0.1") == 0)) {
@@ -68,11 +73,13 @@ cap_getaddrinfo(cap_channel_t *chan, const char *hostname,
 		ai.ai_addrlen = sizeof(struct sockaddr_in);
 		ai.ai_addr = (struct sockaddr*)&sin;
 		ai.ai_canonname = NULL;
+		ai.ai_next = NULL;
 	} else if (strcmp(hostname, "host_ipv4_with_canonname") == 0){
 		ai.ai_family = AF_INET;
 		ai.ai_addrlen = sizeof(struct sockaddr_in);
 		ai.ai_addr = (struct sockaddr*)&sin;
 		ai.ai_canonname = host_ipv4_canonname;
+		ai.ai_next = NULL;
 	}
 #ifdef INET6
 	else if ((strcmp(hostname, "host_ipv6") == 0) ||
@@ -81,11 +88,37 @@ cap_getaddrinfo(cap_channel_t *chan, const char *hostname,
 		ai.ai_addrlen = sizeof(struct sockaddr_in6);
 		ai.ai_addr = (struct sockaddr*)&sin6;
 		ai.ai_canonname = NULL;
+		ai.ai_next = NULL;
 	} else if (strcmp(hostname, "host_ipv6_with_canonname") == 0){
 		ai.ai_family = AF_INET6;
 		ai.ai_addrlen = sizeof(struct sockaddr_in6);
 		ai.ai_addr = (struct sockaddr*)&sin6;
 		ai.ai_canonname = host_ipv6_canonname;
+		ai.ai_next = NULL;
+	} else if (strcmp(hostname, "host_ipv6_ipv4") == 0){
+		ai.ai_family = AF_INET6;
+		ai.ai_addrlen = sizeof(struct sockaddr_in6);
+		ai.ai_addr = (struct sockaddr*)&sin6;
+		ai.ai_canonname = NULL;
+		ai.ai_next = &ai2;
+
+		ai2.ai_family = AF_INET;
+		ai2.ai_addrlen = sizeof(struct sockaddr_in);
+		ai2.ai_addr = (struct sockaddr*)&sin;
+		ai2.ai_canonname = NULL;
+		ai2.ai_next = NULL;
+	} else if (strcmp(hostname, "host_ipv4_ipv6") == 0){
+		ai.ai_family = AF_INET;
+		ai.ai_addrlen = sizeof(struct sockaddr_in);
+		ai.ai_addr = (struct sockaddr*)&sin;
+		ai.ai_canonname = NULL;
+		ai.ai_next = &ai2;
+
+		ai2.ai_family = AF_INET6;
+		ai2.ai_addrlen = sizeof(struct sockaddr_in6);
+		ai2.ai_addr = (struct sockaddr*)&sin6;
+		ai2.ai_canonname = NULL;
+		ai2.ai_next = NULL;
 	}
 #endif
 	else if (strcmp(hostname, "host_unknown") == 0) {

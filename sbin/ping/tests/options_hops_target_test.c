@@ -217,6 +217,32 @@ ATF_TC_BODY(target, tc)
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
 		cap_close(capdns);
 	}
+	{
+		ARGC_ARGV("-6", "host_ipv4_ipv6");
+		options.target[0] = '\0';
+		options.target_addrinfo = NULL;
+		options.target_type = TARGET_UNKNOWN;
+		capdns = capdns_setup();
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE_STREQ("host_ipv4_ipv6", options.target);
+		ATF_REQUIRE(options.target_addrinfo->ai_family == AF_INET6);
+		ATF_REQUIRE(options.target_type == TARGET_IPV6);
+		cap_close(capdns);
+	}
+		{
+		ARGC_ARGV("-4", "host_ipv6_ipv4");
+		options.target[0] = '\0';
+		options.target_addrinfo = NULL;
+		options.target_type = TARGET_UNKNOWN;
+		capdns = capdns_setup();
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE_STREQ("host_ipv6_ipv4", options.target);
+		ATF_REQUIRE(options.target_addrinfo->ai_family == AF_INET);
+		ATF_REQUIRE(options.target_type == TARGET_IPV4);
+		cap_close(capdns);
+	}
 #endif	/* IENT6 */
 }
 
