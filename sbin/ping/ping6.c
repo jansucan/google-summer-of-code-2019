@@ -129,13 +129,9 @@ __FBSDID("$FreeBSD$");
 #include <sysexits.h>
 #include <unistd.h>
 
-#ifdef IPSEC
-#include <netipsec/ah.h>
-#include <netipsec/ipsec.h>
-#endif
-
 #include "cap.h"
 #include "defaults_limits.h"
+#include "ipsec.h"
 #include "ping6.h"
 #include "timing.h"
 #include "utils.h"
@@ -423,44 +419,8 @@ ping6(struct options *const options, cap_channel_t *const capdns)
 #endif /* IPV6_RECVPATHMTU */
 #endif /* IPV6_USE_MIN_MTU */
 
-#ifdef IPSEC
-#ifdef IPSEC_POLICY_IPSEC
-	if (options->f_policy) {
-		if (setpolicy(vars.socket_recv, options->s_policy_in) < 0)
-			errx(1, "%s", ipsec_strerror());
-		if (setpolicy(vars.socket_send, options->s_policy_out) < 0)
-			errx(1, "%s", ipsec_strerror());
-	}
-#else
-	if (options->f_authhdr) {
-		optval = IPSEC_LEVEL_REQUIRE;
-#ifdef IPV6_AUTH_TRANS_LEVEL
-		if (setsockopt(vars.socket_send, IPPROTO_IPV6, IPV6_AUTH_TRANS_LEVEL,
-		    &optval, sizeof(optval)) == -1)
-			err(1, "setsockopt(IPV6_AUTH_TRANS_LEVEL)");
-		if (setsockopt(vars.socket_recv, IPPROTO_IPV6, IPV6_AUTH_TRANS_LEVEL,
-			&optval, sizeof(optval)) == -1)
-			err(1, "setsockopt(IPV6_AUTH_TRANS_LEVEL)");
-#else /* old def */
-		if (setsockopt(vars.socket_send, IPPROTO_IPV6, IPV6_AUTH_LEVEL,
-		    &optval, sizeof(optval)) == -1)
-			err(1, "setsockopt(IPV6_AUTH_LEVEL)");
-		if (setsockopt(vars.socket_recv, IPPROTO_IPV6, IPV6_AUTH_LEVEL,
-			&optval, sizeof(optval)) == -1)
-			err(1, "setsockopt(IPV6_AUTH_LEVEL)");
-#endif
-	}
-	if (options->f_encrypt) {
-		optval = IPSEC_LEVEL_REQUIRE;
-		if (setsockopt(vars.socket_send, IPPROTO_IPV6, IPV6_ESP_TRANS_LEVEL,
-		    &optval, sizeof(optval)) == -1)
-			err(1, "setsockopt(IPV6_ESP_TRANS_LEVEL)");
-		if (setsockopt(vars.socket_recv, IPPROTO_IPV6, IPV6_ESP_TRANS_LEVEL,
-			&optval, sizeof(optval)) == -1)
-			err(1, "setsockopt(IPV6_ESP_TRANS_LEVEL)");
-	}
-#endif /*IPSEC_POLICY_IPSEC*/
-#endif
+	if (!ipsec_configure(vars.socket_send, vars.socket_recv, options))
+		exit(1);
 
 #ifdef ICMP6_FILTER
     {
@@ -2240,29 +2200,6 @@ pr_retip(const struct ip6_hdr *const ip6, const u_char *const end)
 	printf("...\n");
 	return;
 }
-
-#ifdef IPSEC
-#ifdef IPSEC_POLICY_IPSEC
-static int
-setpolicy(int socket, char *const policy)
-{
-	char *buf;
-
-	if (policy == NULL)
-		return 0;	/* ignore */
-
-	buf = ipsec_set_policy(policy, strlen(policy));
-	if (buf == NULL)
-		errx(1, "%s", ipsec_strerror());
-	if (setsockopt(socket, IPPROTO_IPV6, IPV6_IPSEC_POLICY, buf,
-	    ipsec_get_policylen(buf)) < 0)
-		warnx("Unable to set IPsec policy");
-	free(buf);
-
-	return 0;
-}
-#endif
-#endif
 
 static u_short
 get_node_address_flags(const struct options *const options)

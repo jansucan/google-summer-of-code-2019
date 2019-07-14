@@ -76,10 +76,6 @@ __FBSDID("$FreeBSD$");
 #include <netinet/ip_var.h>
 #include <arpa/inet.h>
 
-#ifdef IPSEC
-#include <netipsec/ipsec.h>
-#endif /*IPSEC*/
-
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
@@ -93,6 +89,7 @@ __FBSDID("$FreeBSD$");
 
 #include "cap.h"
 #include "defaults_limits.h"
+#include "ipsec.h"
 #include "ping.h"
 #include "timing.h"
 #include "utils.h"
@@ -300,34 +297,9 @@ ping(struct options *const options, cap_channel_t *const capdns)
 	if (options->f_so_dontroute)
 		(void)setsockopt(vars.ssend, SOL_SOCKET, SO_DONTROUTE, (char *)&hold,
 		    sizeof(hold));
-#ifdef IPSEC
-#ifdef IPSEC_POLICY_IPSEC
-	if (options->f_policy) {
-		char *buf;
-		if (options->s_policy_in != NULL) {
-			buf = ipsec_set_policy(options->s_policy_in, strlen(options->s_policy_in));
-			if (buf == NULL)
-				errx(EX_CONFIG, "%s", ipsec_strerror());
-			if (setsockopt(srecv, IPPROTO_IP, IP_IPSEC_POLICY,
-					buf, ipsec_get_policylen(buf)) < 0)
-				err(EX_CONFIG,
-				    "ipsec policy cannot be configured");
-			free(buf);
-		}
 
-		if (options->s_policy_out != NULL) {
-			buf = ipsec_set_policy(options->s_policy_out, strlen(options->s_policy_out));
-			if (buf == NULL)
-				errx(EX_CONFIG, "%s", ipsec_strerror());
-			if (setsockopt(vars.ssend, IPPROTO_IP, IP_IPSEC_POLICY,
-					buf, ipsec_get_policylen(buf)) < 0)
-				err(EX_CONFIG,
-				    "ipsec policy cannot be configured");
-			free(buf);
-		}
-	}
-#endif /*IPSEC_POLICY_IPSEC*/
-#endif /*IPSEC*/
+	if (!ipsec_configure(vars.ssend, srecv, options))
+		exit(1);
 
 	if (options->f_dont_fragment || options->f_tos) {
 		ip = (struct ip*)vars.outpackhdr;
