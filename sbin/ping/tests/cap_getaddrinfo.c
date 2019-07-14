@@ -48,12 +48,12 @@ cap_getaddrinfo(cap_channel_t *chan, const char *hostname,
 
         const static struct sockaddr_in sin = {
                 .sin_len = sizeof(struct sockaddr_in),
-                .sin_family = AF_INET,
+                .sin_family = AF_INET
         };
 #ifdef INET6
 	const static struct sockaddr_in6 sin6 = {
                 .sin6_len = sizeof(struct sockaddr_in6),
-                .sin6_family = AF_INET6,
+                .sin6_family = AF_INET6
         };
 #endif
         static struct addrinfo ai = {
