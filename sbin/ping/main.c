@@ -40,8 +40,10 @@ int
 main(int argc, char *argv[])
 {
 	struct options options;
+	cap_channel_t *capdns;
 
-	cap_channel_t *const capdns = capdns_setup();
+	if ((capdns = capdns_setup()) == NULL)
+		exit(1);
 
 	const int r = options_parse(argc, argv, &options, capdns);
 	if (r != EX_OK)

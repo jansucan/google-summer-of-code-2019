@@ -29,9 +29,11 @@
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
-#include <err.h>
+#include <errno.h>
+#include <string.h>
 
 #include "cap.h"
+#include "utils.h"
 
 cap_channel_t *
 capdns_setup(void)
@@ -41,39 +43,54 @@ capdns_setup(void)
 	const char *types[2];
 
 	capcas = cap_init();
-	if (capcas == NULL)
-		err(1, "unable to create casper process");
+	if (capcas == NULL) {
+		print_error("unable to create casper process: %s", strerror(errno));
+		return (NULL);
+	}
 	capdnsloc = cap_service_open(capcas, "system.dns");
 	/* Casper capability no longer needed. */
 	cap_close(capcas);
-	if (capdnsloc == NULL)
-		err(1, "unable to open system.dns service");
+	if (capdnsloc == NULL) {
+		print_error("unable to open system.dns service: %s", strerror(errno));
+		return (NULL);
+	}
 	types[0] = "NAME2ADDR";
 	types[1] = "ADDR2NAME";
-	if (cap_dns_type_limit(capdnsloc, types, 2) < 0)
-		err(1, "unable to limit access to system.dns service");
+	if (cap_dns_type_limit(capdnsloc, types, 2) < 0) {
+		print_error("unable to limit access to system.dns service: %s", strerror(errno));
+		return (NULL);
+	}
 
 	return (capdnsloc);
 }
 
-void
+bool
 capdns_limit_family(cap_channel_t *const capdns, int family)
 {
-	if (cap_dns_family_limit(capdns, &family, 1) < 0)
-		err(1, "unable to limit access to system.dns service");
+	if (cap_dns_family_limit(capdns, &family, 1) < 0) {
+		print_error("unable to limit access to system.dns service: %s", strerror(errno));
+		return (false);
+	}
+	return (true);
 }
 
-void
+bool
 capdns_limit_type(cap_channel_t *const capdns, const char *const type)
 {
-	if (cap_dns_type_limit(capdns, &type, 1) < 0)
-		err(1, "unable to limit access to system.dns service");
+	if (cap_dns_type_limit(capdns, &type, 1) < 0) {
+		print_error("unable to limit access to system.dns service: %s", strerror(errno));
+		return (false);
+	}
+	return (true);
 }
 
-void
+bool
 cap_enter_capability_mode(void)
 {
 	caph_cache_catpages();
-	if (caph_enter_casper() < 0)
-		err(1, "cap_enter");
+	if (caph_enter_casper() < 0) {
+		print_error("cap_enter: %s", strerror(errno));
+		return (false);
+	}
+	return (true);
 }

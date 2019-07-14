@@ -490,7 +490,9 @@ options_parse(int argc, char **argv, struct options *const options, cap_channel_
 	    (r = options_parse_hosts(argc, argv, options, capdns)) != EX_OK)
 		return (r);
 
-	capdns_limit_type(capdns, "ADDR2NAME");
+	if (!capdns_limit_type(capdns, "ADDR2NAME"))
+		return (1);
+
 	options_set_defaults_post_hosts(options);
 	return (options_check_post_hosts(options, capdns));
 }
@@ -853,7 +855,8 @@ options_parse_hosts(int argc, char **argv, struct options *const options, cap_ch
 	 * Now, when the target protocol family is known, the casper
 	 * DNS service can be limited.
 	 */
-	capdns_limit_family(capdns, options->target_addrinfo->ai_family);
+	if (!capdns_limit_family(capdns, options->target_addrinfo->ai_family))
+		return (1);
 
 	/* Everything else are IPv6 hops. */
 	--argc;

@@ -623,7 +623,8 @@ ping6(struct options *const options, cap_channel_t *const capdns)
 	 * namespaces (e.g filesystem) is restricted (see capsicum(4)).
 	 * We must connect(2) our socket before this point.
 	 */
-	cap_enter_capability_mode();
+	if (!cap_enter_capability_mode())
+		exit(1);
 
 	cap_rights_init(&rights, CAP_RECV, CAP_EVENT, CAP_SETSOCKOPT);
 	if (caph_rights_limit(vars.socket_recv, &rights) < 0)

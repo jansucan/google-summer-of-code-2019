@@ -38,9 +38,8 @@
 #include <capsicum_helpers.h>
 
 cap_channel_t *capdns_setup(void);
-/* TODO: Do not exit program in these functions. Use return value. */
-void capdns_limit_family(cap_channel_t *const capdns, int family);
-void capdns_limit_type(cap_channel_t *const capdns, const char *const type);
-void cap_enter_capability_mode(void);
+bool capdns_limit_family(cap_channel_t *const capdns, int family);
+bool capdns_limit_type(cap_channel_t *const capdns, const char *const type);
+bool cap_enter_capability_mode(void);
 
 #endif
