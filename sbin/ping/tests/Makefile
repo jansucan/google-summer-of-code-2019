@@ -10,14 +10,14 @@ ${PACKAGE}FILES+=       ping_c3.out ping6_c3.out
 
 ATF_TESTS_C=	options_test options_hops_target_test options_source_test
 
-SRCS.options_test=	options_test.c ../cap.c ../options.c
-SRCS.options_hops_target_test=	options_hops_target_test.c cap_getaddrinfo.c ../cap.c ../options.c
-SRCS.options_source_test=	options_source_test.c cap_getaddrinfo.c ../cap.c ../options.c
+SRCS.options_test=	options_test.c ../cap.c ../options.c ../utils.c
+SRCS.options_hops_target_test=	options_hops_target_test.c cap_getaddrinfo.c ../cap.c ../options.c ../utils.c
+SRCS.options_source_test=	options_source_test.c cap_getaddrinfo.c ../cap.c ../options.c ../utils.c
 
 .if ${MK_INET6_SUPPORT} != "no"
 CFLAGS+= -DINET6 -DKAME_SCOPEID
 ATF_TESTS_C+=	options_gateway_test
-SRCS.options_gateway_test=	options_gateway_test.c cap_getaddrinfo.c ../cap.c ../options.c
+SRCS.options_gateway_test=	options_gateway_test.c cap_getaddrinfo.c ../cap.c ../options.c ../utils.c
 LIBADD+=	md
 .endif
 

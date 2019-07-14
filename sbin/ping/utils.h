@@ -50,6 +50,7 @@
 #define CHAR_DOT     '.'
 
 void fill(char *const bp, size_t bp_size, const struct options *const options);
+void print_error(const char *const fmt, ...);
 void print_fill_pattern(const char *const bp, size_t pattern_size);
 void write_char(int fd, char c);
 

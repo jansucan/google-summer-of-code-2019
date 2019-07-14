@@ -52,6 +52,7 @@ __FBSDID("$FreeBSD$");
 
 #include "options.h"
 #include "defaults_limits.h"
+#include "utils.h"
 
 #define OPTIONS_STRTONUM_ERRBUF_SIZE 72
 
@@ -90,7 +91,6 @@ static bool options_has_ipv6_only(const struct options *const options);
 #endif
 static int  options_parse_hosts(int argc, char **argv, struct options *const options,
     cap_channel_t *const capdns);
-static void options_print_error(const char *const fmt, ...);
 static void options_set_defaults_post_hosts(struct options *const options);
 static void options_set_defaults_pre_hosts(struct options *const options);
 static bool options_strtod(const char *const str, double *const val);
@@ -146,7 +146,7 @@ options_parse(int argc, char **argv, struct options *const options, cap_channel_
 		case 'c':
 			options->n_packets = options_strtonum(optarg, 1, LONG_MAX, errbuf);
 			if (errbuf[0] != '\0') {
-				options_print_error("invalid count of packets to transmit: `%s': %s",
+				print_error("invalid count of packets to transmit: `%s': %s",
 				    optarg, errbuf);
 				return (EX_USAGE);
 			}
@@ -173,7 +173,7 @@ options_parse(int argc, char **argv, struct options *const options, cap_channel_
 			 * fractional.
 			 */
 			if (!options_strtod(optarg, &dbl) || (dbl <= 0)) {
-				options_print_error("invalid timing interval: `%s'", optarg);
+				print_error("invalid timing interval: `%s'", optarg);
 				return (EX_USAGE);
 			}
 			/* 1 second = 1000 ms = 1000 * 1000 microseconds */
@@ -184,7 +184,7 @@ options_parse(int argc, char **argv, struct options *const options, cap_channel_
 		case 'l':
 			options->n_preload = options_strtonum(optarg, 0, INT_MAX, errbuf);
 			if (errbuf[0] != '\0') {
-				options_print_error("invalid preload value: `%s': %s", optarg, errbuf);
+				print_error("invalid preload value: `%s': %s", optarg, errbuf);
 				return (EX_USAGE);
 			}
 			options->f_preload = true;
@@ -198,7 +198,7 @@ options_parse(int argc, char **argv, struct options *const options, cap_channel_
 		case 'p':
 			for (const char *cp = optarg; *cp; cp++) {
 				if (!isxdigit(*cp)) {
-					options_print_error("patterns must be specified as hex digits");
+					print_error("patterns must be specified as hex digits");
 					return (EX_USAGE);
 				}
 			}
@@ -219,7 +219,7 @@ options_parse(int argc, char **argv, struct options *const options, cap_channel_
 			break;
 		case 'S':
 			if (strlcpy(options->s_source, optarg, MAXHOSTNAMELEN) >= MAXHOSTNAMELEN) {
-				options_print_error("source is longer than %d chars", MAXHOSTNAMELEN - 1);
+				print_error("source is longer than %d chars", MAXHOSTNAMELEN - 1);
 				return (EX_USAGE);
 			}
 			options->f_source = true;
@@ -227,7 +227,7 @@ options_parse(int argc, char **argv, struct options *const options, cap_channel_
 		case 's':
 			options->n_packet_size = options_strtonum(optarg, 1, LONG_MAX, errbuf);
 			if (errbuf[0] != '\0') {
-				options_print_error("invalid packet size: `%s': %s", optarg, errbuf);
+				print_error("invalid packet size: `%s': %s", optarg, errbuf);
 				return (EX_USAGE);
 			}
 			options->f_packet_size = true;
@@ -236,7 +236,7 @@ options_parse(int argc, char **argv, struct options *const options, cap_channel_
 			/* The other fields of n_timeout has been set to 0. */
 			options->n_timeout.it_value.tv_sec = options_strtonum(optarg, 1, MAX_TIMEOUT, errbuf);
 			if (errbuf[0] != '\0') {
-				options_print_error("invalid timeout: `%s': %s", optarg, errbuf);
+				print_error("invalid timeout: `%s': %s", optarg, errbuf);
 				return (EX_USAGE);
 			}
 			options->f_timeout = true;
@@ -248,7 +248,7 @@ options_parse(int argc, char **argv, struct options *const options, cap_channel_
 			/* TODO: with 0 no packet will be printed */
 			options->n_wait_time = options_strtonum(optarg, 0, INT_MAX, errbuf);
 			if (errbuf[0] != '\0') {
-				options_print_error("invalid timing interval: `%s': %s", optarg, errbuf);
+				print_error("invalid timing interval: `%s': %s", optarg, errbuf);
 				return (EX_USAGE);
 			}
 			options->f_wait_time = true;
@@ -260,7 +260,7 @@ options_parse(int argc, char **argv, struct options *const options, cap_channel_
 		case 'G':
 			options->n_sweep_max = options_strtonum(optarg, 1, INT_MAX, errbuf);
 			if (errbuf[0] != '\0') {
-				options_print_error("invalid packet size: `%s': %s", optarg, errbuf);
+				print_error("invalid packet size: `%s': %s", optarg, errbuf);
 				return (EX_USAGE);
 			}
 			options->f_sweep_max = true;
@@ -268,7 +268,7 @@ options_parse(int argc, char **argv, struct options *const options, cap_channel_
 		case 'g':
 			options->n_sweep_min = options_strtonum(optarg, 1, INT_MAX, errbuf);
 			if (errbuf[0] != '\0') {
-				options_print_error("invalid packet size: `%s': %s", optarg, errbuf);
+				print_error("invalid packet size: `%s': %s", optarg, errbuf);
 				return (EX_USAGE);
 			}
 			options->f_sweep_min = true;
@@ -276,7 +276,7 @@ options_parse(int argc, char **argv, struct options *const options, cap_channel_
 		case 'h':
 			options->n_sweep_incr = options_strtonum(optarg, 1, INT_MAX, errbuf);
 			if (errbuf[0] != '\0') {
-				options_print_error("invalid increment size: `%s': %s", optarg, errbuf);
+				print_error("invalid increment size: `%s': %s", optarg, errbuf);
 				return (EX_USAGE);
 			}
 			options->f_sweep_incr = true;
@@ -295,14 +295,14 @@ options_parse(int argc, char **argv, struct options *const options, cap_channel_
 				options->f_time = true;
 				break;
 			default:
-				options_print_error("invalid message: `%c'", optarg[0]);
+				print_error("invalid message: `%c'", optarg[0]);
 				return (EX_USAGE);
 			}
 			break;
 		case 'm':
 			options->n_ttl = options_strtonum(optarg, 0, MAXTTL, errbuf);
 			if (errbuf[0] != '\0') {
-				options_print_error("invalid TTL: `%s': %s", optarg, errbuf);
+				print_error("invalid TTL: `%s': %s", optarg, errbuf);
 				return (EX_USAGE);
 			}
 			options->f_ttl = true;
@@ -319,7 +319,7 @@ options_parse(int argc, char **argv, struct options *const options, cap_channel_
 		case 'T':
 			options->n_multicast_ttl = options_strtonum(optarg, 0, MAXTTL, errbuf);
 			if (errbuf[0] != '\0') {
-				options_print_error("invalid multicast TTL: `%s': %s", optarg, errbuf);
+				print_error("invalid multicast TTL: `%s': %s", optarg, errbuf);
 				return (EX_USAGE);
 			}
 			options->f_multicast_ttl = true;
@@ -327,7 +327,7 @@ options_parse(int argc, char **argv, struct options *const options, cap_channel_
 		case 'z':
 			options->n_tos = options_strtonum(optarg, 0, MAX_TOS, errbuf);
 			if (errbuf[0] != '\0') {
-				options_print_error("invalid TOS: `%s': %s", optarg, errbuf);
+				print_error("invalid TOS: `%s': %s", optarg, errbuf);
 				return (EX_USAGE);
 			}
 			options->f_tos = true;
@@ -341,12 +341,12 @@ options_parse(int argc, char **argv, struct options *const options, cap_channel_
 #if defined(SO_SNDBUF) && defined(SO_RCVBUF)
 			options->n_sock_buff_size = options_strtonum(optarg, 0, INT_MAX, errbuf);
 			if (errbuf[0] != '\0') {
-				options_print_error("invalid socket buffer size: `%s': %s", optarg, errbuf);
+				print_error("invalid socket buffer size: `%s': %s", optarg, errbuf);
 				return (EX_USAGE);
 			}
 			options->f_sock_buff_size = true;
 #else
-			options_print_error("-b option ignored: SO_SNDBUF/SO_RCVBUF socket options not supported");
+			print_error("-b option ignored: SO_SNDBUF/SO_RCVBUF socket options not supported");
 			return (EX_USAGE);
 #endif
 			break;
@@ -356,7 +356,7 @@ options_parse(int argc, char **argv, struct options *const options, cap_channel_
 		case 'j':
 			options->n_hoplimit = options_strtonum(optarg, 0, MAX_HOPLIMIT, errbuf);
 			if (errbuf[0] != '\0') {
-				options_print_error("illegal hoplimit %s: %s", optarg, errbuf);
+				print_error("illegal hoplimit %s: %s", optarg, errbuf);
 				return (EX_USAGE);
 			}
 			options->f_hoplimit = true;
@@ -388,7 +388,7 @@ options_parse(int argc, char **argv, struct options *const options, cap_channel_
 					options->f_nodeaddr_flag_anycast = true;
 					break;
 #else
-					options_print_error("-k A is not supported on the platform");
+					print_error("-k A is not supported on the platform");
 					return (EX_USAGE);
 #endif
 				default:
@@ -411,7 +411,7 @@ options_parse(int argc, char **argv, struct options *const options, cap_channel_
 #ifdef IPV6_USE_MIN_MTU
 			options->c_use_min_mtu++;
 #else
-			options_print_error("-u is not supported on this platform");
+			print_error("-u is not supported on this platform");
 			return (EX_USAGE);
 #endif
 			break;
@@ -445,7 +445,7 @@ options_parse(int argc, char **argv, struct options *const options, cap_channel_
 					 */
 					free(options->s_policy_in);
 				if ((options->s_policy_in = strdup(optarg)) == NULL) {
-					options_print_error("strdup");
+					print_error("strdup");
 					return (EX_OSERR);
 				}
 			} else if (!strncmp("out", optarg, 3)) {
@@ -457,11 +457,11 @@ options_parse(int argc, char **argv, struct options *const options, cap_channel_
 					 */
 					free(options->s_policy_out);
 				if ((options->s_policy_out = strdup(optarg)) == NULL) {
-					options_print_error("strdup");
+					print_error("strdup");
 					return (EX_OSERR);
 				}
 			} else {
-				options_print_error("invalid security policy");
+				print_error("invalid security policy");
 				return (EX_USAGE);
 			}
 			options->f_policy = true;
@@ -549,7 +549,7 @@ options_check_post_hosts(struct options *const options, cap_channel_t *const cap
 		}
 #ifdef INET6
 		else if (options->n_packet_size > MAXDATALEN) {
-			options_print_error("datalen value too large, maximum is %d", MAXDATALEN);
+			print_error("datalen value too large, maximum is %d", MAXDATALEN);
 			return (EX_USAGE);
 		}
 #endif
@@ -573,10 +573,10 @@ options_check_pre_hosts(struct options *const options, cap_channel_t *const capd
 	}
 
 	if (options->f_protocol_ipv6 && options_has_ipv4_only(options)) {
-		options_print_error("IPv6 requested but IPv4 option provided");
+		print_error("IPv6 requested but IPv4 option provided");
 		return (EX_USAGE);
 	} else if (options->f_protocol_ipv4 && options_has_ipv6_only(options)) {
-		options_print_error("IPv4 requested but IPv6 option provided");
+		print_error("IPv4 requested but IPv6 option provided");
 		return (EX_USAGE);
 	}
 
@@ -606,16 +606,16 @@ options_check_pre_hosts(struct options *const options, cap_channel_t *const capd
 	 * Check options common to both IPv4 and IPv6 targets.
 	 */
 	if (options->f_flood && options->f_interval) {
-		options_print_error("-f and -i are incompatible options");
+		print_error("-f and -i are incompatible options");
 		return (EX_USAGE);
 	}
 	if (options->f_flood && (getuid() != 0)) {
-		options_print_error("Must be superuser to flood ping");
+		print_error("Must be superuser to flood ping");
 		return (EX_NOPERM);
 	}
 	/* Check interval between sending each packet. */
 	if ((getuid() != 0) && (options->n_interval.tv_sec < 1)) {
-		options_print_error("only root may use interval < 1s");
+		print_error("only root may use interval < 1s");
 		return (EX_NOPERM);
 	}
 	/* The interval less than 1 microsecond does not make sense. */
@@ -628,21 +628,21 @@ options_check_pre_hosts(struct options *const options, cap_channel_t *const capd
 	 * Check options only for IPv4 target.
 	 */
 	if (options->f_mask && options->f_time) {
-		options_print_error("ICMP_TSTAMP and ICMP_MASKREQ are exclusive");
+		print_error("ICMP_TSTAMP and ICMP_MASKREQ are exclusive");
 		return (EX_USAGE);
 	}
 	if ((options->f_sweep_max || options->f_sweep_min || options->f_sweep_incr) &&
 	    (options->n_sweep_max == 0)) {
-		options_print_error("Maximum sweep size must be specified");
+		print_error("Maximum sweep size must be specified");
 		return (EX_USAGE);
 	}
 	if (options->f_sweep_max) {
 		if (options->n_sweep_min > options->n_sweep_max) {
-			options_print_error("Maximum packet size must be no less than the minimum packet size");
+			print_error("Maximum packet size must be no less than the minimum packet size");
 			return (EX_USAGE);
 		}
 		if (options->f_packet_size) {
-			options_print_error("Packet size and ping sweep are mutually exclusive");
+			print_error("Packet size and ping sweep are mutually exclusive");
 			return (EX_USAGE);
 		}
 		const int r = options_check_packet_size(options->n_sweep_max, DEFAULT_DATALEN_IPV4);
@@ -662,7 +662,7 @@ options_check_pre_hosts(struct options *const options, cap_channel_t *const capd
 
 	if (options->f_preload) {
 		if (getuid() != 0) {
-			options_print_error("Must be superuser to preload");
+			print_error("Must be superuser to preload");
 			return (EX_NOPERM);
 		}
 	}
@@ -675,7 +675,7 @@ static int
 options_check_packet_size(long size, long max_size)
 {
 	if ((getuid() != 0) && (size > max_size)) {
-		options_print_error("packet size too large: %d > %u", size, max_size);
+		print_error("packet size too large: %d > %u", size, max_size);
 		return (EX_NOPERM);
 	}
 	return (EX_OK);
@@ -691,13 +691,13 @@ options_get_target_type(struct options *const options, bool *const is_hostname, 
 	int r6_pton = 0;
 #endif
 	if ((r_pton = inet_pton(AF_INET, options->target, &a)) == -1) {
-		options_print_error("inet_pton: %s", strerror(errno));
+		print_error("inet_pton: %s", strerror(errno));
 		return EX_OSERR;
 	}
 #ifdef INET6
 	else if (r_pton == 0) {
 		if ((r6_pton = inet_pton(AF_INET6, options->target, &a6)) == -1) {
-			options_print_error("inet_pton: %s", strerror(errno));
+			print_error("inet_pton: %s", strerror(errno));
 			return EX_OSERR;
 		}
 	}
@@ -754,28 +754,28 @@ options_get_target_type(struct options *const options, bool *const is_hostname, 
 	if (options->f_protocol_ipv4) {
 #ifdef INET6
 		if (r6_pton == 1) {
-			options_print_error("IPv4 requested but IPv6 target address provided");
+			print_error("IPv4 requested but IPv6 target address provided");
 			return (EX_USAGE);
 		} else
 #endif
 		if (ai_ipv4 == NULL) {
-			options_print_error("IPv4 requested but no IPv4 address associated with that hostname");
+			print_error("IPv4 requested but no IPv4 address associated with that hostname");
 			return (EX_USAGE);
 		}
 	}
 #ifdef INET6
 	else if (options->f_protocol_ipv6) {
 		if (r_pton == 1) {
-			options_print_error("IPv6 requested but IPv4 target address provided");
+			print_error("IPv6 requested but IPv4 target address provided");
 			return (EX_USAGE);
 		} else if (ai_ipv6 == NULL) {
-			options_print_error("IPv6 requested but no IPv6 address associated with that hostname");
+			print_error("IPv6 requested but no IPv6 address associated with that hostname");
 			return (EX_USAGE);
 		}
 	}
 #endif
 	else if (ai_first == NULL) {
-		options_print_error("no IPv4 or IPv6 address was resolved");
+		print_error("no IPv4 or IPv6 address was resolved");
 		return (EX_NOHOST);
 	}
 
@@ -808,7 +808,7 @@ options_getaddrinfo(const char *const hostname, const struct addrinfo *const hin
 	const int r = cap_getaddrinfo(capdns, hostname, NULL, hints, res);
 
 	if (r != 0)
-		options_print_error("getaddrinfo for `%s': %s", hostname, gai_strerror(r));
+		print_error("getaddrinfo for `%s': %s", hostname, gai_strerror(r));
 
 	if (r == 0)
 		return (EX_OK);
@@ -830,7 +830,7 @@ options_parse_hosts(int argc, char **argv, struct options *const options, cap_ch
 	}
 
 	if (strlcpy(options->target, argv[argc - 1], MAXHOSTNAMELEN) >= MAXHOSTNAMELEN) {
-		options_print_error("target is longer than %d chars", MAXHOSTNAMELEN - 1);
+		print_error("target is longer than %d chars", MAXHOSTNAMELEN - 1);
 		return (EX_USAGE);
 	}
 #ifdef INET6
@@ -845,7 +845,7 @@ options_parse_hosts(int argc, char **argv, struct options *const options, cap_ch
 		return (r);
 
 	if (options->target_type == TARGET_UNKNOWN) {
-		options_print_error("invalid ping target: `%s'", options->target);
+		print_error("invalid ping target: `%s'", options->target);
 		return (EX_USAGE);
 	}
 
@@ -880,7 +880,7 @@ options_parse_hosts(int argc, char **argv, struct options *const options, cap_ch
 				return (r);
 
 			if (options->hops_addrinfo[i]->ai_addr->sa_family != AF_INET6) {
-				options_print_error("bad addr family of an intermediate addr");
+				print_error("bad addr family of an intermediate addr");
 				return (EX_USAGE);
 			}
 
@@ -897,25 +897,12 @@ options_parse_hosts(int argc, char **argv, struct options *const options, cap_ch
 	    ((options->target_type != TARGET_IPV4) || is_hostname) &&
 	    (strlcpy(options->target, options->target_addrinfo->ai_canonname, MAXHOSTNAMELEN) >=
 		MAXHOSTNAMELEN)) {
-		options_print_error("canonical name for target is longer than %d chars",
+		print_error("canonical name for target is longer than %d chars",
 		    MAXHOSTNAMELEN - 1);
 		return (EX_USAGE);
 	}
 
 	return (EX_OK);
-}
-
-static void
-options_print_error(const char *const fmt, ...)
-{
-	va_list ap;
-
-	fprintf(stderr, "ping: ");
-	va_start(ap, fmt);
-	vfprintf(stderr, fmt, ap);
-	va_end(ap);
-	fprintf(stderr, "\n");
-	fflush(stderr);
 }
 
 /*

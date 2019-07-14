@@ -44,6 +44,19 @@ fill(char *const bp, size_t bp_size, const struct options *const options)
 }
 
 void
+print_error(const char *const fmt, ...)
+{
+	va_list ap;
+
+	fprintf(stderr, "ping: ");
+	va_start(ap, fmt);
+	vfprintf(stderr, fmt, ap);
+	va_end(ap);
+	fprintf(stderr, "\n");
+	fflush(stderr);
+}
+
+void
 print_fill_pattern(const char *const bp, size_t pattern_size)
 {
 	(void)printf("PATTERN: 0x");
