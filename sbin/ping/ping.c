@@ -137,6 +137,7 @@ static u_short in_cksum(u_short *, int);
 static void check_status(const struct counters *const, const struct timing *const);
 static void finish(const struct shared_variables *const, const struct counters *const,
     const struct timing *const, const char *const) __dead2;
+static bool is_packet_too_short(const char *const, size_t, const struct sockaddr_in *const, bool);
 static void pinger(const struct options *const, struct shared_variables *const,
     struct counters *const, struct timing *const);
 static char *pr_addr(struct in_addr, cap_channel_t *const, bool);
@@ -552,7 +553,8 @@ ping(struct options *const options, cap_channel_t *const capdns)
 				(void)gettimeofday(&now, NULL);
 				tv = &now;
 			}
-			pr_pack((char *)packet, cc, &from, tv, options, &vars, &counters, &timing);
+			if (!is_packet_too_short((char *)packet, cc, &from, options->f_verbose))
+				pr_pack((char *)packet, cc, &from, tv, options, &vars, &counters, &timing);
 			if ((options->f_once && counters.received) ||
 			    (options->n_packets && counters.received >= options->n_packets))
 				break;
@@ -692,6 +694,25 @@ pinger(const struct options *const options, struct shared_variables *const vars,
 		write_char(STDOUT_FILENO, CHAR_DOT);
 }
 
+static bool
+is_packet_too_short(const char *const buf, size_t bufsize,
+    const struct sockaddr_in *const from, bool verbose)
+{
+	struct ip *ip;
+	size_t hlen;
+
+	ip = (struct ip *)buf;
+	hlen = ip->ip_hl << 2;
+
+	if (bufsize < (hlen + ICMP_MINLEN))  {
+		if (verbose)
+			warn("packet too short (%zu bytes) from %s", bufsize,
+			    inet_ntoa(from->sin_addr));
+		return (true);
+	}
+	return (false);
+}
+
 /*
  * pr_pack --
  *	Print out the packet, if it came from us.  This logic is necessary
@@ -714,16 +735,9 @@ pr_pack(char *buf, int cc, struct sockaddr_in *from, struct timeval *tv,
 	static int old_rrlen;
 	static char old_rr[MAX_IPOPTLEN];
 
-	/* Check the IP header */
 	ip = (struct ip *)buf;
 	hlen = ip->ip_hl << 2;
 	recv_len = cc;
-	if (cc < hlen + ICMP_MINLEN) {
-		if (options->f_verbose)
-			warn("packet too short (%d bytes) from %s", cc,
-			     inet_ntoa(from->sin_addr));
-		return;
-	}
 
 	/* Now the ICMP part */
 	cc -= hlen;
