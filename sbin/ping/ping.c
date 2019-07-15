@@ -145,6 +145,7 @@ static void pinger(const struct options *const, struct shared_variables *const,
     struct counters *const, const struct timing *const);
 static char *pr_addr(struct in_addr, cap_channel_t *const, bool);
 static char *pr_ntime(n_time);
+static void pr_heading(const struct sockaddr_in *const, const struct options *const);
 static void pr_icmph(struct icmp *);
 static void pr_iph(struct ip *);
 static void pr_pack(const char *const, int, const struct sockaddr_in *const,
@@ -438,24 +439,7 @@ ping(struct options *const options, cap_channel_t *const capdns)
 	if (caph_rights_limit(vars.ssend, &rights) < 0)
 		err(1, "cap_rights_limit ssend setsockopt");
 
-	if (vars.target_sockaddr->sin_family == AF_INET) {
-		(void)printf("PING %s (%s)", options->target,
-		    inet_ntoa(vars.target_sockaddr->sin_addr));
-		if (options->f_source)
-			(void)printf(" from %s", options->s_source);
-		if (options->n_sweep_max)
-			(void)printf(": (%d ... %d) data bytes\n",
-			    options->n_sweep_min, options->n_sweep_max);
-		else
-			(void)printf(": %ld data bytes\n", options->n_packet_size);
-
-	} else {
-		if (options->n_sweep_max)
-			(void)printf("PING %s: (%d ... %d) data bytes\n",
-			    options->target, options->n_sweep_min, options->n_sweep_max);
-		else
-			(void)printf("PING %s: %ld data bytes\n", options->target, options->n_packet_size);
-	}
+	pr_heading(vars.target_sockaddr, options);
 
 	/*
 	 * Use sigaction() instead of signal() to get unambiguous semantics,
@@ -1210,6 +1194,31 @@ static char *ttab[] = {
 	"Info Reply"		/* " */
 };
 #endif
+
+static void
+pr_heading(const struct sockaddr_in *const target_sockaddr,
+    const struct options *const options)
+{
+	if (target_sockaddr->sin_family == AF_INET) {
+		(void)printf("PING %s (%s)", options->target,
+		    inet_ntoa(target_sockaddr->sin_addr));
+		if (options->f_source)
+			(void)printf(" from %s", options->s_source);
+		if (options->n_sweep_max)
+			(void)printf(": (%d ... %d) data bytes\n",
+			    options->n_sweep_min, options->n_sweep_max);
+		else
+			(void)printf(": %ld data bytes\n", options->n_packet_size);
+
+	} else {
+		if (options->n_sweep_max)
+			(void)printf("PING %s: (%d ... %d) data bytes\n",
+			    options->target, options->n_sweep_min, options->n_sweep_max);
+		else
+			(void)printf("PING %s: %ld data bytes\n", options->target, options->n_packet_size);
+	}
+}
+
 
 /*
  * pr_icmph --
