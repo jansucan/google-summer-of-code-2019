@@ -35,7 +35,7 @@ __FBSDID("$FreeBSD$");
 #include "cap_getaddrinfo.h"
 #include "test_argc_argv.h"
 
-#include "../options.h"
+#include "../../options.h"
 
 /*
  * Global variables.

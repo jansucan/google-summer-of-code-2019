@@ -35,7 +35,7 @@ __FBSDID("$FreeBSD$");
 #include "cap_getaddrinfo.h"
 #include "test_argc_argv.h"
 
-#include "../options.h"
+#include "../../options.h"
 
 /*
  * Global variables.
@@ -48,44 +48,29 @@ static struct options options;
  * Test cases.
  */
 
-ATF_TC_WITHOUT_HEAD(option_source);
-ATF_TC_BODY(option_source, tc)
+ATF_TC_WITHOUT_HEAD(option_gateway);
+ATF_TC_BODY(option_gateway, tc)
 {
 	{
-		ARGC_ARGV("-S", "host_unknown", "host_ipv4");
+		ARGC_ARGV("-e", "host_unknown", "host_ipv6");
 		capdns = capdns_setup();
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_NOHOST);
 		cap_close(capdns);
 	}
 	{
-		ARGC_ARGV("-S", "host_ipv4", "host_ipv4");
-		options.s_source[0] = '\0';
-		options.source_sockaddr.in.sin_family = 0;
-		options.source_sockaddr.in6.sin6_len = 0;
+		ARGC_ARGV("-e", "host_ipv6", "host_ipv6");
+		options.s_gateway = NULL;
+		options.gateway_sockaddr_in6.sin6_family = 0;
+		options.gateway_sockaddr_in6.sin6_len = 0;
 		capdns = capdns_setup();
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
-		ATF_REQUIRE_STREQ("host_ipv4", options.s_source);
-		ATF_REQUIRE(options.source_sockaddr.in.sin_family == AF_INET);
-		ATF_REQUIRE(options.source_sockaddr.in.sin_len == sizeof(struct sockaddr_in));
+		ATF_REQUIRE_STREQ("host_ipv6", options.s_gateway);
+		ATF_REQUIRE(options.gateway_sockaddr_in6.sin6_family == AF_INET6);
+		ATF_REQUIRE(options.gateway_sockaddr_in6.sin6_len == sizeof(struct sockaddr_in6));
 		cap_close(capdns);
 	}
-#ifdef INET6
-	{
-		ARGC_ARGV("-S", "host_ipv6", "host_ipv6");
-		options.s_source[0] = '\0';
-		options.source_sockaddr.in6.sin6_family = 0;
-		options.source_sockaddr.in6.sin6_len = 0;
-		capdns = capdns_setup();
-
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
-		ATF_REQUIRE_STREQ("host_ipv6", options.s_source);
-		ATF_REQUIRE(options.source_sockaddr.in6.sin6_family == AF_INET6);
-		ATF_REQUIRE(options.source_sockaddr.in6.sin6_len == sizeof(struct sockaddr_in6));
-		cap_close(capdns);
-	}
-#endif	/* INET6 */
 }
 
 /*
@@ -94,7 +79,7 @@ ATF_TC_BODY(option_source, tc)
 
 ATF_TP_ADD_TCS(tp)
 {
-	ATF_TP_ADD_TC(tp, option_source);
+	ATF_TP_ADD_TC(tp, option_gateway);
 
 	return (atf_no_error());
 }

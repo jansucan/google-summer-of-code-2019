@@ -46,8 +46,8 @@ __FBSDID("$FreeBSD$");
 
 #include "test_argc_argv.h"
 
-#include "../options.h"
-#include "../defaults_limits.h"
+#include "../../options.h"
+#include "../../defaults_limits.h"
 
 /*
  * Max. allowed difference in microseconds used for checking the
