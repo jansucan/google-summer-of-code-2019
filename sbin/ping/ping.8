@@ -193,12 +193,18 @@ Only the super-user may use this option.
 .Bf -emphasis
 This can be very hard on a network and should be used with caution.
 .Ef
-.It Fl I Ar interface
-Source packets with the given interface address.
-This flag applies if the ping destination is a multicast address.
+.It Fl I Ar iface
+For IPv4 target,
+.Ar iface
+is an IP address indentifying an interface from which the packets will
+be sent. This flag applies only if the ping target is a multicast
+address.
 .Pp
-For IPv6 target, the address can be also a link-local/site-local
-unicast address.
+For IPv6 target,
+.Ar iface
+is a name of an interface (e.g. `em0') from which the packets will be
+sent. This flag applies if the ping target is a multicast address, or
+link- local/site-local unicast address.
 .It Fl i Ar wait
 Wait
 .Ar wait
