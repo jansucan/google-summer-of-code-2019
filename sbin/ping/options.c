@@ -162,10 +162,11 @@ options_parse(int argc, char **argv, struct options *const options, cap_channel_
 			options->f_flood = true;
 			break;
 		case 'I':
-			options->s_interface = optarg;
-#if !defined(INET6) || !defined(USE_SIN6_SCOPE_ID)
-			options->f_interface = true;
+#if defined(INET6) && !defined(USE_SIN6_SCOPE_ID)
+			options->f_interface_use_pktinfo = true;
 #endif
+			options->f_interface = true;
+			options->s_interface = optarg;
 			break;
 		case 'i':
 			/*
@@ -504,9 +505,37 @@ options_parse(int argc, char **argv, struct options *const options, cap_channel_
 static int
 options_check_post_hosts(struct options *const options, cap_channel_t *const capdns)
 {
+	const struct sockaddr_in * target_sockaddr;
+	bool is_ipv4_unicast_addr;
+
+	target_sockaddr = (struct sockaddr_in *) options->target_addrinfo->ai_addr;
+	is_ipv4_unicast_addr = !IN_MULTICAST(ntohl(target_sockaddr->sin_addr.s_addr));
+
 	/*
 	 * Check options common to both IPv4 and IPv6 targets.
 	 */
+	if (options->f_interface) {
+		if (options->target_type == TARGET_IPV4) {
+			if (inet_aton(options->s_interface, &options->interface.ifaddr) == 0) {
+				print_error("IPv4 target: invalid multicast interface address: `%s'",
+				    options->s_interface);
+				return (EX_USAGE);
+			}
+			if (options->f_interface && is_ipv4_unicast_addr) {
+				print_error("IPv4 target: -I flag cannot be used with unicast destination");
+				return (EX_USAGE);
+			}
+		}
+#ifdef INET6
+		else {
+			if ((options->interface.index = if_nametoindex(options->s_interface)) == 0) {
+				print_error("IPv6 target: invalid interface name: `%s'", options->s_interface);
+				return (EX_USAGE);
+			}
+		}
+#endif
+	}
+
 	if (options->f_source) {
 		struct addrinfo hints, *res;
 
@@ -555,6 +584,19 @@ options_check_post_hosts(struct options *const options, cap_channel_t *const cap
 			return (EX_USAGE);
 		}
 #endif
+	}
+
+	/*
+	 * Check options only for IPv4 target.
+	 */
+	if (options->f_no_loop && is_ipv4_unicast_addr) {
+		print_error("-L flag cannot be used with unicast destination");
+		return (EX_USAGE);
+	}
+
+	if (options->f_multicast_ttl && is_ipv4_unicast_addr) {
+		print_error("-T flag cannot be used with unicast destination");
+		return (EX_USAGE);
 	}
 
 	return (EX_OK);

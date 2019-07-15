@@ -163,7 +163,6 @@ void
 ping(struct options *const options, cap_channel_t *const capdns)
 {
 	struct sockaddr_in from;
-	struct in_addr ifaddr;
 	struct timeval last;
 	struct iovec iov;
 	struct ip *ip;
@@ -234,9 +233,6 @@ ping(struct options *const options, cap_channel_t *const capdns)
 		if (setitimer(ITIMER_REAL, &(options->n_timeout), NULL) != 0)
 			err(EX_OSERR, "cannot set the timeout");
 
-	if ((options->f_interface) && (inet_aton(options->s_interface, &ifaddr) == 0))
-		errx(EX_USAGE, "invalid multicast interface: `%s'", options->s_interface);
-
 	if (options->f_mask) {
 		vars.icmp_type = ICMP_MASKREQ;
 		vars.icmp_type_rsp = ICMP_MASKREPLY;
@@ -278,14 +274,10 @@ ping(struct options *const options, cap_channel_t *const capdns)
 	if (connect(vars.ssend, (struct sockaddr *) vars.target_sockaddr,
 		sizeof(*vars.target_sockaddr)) != 0)
 		err(1, "connect");
-
+	/* TODO: move to options.c */
 	if (options->f_flood && IN_MULTICAST(ntohl(vars.target_sockaddr->sin_addr.s_addr)))
 		errx(EX_USAGE,
 		    "-f flag cannot be used with multicast destination");
-	if ((options->f_interface || options->f_no_loop || options->f_multicast_ttl)
-	    && !IN_MULTICAST(ntohl(vars.target_sockaddr->sin_addr.s_addr)))
-		errx(EX_USAGE,
-		    "-I, -L, -T flags cannot be used with unicast destination");
 
 	if (options->n_packet_size >= TIMEVAL_LEN)	/* can we time transfer */
 		timing.enabled = true;
@@ -391,8 +383,8 @@ ping(struct options *const options, cap_channel_t *const capdns)
 		}
 	}
 	if (options->f_interface) {
-		if (setsockopt(vars.ssend, IPPROTO_IP, IP_MULTICAST_IF, &ifaddr,
-		    sizeof(ifaddr)) < 0) {
+		if (setsockopt(vars.ssend, IPPROTO_IP, IP_MULTICAST_IF, &options->interface.ifaddr,
+		    sizeof(options->interface.ifaddr)) < 0) {
 			err(EX_OSERR, "setsockopt IP_MULTICAST_IF");
 		}
 	}

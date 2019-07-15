@@ -31,12 +31,16 @@ __FBSDID("$FreeBSD$");
 
 #include <sys/socket.h>
 
+#include <arpa/inet.h>
 #include <netinet/in.h>
 
 #include <atf-c.h>
 #include <string.h>
 
 #include "cap_getaddrinfo.h"
+
+#define	IP_ADDR_UNICAST		"1.2.3.4"
+#define	IP_ADDR_MULTICAST	"224.0.0.0"
 
 int
 cap_getaddrinfo(cap_channel_t *chan, const char *hostname,
@@ -46,9 +50,12 @@ cap_getaddrinfo(cap_channel_t *chan, const char *hostname,
 	static char host_ipv4_canonname[] = "host_ipv4_canonname";
 	static char host_ipv6_canonname[] = "host_ipv6_canonname";
 
-        const static struct sockaddr_in sin = {
+        static struct sockaddr_in sin = {
                 .sin_len = sizeof(struct sockaddr_in),
-                .sin_family = AF_INET
+                .sin_family = AF_INET,
+		.sin_addr = {
+                        .s_addr = 0x01020304
+                }
         };
 #ifdef INET6
 	const static struct sockaddr_in6 sin6 = {
@@ -74,12 +81,21 @@ cap_getaddrinfo(cap_channel_t *chan, const char *hostname,
 		ai.ai_addr = (struct sockaddr*)&sin;
 		ai.ai_canonname = NULL;
 		ai.ai_next = NULL;
+		sin.sin_addr.s_addr = inet_addr(IP_ADDR_UNICAST);
 	} else if (strcmp(hostname, "host_ipv4_with_canonname") == 0){
 		ai.ai_family = AF_INET;
 		ai.ai_addrlen = sizeof(struct sockaddr_in);
 		ai.ai_addr = (struct sockaddr*)&sin;
 		ai.ai_canonname = host_ipv4_canonname;
 		ai.ai_next = NULL;
+		sin.sin_addr.s_addr = inet_addr(IP_ADDR_UNICAST);
+	} else if (strcmp(hostname, "multicast_ipv4") == 0){
+		ai.ai_family = AF_INET;
+		ai.ai_addrlen = sizeof(struct sockaddr_in);
+		ai.ai_addr = (struct sockaddr*)&sin;
+		ai.ai_canonname = NULL;
+		ai.ai_next = NULL;
+		sin.sin_addr.s_addr = inet_addr(IP_ADDR_MULTICAST);
 	}
 #ifdef INET6
 	else if ((strcmp(hostname, "host_ipv6") == 0) ||

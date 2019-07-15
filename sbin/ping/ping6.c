@@ -463,7 +463,7 @@ ping6(struct options *const options, cap_channel_t *const capdns)
 */
 
 	/* Specify the outgoing interface and/or the source address */
-	if (options->f_interface)
+	if (options->f_interface_use_pktinfo)
 		ip6optlen += CMSG_SPACE(sizeof(struct in6_pktinfo));
 
 	if (options->f_hoplimit)
@@ -477,7 +477,7 @@ ping6(struct options *const options, cap_channel_t *const capdns)
 		vars.smsghdr.msg_controllen = ip6optlen;
 		scmsgp = (struct cmsghdr *)scmsg;
 	}
-	if (options->f_interface) {
+	if (options->f_interface_use_pktinfo) {
 		pktinfo = (struct in6_pktinfo *)(CMSG_DATA(scmsgp));
 		memset(pktinfo, 0, sizeof(*pktinfo));
 		scmsgp->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));
@@ -487,14 +487,12 @@ ping6(struct options *const options, cap_channel_t *const capdns)
 	}
 
 	/* set the outgoing interface */
-	if (options->s_interface) {
+	if (options->f_interface) {
 #ifndef USE_SIN6_SCOPE_ID
 		/* pktinfo must have already been allocated */
-		if ((pktinfo->ipi6_ifindex = if_nametoindex(options->s_interface)) == 0)
-			errx(1, "%s: invalid interface name", options->s_interface);
+		pktinfo->ipi6_ifindex = options->interface.index;
 #else
-		if ((dst.sin6_scope_id = if_nametoindex(options->s_interface)) == 0)
-			errx(1, "%s: invalid interface name", options->s_interface);
+		dst.sin6_scope_id = options->interface.index;
 #endif
 	}
 	if (options->f_hoplimit) {

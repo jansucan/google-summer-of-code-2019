@@ -144,10 +144,17 @@ struct options {
 #endif /* IPSEC */
 
 	/* -I */
-#if !defined(INET6) || !defined(USE_SIN6_SCOPE_ID)
 	bool        f_interface;
-#endif
 	const char *s_interface;
+	union {
+		/* Used only by IPv4 ping. */
+		struct in_addr ifaddr;
+		/* Used only by IPv6 ping. */
+		unsigned int index;
+	} interface;
+#if defined(INET6) && !defined(USE_SIN6_SCOPE_ID)
+	bool f_interface_use_pktinfo;
+#endif
 
 	/* Wait between sending packets */
 	bool    f_interval;

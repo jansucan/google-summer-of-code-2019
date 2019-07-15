@@ -56,13 +56,6 @@ __FBSDID("$FreeBSD$");
 #define DOUBLE_MAX_DELTA 100
 
 /*
- * Helper macros.
- */
-
-#define STRINGIFY(s) #s
-#define DEFINED_NUM_TO_STR(s) STRINGIFY(s)
-
-/*
  * Global variables.
  */
 
@@ -250,26 +243,6 @@ ATF_TC_BODY(unprivileged_option_flood, tc)
 	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_NOPERM);
 	ATF_REQUIRE(options.f_flood == true);
 	cap_close(capdns);
-}
-
-ATF_TC_WITHOUT_HEAD(option_interface);
-ATF_TC_BODY(option_interface, tc)
-{
-	{
-		ARGC_ARGV("-I", "interface1234", "localhost");
-		capdns = capdns_setup();
-#if !defined(INET6) || !defined(USE_SIN6_SCOPE_ID)
-		options.f_interface = false;
-#endif
-		options.s_interface = NULL;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
-		ATF_REQUIRE_STREQ("interface1234", options.s_interface);
-#if !defined(INET6) || !defined(USE_SIN6_SCOPE_ID)
-		ATF_REQUIRE(options.f_interface == true);
-#endif
-
-		cap_close(capdns);
-	}
 }
 
 ATF_TC_WITHOUT_HEAD(option_interval);
@@ -1311,18 +1284,6 @@ ATF_TC_BODY(unprivileged_option_sweep_incr, tc)
 	}
 }
 
-ATF_TC_WITHOUT_HEAD(option_no_loop);
-ATF_TC_BODY(option_no_loop, tc)
-{
-	ARGC_ARGV("-L", "localhost");
-	capdns = capdns_setup();
-
-	options.f_no_loop = false;
-	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
-	ATF_REQUIRE(options.f_no_loop == true);
-	cap_close(capdns);
-}
-
 ATF_TC_WITHOUT_HEAD(option_mask_time);
 ATF_TC_BODY(option_mask_time, tc)
 {
@@ -2219,7 +2180,6 @@ ATF_TP_ADD_TCS(tp)
 	ATF_TP_ADD_TC(tp, option_flood);
 	ATF_TP_ADD_TC(tp, privileged_option_flood);
 	ATF_TP_ADD_TC(tp, unprivileged_option_flood);
-	ATF_TP_ADD_TC(tp, option_interface);
 	ATF_TP_ADD_TC(tp, option_interval);
 	ATF_TP_ADD_TC(tp, privileged_option_interval);
 	ATF_TP_ADD_TC(tp, unprivileged_option_interval);
@@ -2246,13 +2206,11 @@ ATF_TP_ADD_TCS(tp)
 	ATF_TP_ADD_TC(tp, option_sweep_incr);
 	ATF_TP_ADD_TC(tp, privileged_option_sweep_incr);
 	ATF_TP_ADD_TC(tp, unprivileged_option_sweep_incr);
-	ATF_TP_ADD_TC(tp, option_no_loop);
 	ATF_TP_ADD_TC(tp, option_mask_time);
 	ATF_TP_ADD_TC(tp, option_ttl);
 	ATF_TP_ADD_TC(tp, option_somewhat_quiet);
 	ATF_TP_ADD_TC(tp, option_rroute);
 	ATF_TP_ADD_TC(tp, option_so_dontroute);
-	ATF_TP_ADD_TC(tp, option_multicast_ttl);
 	ATF_TP_ADD_TC(tp, option_tos);
 
 #ifdef INET6

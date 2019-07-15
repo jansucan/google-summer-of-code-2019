@@ -28,45 +28,9 @@
  * $FreeBSD$
  */
 
-#define STRINGIFY(s) #s
-#define DEFINED_NUM_TO_STR(s) STRINGIFY(s)
+#ifndef IF_NAMETOINDEX_H
+#define IF_NAMETOINDEX_H 1
 
-#ifndef TEST_ARGC_ARGV_H
-#define TEST_ARGC_ARGV_H 1
-
-#define GETOPT_RESET \
-	optreset = optind = 1
-
-#define ARGC_ARGV_EMPTY      				                    \
-	char *test_argv[] = { "ping", NULL };        		            \
-	const int test_argc = sizeof(test_argv) / sizeof(test_argv[0]) - 1; \
-	GETOPT_RESET
-
-#define ARGC_ARGV(...)           				            \
-	char *test_argv[] = { "ping", __VA_ARGS__, NULL };	            \
-	const int test_argc = sizeof(test_argv) / sizeof(test_argv[0]) - 1; \
-	GETOPT_RESET
-
-#define	ARGV_BUFFER_SIZE	64
-
-#define ARGV_SET_FROM_EXPR(argv, idx, expr)						\
-	const unsigned long ul_##idx = expr;						\
-	char ul_str_##idx[ARGV_BUFFER_SIZE];						\
-	const int sr##idx = snprintf(ul_str_##idx, ARGV_BUFFER_SIZE, "%lu", ul_##idx);	\
-	if (sr##idx < 0)								\
-		atf_tc_fail("snprintf() error");					\
-	else if (sr##idx >= ARGV_BUFFER_SIZE)						\
-		atf_tc_fail("snprintf() buffer too small");				\
-	argv[idx] = ul_str_##idx
-
-#define ARGV_SET_LDBL_FROM_EXPR(argv, idx, expr)						\
-	const long double ldbl_##idx = expr;							\
-	char ldbl_str_##idx[ARGV_BUFFER_SIZE];							\
-	const int sr##idx = snprintf(ldbl_str_##idx, ARGV_BUFFER_SIZE, "%Lg", ldbl_##idx);	\
-	if (sr##idx < 0)									\
-		atf_tc_fail("snprintf() error");						\
-	else if (sr##idx >= ARGV_BUFFER_SIZE)							\
-		atf_tc_fail("snprintf() buffer too small");					\
-	argv[idx] = ldbl_str_##idx
+unsigned int if_nametoindex(const char *ifname);
 
 #endif
