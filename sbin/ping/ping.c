@@ -137,19 +137,26 @@ static u_short in_cksum(u_short *, int);
 static void check_status(const struct counters *const, const struct timing *const);
 static void finish(const struct shared_variables *const, const struct counters *const,
     const struct timing *const, const char *const) __dead2;
+static void get_triptime(const char *const, size_t, struct timeval *const,
+    const struct shared_variables *const, bool);
 static bool is_packet_too_short(const char *const, size_t, const struct sockaddr_in *const, bool);
+static void mark_packet_as_received(const char *const, size_t, struct shared_variables *const);
 static void pinger(const struct options *const, struct shared_variables *const,
-    struct counters *const, struct timing *const);
+    struct counters *const, const struct timing *const);
 static char *pr_addr(struct in_addr, cap_channel_t *const, bool);
 static char *pr_ntime(n_time);
 static void pr_icmph(struct icmp *);
 static void pr_iph(struct ip *);
-static void pr_pack(char *, int, struct sockaddr_in *, struct timeval *,
-    const struct options *const, struct shared_variables *const,
-    struct counters *const, struct timing *const);
+static void pr_pack(const char *const, int, const struct sockaddr_in *const,
+    const struct timeval *const, const struct options *const,
+    const struct shared_variables *const, bool);
 static void pr_retip(struct ip *);
 static void status(int);
 static void stopit(int);
+static void update_counters(const char *const, size_t, const struct timeval *const,
+    const struct options *const, const struct shared_variables *const, struct counters *const);
+static void update_timing(const char *const, size_t, const struct timeval *const,
+    const struct shared_variables *const, struct timing *const);
 
 void
 ping(struct options *const options, cap_channel_t *const capdns)
@@ -553,8 +560,13 @@ ping(struct options *const options, cap_channel_t *const capdns)
 				(void)gettimeofday(&now, NULL);
 				tv = &now;
 			}
-			if (!is_packet_too_short((char *)packet, cc, &from, options->f_verbose))
-				pr_pack((char *)packet, cc, &from, tv, options, &vars, &counters, &timing);
+			if (!is_packet_too_short((char *)packet, cc, &from, options->f_verbose)) {
+				get_triptime((char *)packet, cc, tv, &vars, timing.enabled);
+				update_timing((char *)packet, cc, tv, &vars, &timing);
+				update_counters((char *)packet, cc, tv, options, &vars, &counters);
+				pr_pack((char *)packet, cc, &from, tv, options, &vars, timing.enabled);
+				mark_packet_as_received((char *)packet, cc, &vars);
+			}
 			if ((options->f_once && counters.received) ||
 			    (options->n_packets && counters.received >= options->n_packets))
 				break;
@@ -630,7 +642,7 @@ stopit(int sig __unused)
  */
 static void
 pinger(const struct options *const options, struct shared_variables *const vars,
-    struct counters *const counters, struct timing *const timing)
+    struct counters *const counters, const struct timing *const timing)
 {
 	struct timeval now;
 	struct tv32 tv32;
@@ -713,6 +725,135 @@ is_packet_too_short(const char *const buf, size_t bufsize,
 	return (false);
 }
 
+static void
+get_triptime(const char *const buf, size_t bufsize, struct timeval *const triptime,
+    const struct shared_variables *const vars, bool timing_enabled)
+{
+	struct icmp *icp;
+	struct ip *ip;
+	const void *tp;
+	size_t hlen;
+
+	ip = (struct ip *)buf;
+	hlen = ip->ip_hl << 2;
+
+	/* Now the ICMP part */
+	bufsize -= hlen;
+	icp = (struct icmp *)(buf + hlen);
+	if ((icp->icmp_type == vars->icmp_type_rsp) &&
+	    ((icp->icmp_id == vars->ident) && (timing_enabled))) {
+		struct timeval tv1;
+		struct tv32 tv32;
+#ifndef icmp_data
+		tp = &icp->icmp_ip;
+#else
+		tp = icp->icmp_data;
+#endif
+		tp = (const char *)tp + vars->phdr_len;
+
+		if ((size_t)(bufsize - ICMP_MINLEN - vars->phdr_len) >=
+		    sizeof(tv1)) {
+			/* Copy to avoid alignment problems: */
+			memcpy(&tv32, tp, sizeof(tv32));
+			tv1.tv_sec = ntohl(tv32.tv32_sec);
+			tv1.tv_usec = ntohl(tv32.tv32_usec);
+			tvsub(triptime, &tv1);
+		}
+	}
+}
+
+static void
+update_timing(const char *const buf, size_t bufsize, const struct timeval *const triptime,
+    const struct shared_variables *const vars, struct timing *const timing)
+{
+	struct icmp *icp;
+	struct ip *ip;
+	const void *tp;
+	double triptime_sec;
+	size_t hlen;
+
+	ip = (struct ip *)buf;
+	hlen = ip->ip_hl << 2;
+
+	/* Now the ICMP part */
+	bufsize -= hlen;
+	icp = (struct icmp *)(buf + hlen);
+
+	if ((icp->icmp_type == vars->icmp_type_rsp) &&
+	    (icp->icmp_id == vars->ident) && (timing->enabled)) {
+#ifndef icmp_data
+		tp = &icp->icmp_ip;
+#else
+		tp = icp->icmp_data;
+#endif
+		tp = (const char *)tp + vars->phdr_len;
+
+		if ((size_t)(bufsize - ICMP_MINLEN - vars->phdr_len) >=
+		    sizeof(struct timeval)) {
+			/* Copy to avoid alignment problems: */
+			triptime_sec = ((double)triptime->tv_sec) * 1000.0 +
+				((double)triptime->tv_usec) / 1000.0;
+			timing->sum += triptime_sec;
+			timing->sumsq += triptime_sec * triptime_sec;
+			if (triptime_sec < timing->min)
+				timing->min = triptime_sec;
+			if (triptime_sec > timing->max)
+				timing->max = triptime_sec;
+		} else
+			timing->enabled = false;
+	}
+}
+
+static void
+update_counters(const char *const buf, size_t bufsize, const struct timeval *const triptime,
+    const struct options *const options, const struct shared_variables *const vars,
+    struct counters *const counters)
+{
+	struct icmp *icp;
+	struct ip *ip;
+	size_t hlen, seq;
+	double triptime_sec;
+
+	ip = (struct ip *)buf;
+	hlen = ip->ip_hl << 2;
+
+	icp = (struct icmp *)(buf + hlen);
+	if ((icp->icmp_type == vars->icmp_type_rsp) &&
+	    (icp->icmp_id == vars->ident)) {
+		seq = ntohs(icp->icmp_seq);
+		if (BIT_ARRAY_IS_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK))
+			++(counters->repeats);
+		else
+			++(counters->received);
+
+		triptime_sec = ((double)triptime->tv_sec) * 1000.0 +
+			((double)triptime->tv_usec) / 1000.0;
+
+		if (!options->f_quiet &&
+		    (options->f_wait_time && triptime_sec > options->n_wait_time))
+			++(counters->rcvtimeout);
+	}
+}
+
+static void
+mark_packet_as_received(const char *const buf, size_t bufsize, struct shared_variables *const vars)
+{
+	struct icmp *icp;
+	struct ip *ip;
+	size_t hlen, seq;
+
+	ip = (struct ip *)buf;
+	hlen = ip->ip_hl << 2;
+
+	/* Now the ICMP part */
+	icp = (struct icmp *)(buf + hlen);
+	if ((icp->icmp_type == vars->icmp_type_rsp) &&
+	    (icp->icmp_id == vars->ident)) {
+		seq = ntohs(icp->icmp_seq);
+		BIT_ARRAY_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK);
+	}
+}
+
 /*
  * pr_pack --
  *	Print out the packet, if it came from us.  This logic is necessary
@@ -721,17 +862,15 @@ is_packet_too_short(const char *const buf, size_t bufsize,
  * program to be run without having intermingled output (or statistics!).
  */
 static void
-pr_pack(char *buf, int cc, struct sockaddr_in *from, struct timeval *tv,
-    const struct options *const options, struct shared_variables *const vars,
-    struct counters *const counters, struct timing *const timing)
+pr_pack(const char *const buf, int cc, const struct sockaddr_in *const from,
+    const struct timeval *const triptime, const struct options *const options,
+    const struct shared_variables *const vars, bool timing_enabled)
 {
 	struct in_addr ina;
 	u_char *cp, *dp;
 	struct icmp *icp;
 	struct ip *ip;
-	const void *tp;
-	double triptime;
-	int dupflag, hlen, i, j, recv_len, seq;
+	int hlen, i, j, recv_len, seq;
 	static int old_rrlen;
 	static char old_rr[MAX_IPOPTLEN];
 
@@ -743,57 +882,21 @@ pr_pack(char *buf, int cc, struct sockaddr_in *from, struct timeval *tv,
 	cc -= hlen;
 	icp = (struct icmp *)(buf + hlen);
 	if (icp->icmp_type == vars->icmp_type_rsp) {
+		double triptime_sec;
+
 		if (icp->icmp_id != vars->ident)
 			return;			/* 'Twas not our ECHO */
-		++(counters->received);
-		triptime = 0.0;
-		if (timing->enabled) {
-			struct timeval tv1;
-			struct tv32 tv32;
-#ifndef icmp_data
-			tp = &icp->icmp_ip;
-#else
-			tp = icp->icmp_data;
-#endif
-			tp = (const char *)tp + vars->phdr_len;
-
-			if ((size_t)(cc - ICMP_MINLEN - vars->phdr_len) >=
-			    sizeof(tv1)) {
-				/* Copy to avoid alignment problems: */
-				memcpy(&tv32, tp, sizeof(tv32));
-				tv1.tv_sec = ntohl(tv32.tv32_sec);
-				tv1.tv_usec = ntohl(tv32.tv32_usec);
-				tvsub(tv, &tv1);
- 				triptime = ((double)tv->tv_sec) * 1000.0 +
- 				    ((double)tv->tv_usec) / 1000.0;
-				timing->sum += triptime;
-				timing->sumsq += triptime * triptime;
-				if (triptime < timing->min)
-					timing->min = triptime;
-				if (triptime > timing->max)
-					timing->max = triptime;
-			} else
-				timing->enabled = false;
-		}
-
-		seq = ntohs(icp->icmp_seq);
-
-		if (BIT_ARRAY_IS_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK)) {
-			++(counters->repeats);
-			--(counters->received);
-			dupflag = 1;
-		} else {
-			BIT_ARRAY_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK);
-			dupflag = 0;
-		}
 
 		if (options->f_quiet)
 			return;
 
-		if (options->f_wait_time && triptime > options->n_wait_time) {
-			++(counters->rcvtimeout);
+		triptime_sec = ((double)triptime->tv_sec) * 1000.0 +
+			((double)triptime->tv_usec) / 1000.0;
+
+		if (options->f_wait_time && triptime_sec > options->n_wait_time)
 			return;
-		}
+
+		seq = ntohs(icp->icmp_seq);
 
 		if (options->f_flood)
 			write_char(STDOUT_FILENO, CHAR_BSPACE);
@@ -802,9 +905,9 @@ pr_pack(char *buf, int cc, struct sockaddr_in *from, struct timeval *tv,
 			   inet_ntoa(*(struct in_addr *)&from->sin_addr.s_addr),
 			   seq);
 			(void)printf(" ttl=%d", ip->ip_ttl);
-			if (timing->enabled)
-				(void)printf(" time=%.3f ms", triptime);
-			if (dupflag)
+			if (timing_enabled)
+				(void)printf(" time=%.3f ms", triptime_sec);
+			if (BIT_ARRAY_IS_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK))
 				(void)printf(" (DUP!)");
 			if (options->f_audible)
 				write_char(STDOUT_FILENO, CHAR_BBELL);
@@ -828,7 +931,7 @@ pr_pack(char *buf, int cc, struct sockaddr_in *from, struct timeval *tv,
 			dp = &vars->outpack[ICMP_MINLEN + vars->phdr_len];
 			cc -= ICMP_MINLEN + vars->phdr_len;
 			i = 0;
-			if (timing->enabled) {   /* don't check variable timestamp */
+			if (timing_enabled) {   /* don't check variable timestamp */
 				cp += TIMEVAL_LEN;
 				dp += TIMEVAL_LEN;
 				cc -= TIMEVAL_LEN;
