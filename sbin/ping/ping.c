@@ -274,10 +274,6 @@ ping(struct options *const options, cap_channel_t *const capdns)
 	if (connect(vars.ssend, (struct sockaddr *) vars.target_sockaddr,
 		sizeof(*vars.target_sockaddr)) != 0)
 		err(1, "connect");
-	/* TODO: move to options.c */
-	if (options->f_flood && IN_MULTICAST(ntohl(vars.target_sockaddr->sin_addr.s_addr)))
-		errx(EX_USAGE,
-		    "-f flag cannot be used with multicast destination");
 
 	if (options->n_packet_size >= TIMEVAL_LEN)	/* can we time transfer */
 		timing.enabled = true;

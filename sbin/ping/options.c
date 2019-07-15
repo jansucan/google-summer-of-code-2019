@@ -589,6 +589,11 @@ options_check_post_hosts(struct options *const options, cap_channel_t *const cap
 	/*
 	 * Check options only for IPv4 target.
 	 */
+	if (options->f_flood && !is_ipv4_unicast_addr) {
+		print_error("-f flag cannot be used with multicast destination");
+		return (EX_USAGE);
+	}
+
 	if (options->f_no_loop && is_ipv4_unicast_addr) {
 		print_error("-L flag cannot be used with unicast destination");
 		return (EX_USAGE);

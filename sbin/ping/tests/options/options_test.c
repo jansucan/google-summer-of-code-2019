@@ -203,48 +203,6 @@ ATF_TC_BODY(option_so_debug, tc)
 	cap_close(capdns);
 }
 
-ATF_TC_WITHOUT_HEAD(option_flood);
-ATF_TC_BODY(option_flood, tc)
-{
-	ARGC_ARGV("-f", "-i", "1","localhost");
-	capdns = capdns_setup();
-
-	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
-	cap_close(capdns);
-}
-
-ATF_TC(privileged_option_flood);
-ATF_TC_HEAD(privileged_option_flood, tc)
-{
-	atf_tc_set_md_var(tc, "require.user", "root");
-}
-ATF_TC_BODY(privileged_option_flood, tc)
-{
-	ARGC_ARGV("-f", "localhost");
-	capdns = capdns_setup();
-
-	options.f_flood = false;
-	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
-	ATF_REQUIRE(options.f_flood == true);
-	cap_close(capdns);
-}
-
-ATF_TC(unprivileged_option_flood);
-ATF_TC_HEAD(unprivileged_option_flood, tc)
-{
-	atf_tc_set_md_var(tc, "require.user", "unprivileged");
-}
-ATF_TC_BODY(unprivileged_option_flood, tc)
-{
-	ARGC_ARGV("-f", "localhost");
-	capdns = capdns_setup();
-
-	options.f_flood = false;
-	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_NOPERM);
-	ATF_REQUIRE(options.f_flood == true);
-	cap_close(capdns);
-}
-
 ATF_TC_WITHOUT_HEAD(option_interval);
 ATF_TC_BODY(option_interval, tc)
 {
@@ -2177,9 +2135,6 @@ ATF_TP_ADD_TCS(tp)
 	ATF_TP_ADD_TC(tp, option_count);
 	ATF_TP_ADD_TC(tp, option_dont_fragment);
 	ATF_TP_ADD_TC(tp, option_so_debug);
-	ATF_TP_ADD_TC(tp, option_flood);
-	ATF_TP_ADD_TC(tp, privileged_option_flood);
-	ATF_TP_ADD_TC(tp, unprivileged_option_flood);
 	ATF_TP_ADD_TC(tp, option_interval);
 	ATF_TP_ADD_TC(tp, privileged_option_interval);
 	ATF_TP_ADD_TC(tp, unprivileged_option_interval);

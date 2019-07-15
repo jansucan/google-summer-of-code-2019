@@ -5,9 +5,10 @@
 
 TESTSDIR=	${TESTSBASE}/sbin/ping/options
 
-ATF_TESTS_C+=	options_test options_hops_target_test options_interface_test options_multicast_ttl_test options_no_loop_test options_source_test
+ATF_TESTS_C+=	options_test options_flood_test options_hops_target_test options_interface_test options_multicast_ttl_test options_no_loop_test options_source_test
 
 SRCS.options_test=	options_test.c ../../cap.c ../../options.c ../../utils.c
+SRCS.options_flood_test=	options_flood_test.c cap_getaddrinfo.c ../../cap.c ../../options.c ../../utils.c
 SRCS.options_hops_target_test=	options_hops_target_test.c cap_getaddrinfo.c ../../cap.c ../../options.c ../../utils.c
 SRCS.options_interface_test=	options_interface_test.c cap_getaddrinfo.c ../../cap.c ../../options.c ../../utils.c
 SRCS.options_multicast_ttl_test=	options_multicast_ttl_test.c cap_getaddrinfo.c ../../cap.c ../../options.c ../../utils.c
