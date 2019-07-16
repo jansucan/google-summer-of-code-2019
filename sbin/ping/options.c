@@ -658,10 +658,6 @@ options_check_pre_hosts(struct options *const options, cap_channel_t *const capd
 		print_error("-f and -i are incompatible options");
 		return (EX_USAGE);
 	}
-	if (options->f_flood && (getuid() != 0)) {
-		print_error("Must be superuser to flood ping");
-		return (EX_NOPERM);
-	}
 	/* Check interval between sending each packet. */
 	if ((getuid() != 0) && (options->n_interval.tv_sec < 1)) {
 		print_error("only root may use interval < 1s");
@@ -671,6 +667,14 @@ options_check_pre_hosts(struct options *const options, cap_channel_t *const capd
 	if (options->n_interval.tv_sec == 0 && options->n_interval.tv_usec < 1) {
 		options->n_interval.tv_usec = 1;
 		warnx("too small interval, raised to .000001");
+	}
+	if (options->f_flood) {
+		if (getuid() != 0) {
+			print_error("Must be superuser to flood ping");
+			return (EX_NOPERM);
+		}
+		options->n_interval.tv_sec = 0;
+		options->n_interval.tv_usec = 10000;
 	}
 
 	/*

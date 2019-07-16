@@ -673,10 +673,6 @@ ping6(struct options *const options, cap_channel_t *const capdns)
 		if (sigaction(SIGALRM, &si_sa, 0) == -1)
 			err(EX_OSERR, "sigaction SIGALRM");
 	}
-	if (options->f_flood) {
-		options->n_interval.tv_sec = 0;
-		options->n_interval.tv_usec = 10000;
-	}
 
 	almost_done = false;
 	while (seenint == 0) {

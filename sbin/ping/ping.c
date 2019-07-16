@@ -473,11 +473,6 @@ ping(struct options *const options, cap_channel_t *const capdns)
 	}
 	(void)gettimeofday(&last, NULL);
 
-	if (options->f_flood) {
-		options->n_interval.tv_sec = 0;
-		options->n_interval.tv_usec = 10000;
-	}
-
 	bool almost_done = false;
 	while (!finish_up) {
 		struct timeval now, timeout;
