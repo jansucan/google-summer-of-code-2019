@@ -30,6 +30,7 @@
 __FBSDID("$FreeBSD$");
 
 #include <stdlib.h>
+#include <string.h>
 #include <sysexits.h>
 
 #include "options.h"
@@ -44,6 +45,9 @@ main(int argc, char *argv[])
 	struct counters counters;
 	struct timing timing;
 
+	/* TODO: ping_init() */
+	memset(&vars, 0, sizeof(vars));
+
 	if ((vars.capdns = capdns_setup()) == NULL)
 		exit(1);
 
@@ -55,7 +59,10 @@ main(int argc, char *argv[])
 		ping4_init(&options, &vars, &counters, &timing);
 		ping4_loop(&options, &vars, &counters, &timing);
 		ping4_finish(&options, &vars, &counters, &timing);
-	} else
-		ping6(&options, vars.capdns);
+	} else {
+		ping6_init(&options, &vars, &counters, &timing);
+		ping6_loop(&options, &vars, &counters, &timing);
+		ping6_finish(&options, &vars, &counters, &timing);
+	}
 	/* NOTREACHED */
 }

@@ -146,7 +146,6 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	int ssend_errno, srecv_errno;
 	cap_rights_t rights;
 
-	memset(vars, 0, sizeof(*vars));
 	vars->icmp_type = ICMP_ECHO;
 	vars->icmp_type_rsp = ICMP_ECHOREPLY;
 
@@ -169,20 +168,20 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	 * connect(2)'ed to, and send socket do not receive those
 	 * packets.
 	 */
-	vars->ssend = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
+	vars->socket_send = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
 	ssend_errno = errno;
-	vars->srecv = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
+	vars->socket_recv = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
 	srecv_errno = errno;
 
 	if (setuid(getuid()) != 0)
 		err(EX_NOPERM, "setuid() failed");
 
-	if (vars->ssend < 0) {
+	if (vars->socket_send < 0) {
 		errno = ssend_errno;
 		err(EX_OSERR, "socket() ssend");
 	}
 
-	if (vars->srecv < 0) {
+	if (vars->socket_recv < 0) {
 		errno = srecv_errno;
 		err(EX_OSERR, "socket() srecv");
 	}
@@ -234,11 +233,11 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	}
 
 	if ((options->f_source) &&
-	    (bind(vars->ssend, (struct sockaddr *)&options->source_sockaddr.in,
+	    (bind(vars->socket_send, (struct sockaddr *)&options->source_sockaddr.in,
 		sizeof(options->source_sockaddr.in)) == -1))
 		err(1, "bind");
 
-	if (connect(vars->ssend, (struct sockaddr *) vars->target_sockaddr,
+	if (connect(vars->socket_send, (struct sockaddr *) vars->target_sockaddr,
 		sizeof(*vars->target_sockaddr)) != 0)
 		err(1, "connect");
 
@@ -253,16 +252,16 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 
 	hold = 1;
 	if (options->f_so_debug) {
-		(void)setsockopt(vars->ssend, SOL_SOCKET, SO_DEBUG, (char *)&hold,
+		(void)setsockopt(vars->socket_send, SOL_SOCKET, SO_DEBUG, (char *)&hold,
 		    sizeof(hold));
-		(void)setsockopt(vars->srecv, SOL_SOCKET, SO_DEBUG, (char *)&hold,
+		(void)setsockopt(vars->socket_recv, SOL_SOCKET, SO_DEBUG, (char *)&hold,
 		    sizeof(hold));
 	}
 	if (options->f_so_dontroute)
-		(void)setsockopt(vars->ssend, SOL_SOCKET, SO_DONTROUTE, (char *)&hold,
+		(void)setsockopt(vars->socket_send, SOL_SOCKET, SO_DONTROUTE, (char *)&hold,
 		    sizeof(hold));
 
-	if (!ipsec_configure(vars->ssend, vars->srecv, options))
+	if (!ipsec_configure(vars->socket_send, vars->socket_recv, options))
 		exit(1);
 
 	if (options->f_dont_fragment || options->f_tos) {
@@ -279,7 +278,7 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 			if (sysctl(mib, 4, &options->n_ttl, &sz, NULL, 0) == -1)
 				err(1, "sysctl(net.inet.ip.ttl)");
 		}
-		setsockopt(vars->ssend, IPPROTO_IP, IP_HDRINCL, &hold, sizeof(hold));
+		setsockopt(vars->socket_send, IPPROTO_IP, IP_HDRINCL, &hold, sizeof(hold));
 		ip->ip_v = IPVERSION;
 		ip->ip_hl = sizeof(struct ip) >> 2;
 		ip->ip_tos = options->n_tos;
@@ -300,10 +299,10 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 		exit(1);
 
 	cap_rights_init(&rights, CAP_RECV, CAP_EVENT, CAP_SETSOCKOPT);
-	if (caph_rights_limit(vars->srecv, &rights) < 0)
+	if (caph_rights_limit(vars->socket_recv, &rights) < 0)
 		err(1, "cap_rights_limit srecv");
 	cap_rights_init(&rights, CAP_SEND, CAP_SETSOCKOPT);
-	if (caph_rights_limit(vars->ssend, &rights) < 0)
+	if (caph_rights_limit(vars->socket_send, &rights) < 0)
 		err(1, "cap_rights_limit ssend");
 
 	/* record route option */
@@ -316,7 +315,7 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 		rspace[IPOPT_OLEN] = sizeof(rspace) - 1;
 		rspace[IPOPT_OFFSET] = IPOPT_MINOFF;
 		rspace[sizeof(rspace) - 1] = IPOPT_EOL;
-		if (setsockopt(vars->ssend, IPPROTO_IP, IP_OPTIONS, rspace,
+		if (setsockopt(vars->socket_send, IPPROTO_IP, IP_OPTIONS, rspace,
 		    sizeof(rspace)) < 0)
 			err(EX_OSERR, "setsockopt IP_OPTIONS");
 #else
@@ -326,7 +325,7 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	}
 
 	if (options->f_ttl) {
-		if (setsockopt(vars->ssend, IPPROTO_IP, IP_TTL, &options->n_ttl,
+		if (setsockopt(vars->socket_send, IPPROTO_IP, IP_TTL, &options->n_ttl,
 		    sizeof(options->n_ttl)) < 0) {
 			err(EX_OSERR, "setsockopt IP_TTL");
 		}
@@ -334,26 +333,26 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	if (options->f_no_loop) {
 		const unsigned char loop = 0;
 
-		if (setsockopt(vars->ssend, IPPROTO_IP, IP_MULTICAST_LOOP, &loop,
+		if (setsockopt(vars->socket_send, IPPROTO_IP, IP_MULTICAST_LOOP, &loop,
 		    sizeof(loop)) < 0) {
 			err(EX_OSERR, "setsockopt IP_MULTICAST_LOOP");
 		}
 	}
 	if (options->f_multicast_ttl) {
-		if (setsockopt(vars->ssend, IPPROTO_IP, IP_MULTICAST_TTL, &options->n_multicast_ttl,
+		if (setsockopt(vars->socket_send, IPPROTO_IP, IP_MULTICAST_TTL, &options->n_multicast_ttl,
 		    sizeof(options->n_multicast_ttl)) < 0) {
 			err(EX_OSERR, "setsockopt IP_MULTICAST_TTL");
 		}
 	}
 	if (options->f_interface) {
-		if (setsockopt(vars->ssend, IPPROTO_IP, IP_MULTICAST_IF, &options->interface.ifaddr,
+		if (setsockopt(vars->socket_send, IPPROTO_IP, IP_MULTICAST_IF, &options->interface.ifaddr,
 		    sizeof(options->interface.ifaddr)) < 0) {
 			err(EX_OSERR, "setsockopt IP_MULTICAST_IF");
 		}
 	}
 #ifdef SO_TIMESTAMP
 	{ int on = 1;
-	if (setsockopt(vars->srecv, SOL_SOCKET, SO_TIMESTAMP, &on, sizeof(on)) < 0)
+	if (setsockopt(vars->socket_recv, SOL_SOCKET, SO_TIMESTAMP, &on, sizeof(on)) < 0)
 		err(EX_OSERR, "setsockopt SO_TIMESTAMP");
 	}
 #endif
@@ -380,18 +379,18 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	 * as well.
 	 */
 	hold = IP_MAXPACKET + 128;
-	(void)setsockopt(vars->srecv, SOL_SOCKET, SO_RCVBUF, (char *)&hold,
+	(void)setsockopt(vars->socket_recv, SOL_SOCKET, SO_RCVBUF, (char *)&hold,
 	    sizeof(hold));
 	/* CAP_SETSOCKOPT removed */
 	cap_rights_init(&rights, CAP_RECV, CAP_EVENT);
-	if (caph_rights_limit(vars->srecv, &rights) < 0)
+	if (caph_rights_limit(vars->socket_recv, &rights) < 0)
 		err(1, "cap_rights_limit srecv setsockopt");
 	if (getuid() == 0)
-		(void)setsockopt(vars->ssend, SOL_SOCKET, SO_SNDBUF, (char *)&hold,
+		(void)setsockopt(vars->socket_send, SOL_SOCKET, SO_SNDBUF, (char *)&hold,
 		    sizeof(hold));
 	/* CAP_SETSOCKOPT removed */
 	cap_rights_init(&rights, CAP_SEND);
-	if (caph_rights_limit(vars->ssend, &rights) < 0)
+	if (caph_rights_limit(vars->socket_send, &rights) < 0)
 		err(1, "cap_rights_limit ssend setsockopt");
 
 	pr_heading(vars->target_sockaddr, options);
@@ -454,10 +453,10 @@ ping4_loop(struct options *const options, struct shared_variables *const vars,
 		int cc, n;
 
 		check_status(counters, timing);
-		if ((unsigned)vars->srecv >= FD_SETSIZE)
+		if ((unsigned)vars->socket_recv >= FD_SETSIZE)
 			errx(EX_OSERR, "descriptor too large");
 		FD_ZERO(&rfds);
-		FD_SET(vars->srecv, &rfds);
+		FD_SET(vars->socket_recv, &rfds);
 		(void)gettimeofday(&now, NULL);
 		timeout.tv_sec = last.tv_sec + options->n_interval.tv_sec - now.tv_sec;
 		timeout.tv_usec = last.tv_usec + options->n_interval.tv_usec - now.tv_usec;
@@ -471,7 +470,7 @@ ping4_loop(struct options *const options, struct shared_variables *const vars,
 		}
 		if (timeout.tv_sec < 0)
 			timerclear(&timeout);
-		n = select(vars->srecv + 1, &rfds, NULL, NULL, &timeout);
+		n = select(vars->socket_recv + 1, &rfds, NULL, NULL, &timeout);
 		if (n < 0)
 			continue;	/* Must be EINTR. */
 		if (n == 1) {
@@ -482,7 +481,7 @@ ping4_loop(struct options *const options, struct shared_variables *const vars,
 			vars->msg.msg_controllen = sizeof(vars->ctrl);
 #endif
 			vars->msg.msg_namelen = sizeof(vars->from);
-			if ((cc = recvmsg(vars->srecv, &vars->msg, 0)) < 0) {
+			if ((cc = recvmsg(vars->socket_recv, &vars->msg, 0)) < 0) {
 				if (errno == EINTR)
 					continue;
 				warn("recvmsg");
@@ -632,7 +631,7 @@ pinger(const struct options *const options, struct shared_variables *const vars,
 		ip->ip_sum = in_cksum((u_short *)vars->outpackhdr, cc);
 		packet = vars->outpackhdr;
 	}
-	i = send(vars->ssend, (char *)packet, cc, 0);
+	i = send(vars->socket_send, (char *)packet, cc, 0);
 	if (i < 0 || i != cc)  {
 		if (i < 0) {
 			if (options->f_flood && errno == ENOBUFS) {

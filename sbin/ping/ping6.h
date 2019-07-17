@@ -32,7 +32,14 @@
 #define PING6_H 1
 
 #include "options.h"
+#include "ping.h"
+#include "timing.h"
 
-void ping6(struct options *const options, cap_channel_t *capdns);
+void ping6_init(struct options *const options, struct shared_variables *const vars,
+    struct counters *const counters, struct timing *const timing);
+void ping6_loop(struct options *const options, struct shared_variables *const vars,
+    struct counters *const counters, struct timing *const timing);
+void ping6_finish(struct options *const options, struct shared_variables *const vars,
+    struct counters *const counters, struct timing *const timing);
 
 #endif

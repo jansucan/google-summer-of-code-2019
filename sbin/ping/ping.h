@@ -39,8 +39,8 @@
 
 struct shared_variables {
 	char rcvd_tbl[MAX_DUP_CHK / 8];
-	int ssend;		/* send socket file descriptor */
-	int srecv;		/* receive socket file descriptor */
+	int socket_send;		/* send socket file descriptor */
+	int socket_recv;		/* receive socket file descriptor */
 	u_char outpackhdr[IP_MAXPACKET], *outpack;
 	int ident;		/* process id to identify our packets */
 	u_char icmp_type;
@@ -50,12 +50,20 @@ struct shared_variables {
 	const struct sockaddr_in *target_sockaddr;
 	cap_channel_t *capdns;
 	char ctrl[CMSG_SPACE(sizeof(struct timeval))];
-	struct msghdr msg;
+	struct msghdr msg;	/* V6: smsghdr */
 	struct sockaddr_in from;
 	u_char packet[IP_MAXPACKET] __aligned(4);
 	u_char *datap;
 	int icmp_len;
 	struct iovec iov;
+
+	struct sockaddr_in6 *target_sockaddr_in6;	/* who to ping6 */
+	u_char outpack6[MAXPACKETLEN];			/* V6: outpack */
+	uint8_t nonce[8];	/* nonce field for node information */
+	int packlen;
+	char *scmsg;
+	struct msghdr smsghdr;
+	u_char *packet6;
 };
 
 struct counters {
