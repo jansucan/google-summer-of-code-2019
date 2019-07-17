@@ -40,18 +40,22 @@ int
 main(int argc, char *argv[])
 {
 	struct options options;
-	cap_channel_t *capdns;
+	struct shared_variables vars;
+	struct counters counters;
+	struct timing timing;
 
-	if ((capdns = capdns_setup()) == NULL)
+	if ((vars.capdns = capdns_setup()) == NULL)
 		exit(1);
 
-	const int r = options_parse(argc, argv, &options, capdns);
+	const int r = options_parse(argc, argv, &options, vars.capdns);
 	if (r != EX_OK)
 		exit(r);
 
-	if (options.target_type == TARGET_IPV4)
-		ping(&options, capdns);
-	else
-		ping6(&options, capdns);
+	if (options.target_type == TARGET_IPV4) {
+		ping_init(&options, &vars, &counters, &timing);
+		ping_loop(&options, &vars, &counters, &timing);
+		ping_finish(&options, &vars, &counters, &timing);
+	} else
+		ping6(&options, vars.capdns);
 	/* NOTREACHED */
 }

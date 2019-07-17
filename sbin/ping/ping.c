@@ -99,29 +99,6 @@ __FBSDID("$FreeBSD$");
 #define	MASK_LEN	(ICMP_MASKLEN - ICMP_MINLEN)
 #define	TS_LEN		(ICMP_TSLEN - ICMP_MINLEN)
 #define	FLOOD_BACKOFF	20000		/* usecs to back off if F_FLOOD mode */
-					/* runs out of buffer space */
-struct shared_variables {
-	char rcvd_tbl[MAX_DUP_CHK / 8];
-	int ssend;		/* send socket file descriptor */
-	u_char outpackhdr[IP_MAXPACKET], *outpack;
-	int ident;		/* process id to identify our packets */
-	u_char icmp_type;
-	u_char icmp_type_rsp;
-	int phdr_len;
-	int send_len;
-	const struct sockaddr_in *target_sockaddr;
-	cap_channel_t *capdns;
-};
-
-struct counters {
-	long missedmax;		/* max value of ntransmitted - received - 1 */
-	long received;		/* # of packets we got back */
-	long repeats;		/* number of duplicates */
-	long transmitted;	/* sequence # for outbound packets = #sent */
-	long sweep_max_packets;	/* max packets to transmit in one sweep */
-	long sweep_transmitted;	/* # of packets we sent in this sweep */
-	long rcvtimeout;	/* # of packets we got back after waittime */
-};
 
 static struct options *sig_options;
 static volatile sig_atomic_t finish_up;
@@ -160,35 +137,25 @@ static void update_timing(const char *const, size_t, const struct timeval *const
     const struct shared_variables *const, struct timing *const);
 
 void
-ping(struct options *const options, cap_channel_t *const capdns)
+ping_init(struct options *const options, struct shared_variables *const vars,
+    struct counters *const counters, struct timing *const timing)
 {
-	struct sockaddr_in from;
-	struct timeval last;
-	struct iovec iov;
 	struct ip *ip;
-	struct msghdr msg;
 	struct sigaction si_sa;
-	struct shared_variables vars;
-	struct counters counters;
-	struct timing timing;
-	u_char *datap, packet[IP_MAXPACKET] __aligned(4);
-	int hold, icmp_len;
+	int hold;
 	int ssend_errno, srecv_errno;
-	int srecv; /* receive socket file descriptor */
-	char ctrl[CMSG_SPACE(sizeof(struct timeval))];
 	cap_rights_t rights;
 
-	memset(&vars, 0, sizeof(vars));
-	vars.icmp_type = ICMP_ECHO;
-	vars.icmp_type_rsp = ICMP_ECHOREPLY;
+	memset(vars, 0, sizeof(*vars));
+	vars->icmp_type = ICMP_ECHO;
+	vars->icmp_type_rsp = ICMP_ECHOREPLY;
 
-	memset(&counters, 0, sizeof(counters));
-	sig_counters_received = &counters.received;
+	memset(counters, 0, sizeof(*counters));
+	sig_counters_received = &counters->received;
 
-	timing_init(&timing);
+	timing_init(timing);
 
-	vars.target_sockaddr = (struct sockaddr_in *) options->target_addrinfo->ai_addr;
-	vars.capdns = capdns;
+	vars->target_sockaddr = (struct sockaddr_in *) options->target_addrinfo->ai_addr;
 	/*
 	 * Do the stuff that we need root priv's for *first*, and
 	 * then drop our setuid bit.  Save error reporting for
@@ -202,25 +169,25 @@ ping(struct options *const options, cap_channel_t *const capdns)
 	 * connect(2)'ed to, and send socket do not receive those
 	 * packets.
 	 */
-	vars.ssend = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
+	vars->ssend = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
 	ssend_errno = errno;
-	srecv = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
+	vars->srecv = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
 	srecv_errno = errno;
 
 	if (setuid(getuid()) != 0)
 		err(EX_NOPERM, "setuid() failed");
 
-	if (vars.ssend < 0) {
+	if (vars->ssend < 0) {
 		errno = ssend_errno;
 		err(EX_OSERR, "socket() ssend");
 	}
 
-	if (srecv < 0) {
+	if (vars->srecv < 0) {
 		errno = srecv_errno;
 		err(EX_OSERR, "socket() srecv");
 	}
 
-	vars.outpack = vars.outpackhdr + sizeof(struct ip);
+	vars->outpack = vars->outpackhdr + sizeof(struct ip);
 
 	/* The signal handler needs pointer to options so it can free
 	 * the dynamically allocated memory. */
@@ -234,72 +201,72 @@ ping(struct options *const options, cap_channel_t *const capdns)
 			err(EX_OSERR, "cannot set the timeout");
 
 	if (options->f_mask) {
-		vars.icmp_type = ICMP_MASKREQ;
-		vars.icmp_type_rsp = ICMP_MASKREPLY;
-		vars.phdr_len = MASK_LEN;
+		vars->icmp_type = ICMP_MASKREQ;
+		vars->icmp_type_rsp = ICMP_MASKREPLY;
+		vars->phdr_len = MASK_LEN;
 		if (!options->f_quiet)
 			(void)printf("ICMP_MASKREQ\n");
 	} else if (options->f_time) {
-		vars.icmp_type = ICMP_TSTAMP;
-		vars.icmp_type_rsp = ICMP_TSTAMPREPLY;
-		vars.phdr_len = TS_LEN;
+		vars->icmp_type = ICMP_TSTAMP;
+		vars->icmp_type_rsp = ICMP_TSTAMPREPLY;
+		vars->phdr_len = TS_LEN;
 		if (!options->f_quiet)
 			(void)printf("ICMP_TSTAMP\n");
 
 	}
 
-	icmp_len = sizeof(struct ip) + ICMP_MINLEN + vars.phdr_len;
+	vars->icmp_len = sizeof(struct ip) + ICMP_MINLEN + vars->phdr_len;
 	if (options->f_rroute)
-		icmp_len += MAX_IPOPTLEN;
+		vars->icmp_len += MAX_IPOPTLEN;
 
-	const int maxpayload = IP_MAXPACKET - icmp_len;
+	const int maxpayload = IP_MAXPACKET - vars->icmp_len;
 
 	if (options->n_packet_size > maxpayload)
 		errx(EX_USAGE, "packet size too large: %ld > %d", options->n_packet_size,
 		    maxpayload);
-	vars.send_len = icmp_len + options->n_packet_size;
-	datap = &vars.outpack[ICMP_MINLEN + vars.phdr_len + TIMEVAL_LEN];
+	vars->send_len = vars->icmp_len + options->n_packet_size;
+	vars->datap = &vars->outpack[ICMP_MINLEN + vars->phdr_len + TIMEVAL_LEN];
 	if (options->f_ping_filled) {
-		fill((char *)datap, maxpayload - (TIMEVAL_LEN + options->ping_filled_size),
+		fill((char *)vars->datap, maxpayload - (TIMEVAL_LEN + options->ping_filled_size),
 		    options);
 		if (!options->f_quiet)
-			print_fill_pattern((char *)datap, options->ping_filled_size);
+			print_fill_pattern((char *)vars->datap, options->ping_filled_size);
 	}
 
 	if ((options->f_source) &&
-	    (bind(vars.ssend, (struct sockaddr *)&options->source_sockaddr.in,
+	    (bind(vars->ssend, (struct sockaddr *)&options->source_sockaddr.in,
 		sizeof(options->source_sockaddr.in)) == -1))
 		err(1, "bind");
 
-	if (connect(vars.ssend, (struct sockaddr *) vars.target_sockaddr,
-		sizeof(*vars.target_sockaddr)) != 0)
+	if (connect(vars->ssend, (struct sockaddr *) vars->target_sockaddr,
+		sizeof(*vars->target_sockaddr)) != 0)
 		err(1, "connect");
 
 	if (options->n_packet_size >= TIMEVAL_LEN)	/* can we time transfer */
-		timing.enabled = true;
+		timing->enabled = true;
 
 	if (!options->f_ping_filled)
 		for (int i = TIMEVAL_LEN; i < options->n_packet_size; ++i)
-			*datap++ = i;
+			*vars->datap++ = i;
 
-	vars.ident = getpid() & 0xFFFF;
+	vars->ident = getpid() & 0xFFFF;
 
 	hold = 1;
 	if (options->f_so_debug) {
-		(void)setsockopt(vars.ssend, SOL_SOCKET, SO_DEBUG, (char *)&hold,
+		(void)setsockopt(vars->ssend, SOL_SOCKET, SO_DEBUG, (char *)&hold,
 		    sizeof(hold));
-		(void)setsockopt(srecv, SOL_SOCKET, SO_DEBUG, (char *)&hold,
+		(void)setsockopt(vars->srecv, SOL_SOCKET, SO_DEBUG, (char *)&hold,
 		    sizeof(hold));
 	}
 	if (options->f_so_dontroute)
-		(void)setsockopt(vars.ssend, SOL_SOCKET, SO_DONTROUTE, (char *)&hold,
+		(void)setsockopt(vars->ssend, SOL_SOCKET, SO_DONTROUTE, (char *)&hold,
 		    sizeof(hold));
 
-	if (!ipsec_configure(vars.ssend, srecv, options))
+	if (!ipsec_configure(vars->ssend, vars->srecv, options))
 		exit(1);
 
 	if (options->f_dont_fragment || options->f_tos) {
-		ip = (struct ip*)vars.outpackhdr;
+		ip = (struct ip*)vars->outpackhdr;
 		if (!options->f_ttl && !options->f_multicast_ttl) {
 			int mib[4];
 			size_t sz;
@@ -312,7 +279,7 @@ ping(struct options *const options, cap_channel_t *const capdns)
 			if (sysctl(mib, 4, &options->n_ttl, &sz, NULL, 0) == -1)
 				err(1, "sysctl(net.inet.ip.ttl)");
 		}
-		setsockopt(vars.ssend, IPPROTO_IP, IP_HDRINCL, &hold, sizeof(hold));
+		setsockopt(vars->ssend, IPPROTO_IP, IP_HDRINCL, &hold, sizeof(hold));
 		ip->ip_v = IPVERSION;
 		ip->ip_hl = sizeof(struct ip) >> 2;
 		ip->ip_tos = options->n_tos;
@@ -321,7 +288,7 @@ ping(struct options *const options, cap_channel_t *const capdns)
 		ip->ip_ttl = options->n_ttl;
 		ip->ip_p = IPPROTO_ICMP;
 		ip->ip_src.s_addr = options->f_source ? options->source_sockaddr.in.sin_addr.s_addr : INADDR_ANY;
-		ip->ip_dst = vars.target_sockaddr->sin_addr;
+		ip->ip_dst = vars->target_sockaddr->sin_addr;
         }
 
 	/*
@@ -333,10 +300,10 @@ ping(struct options *const options, cap_channel_t *const capdns)
 		exit(1);
 
 	cap_rights_init(&rights, CAP_RECV, CAP_EVENT, CAP_SETSOCKOPT);
-	if (caph_rights_limit(srecv, &rights) < 0)
+	if (caph_rights_limit(vars->srecv, &rights) < 0)
 		err(1, "cap_rights_limit srecv");
 	cap_rights_init(&rights, CAP_SEND, CAP_SETSOCKOPT);
-	if (caph_rights_limit(vars.ssend, &rights) < 0)
+	if (caph_rights_limit(vars->ssend, &rights) < 0)
 		err(1, "cap_rights_limit ssend");
 
 	/* record route option */
@@ -349,7 +316,7 @@ ping(struct options *const options, cap_channel_t *const capdns)
 		rspace[IPOPT_OLEN] = sizeof(rspace) - 1;
 		rspace[IPOPT_OFFSET] = IPOPT_MINOFF;
 		rspace[sizeof(rspace) - 1] = IPOPT_EOL;
-		if (setsockopt(vars.ssend, IPPROTO_IP, IP_OPTIONS, rspace,
+		if (setsockopt(vars->ssend, IPPROTO_IP, IP_OPTIONS, rspace,
 		    sizeof(rspace)) < 0)
 			err(EX_OSERR, "setsockopt IP_OPTIONS");
 #else
@@ -359,7 +326,7 @@ ping(struct options *const options, cap_channel_t *const capdns)
 	}
 
 	if (options->f_ttl) {
-		if (setsockopt(vars.ssend, IPPROTO_IP, IP_TTL, &options->n_ttl,
+		if (setsockopt(vars->ssend, IPPROTO_IP, IP_TTL, &options->n_ttl,
 		    sizeof(options->n_ttl)) < 0) {
 			err(EX_OSERR, "setsockopt IP_TTL");
 		}
@@ -367,37 +334,37 @@ ping(struct options *const options, cap_channel_t *const capdns)
 	if (options->f_no_loop) {
 		const unsigned char loop = 0;
 
-		if (setsockopt(vars.ssend, IPPROTO_IP, IP_MULTICAST_LOOP, &loop,
+		if (setsockopt(vars->ssend, IPPROTO_IP, IP_MULTICAST_LOOP, &loop,
 		    sizeof(loop)) < 0) {
 			err(EX_OSERR, "setsockopt IP_MULTICAST_LOOP");
 		}
 	}
 	if (options->f_multicast_ttl) {
-		if (setsockopt(vars.ssend, IPPROTO_IP, IP_MULTICAST_TTL, &options->n_multicast_ttl,
+		if (setsockopt(vars->ssend, IPPROTO_IP, IP_MULTICAST_TTL, &options->n_multicast_ttl,
 		    sizeof(options->n_multicast_ttl)) < 0) {
 			err(EX_OSERR, "setsockopt IP_MULTICAST_TTL");
 		}
 	}
 	if (options->f_interface) {
-		if (setsockopt(vars.ssend, IPPROTO_IP, IP_MULTICAST_IF, &options->interface.ifaddr,
+		if (setsockopt(vars->ssend, IPPROTO_IP, IP_MULTICAST_IF, &options->interface.ifaddr,
 		    sizeof(options->interface.ifaddr)) < 0) {
 			err(EX_OSERR, "setsockopt IP_MULTICAST_IF");
 		}
 	}
 #ifdef SO_TIMESTAMP
 	{ int on = 1;
-	if (setsockopt(srecv, SOL_SOCKET, SO_TIMESTAMP, &on, sizeof(on)) < 0)
+	if (setsockopt(vars->srecv, SOL_SOCKET, SO_TIMESTAMP, &on, sizeof(on)) < 0)
 		err(EX_OSERR, "setsockopt SO_TIMESTAMP");
 	}
 #endif
 	if (options->f_sweep_max) {
 		if (options->n_packets > 0) {
-			counters.sweep_max_packets = options->n_packets;
+			counters->sweep_max_packets = options->n_packets;
 			options->n_packets = 0;
 		} else
-			counters.sweep_max_packets = 1;
+			counters->sweep_max_packets = 1;
 		options->n_packet_size = options->n_sweep_min;
-		vars.send_len = icmp_len + options->n_sweep_min;
+		vars->send_len = vars->icmp_len + options->n_sweep_min;
 	}
 
 	/*
@@ -413,21 +380,21 @@ ping(struct options *const options, cap_channel_t *const capdns)
 	 * as well.
 	 */
 	hold = IP_MAXPACKET + 128;
-	(void)setsockopt(srecv, SOL_SOCKET, SO_RCVBUF, (char *)&hold,
+	(void)setsockopt(vars->srecv, SOL_SOCKET, SO_RCVBUF, (char *)&hold,
 	    sizeof(hold));
 	/* CAP_SETSOCKOPT removed */
 	cap_rights_init(&rights, CAP_RECV, CAP_EVENT);
-	if (caph_rights_limit(srecv, &rights) < 0)
+	if (caph_rights_limit(vars->srecv, &rights) < 0)
 		err(1, "cap_rights_limit srecv setsockopt");
 	if (getuid() == 0)
-		(void)setsockopt(vars.ssend, SOL_SOCKET, SO_SNDBUF, (char *)&hold,
+		(void)setsockopt(vars->ssend, SOL_SOCKET, SO_SNDBUF, (char *)&hold,
 		    sizeof(hold));
 	/* CAP_SETSOCKOPT removed */
 	cap_rights_init(&rights, CAP_SEND);
-	if (caph_rights_limit(vars.ssend, &rights) < 0)
+	if (caph_rights_limit(vars->ssend, &rights) < 0)
 		err(1, "cap_rights_limit ssend setsockopt");
 
-	pr_heading(vars.target_sockaddr, options);
+	pr_heading(vars->target_sockaddr, options);
 
 	/*
 	 * Use sigaction() instead of signal() to get unambiguous semantics,
@@ -453,23 +420,30 @@ ping(struct options *const options, cap_channel_t *const capdns)
 			err(EX_OSERR, "sigaction SIGALRM");
         }
 
-	bzero(&msg, sizeof(msg));
-	msg.msg_name = (caddr_t)&from;
-	msg.msg_iov = &iov;
-	msg.msg_iovlen = 1;
+	bzero(&vars->msg, sizeof(vars->msg));
+	vars->msg.msg_name = (caddr_t)&vars->from;
+	vars->msg.msg_iov = &vars->iov;
+	vars->msg.msg_iovlen = 1;
 #ifdef SO_TIMESTAMP
-	msg.msg_control = (caddr_t)ctrl;
+	vars->msg.msg_control = (caddr_t)vars->ctrl;
 #endif
-	iov.iov_base = packet;
-	iov.iov_len = IP_MAXPACKET;
+	vars->iov.iov_base = vars->packet;
+	vars->iov.iov_len = IP_MAXPACKET;
+}
+
+void
+ping_loop(struct options *const options, struct shared_variables *const vars,
+    struct counters *const counters, struct timing *const timing)
+{
+	struct timeval last;
 
 	if (options->n_preload == 0)
-		pinger(options, &vars, &counters, &timing);	/* send the first ping */
+		pinger(options, vars, counters, timing);	/* send the first ping */
 	else {
 		if (options->n_packets != 0 && options->n_preload > options->n_packets)
 			options->n_preload = options->n_packets;
 		while (options->n_preload--)	/* fire off them quickies */
-			pinger(options, &vars, &counters, &timing);
+			pinger(options, vars, counters, timing);
 	}
 	(void)gettimeofday(&last, NULL);
 
@@ -479,11 +453,11 @@ ping(struct options *const options, cap_channel_t *const capdns)
 		fd_set rfds;
 		int cc, n;
 
-		check_status(&counters, &timing);
-		if ((unsigned)srecv >= FD_SETSIZE)
+		check_status(counters, timing);
+		if ((unsigned)vars->srecv >= FD_SETSIZE)
 			errx(EX_OSERR, "descriptor too large");
 		FD_ZERO(&rfds);
-		FD_SET(srecv, &rfds);
+		FD_SET(vars->srecv, &rfds);
 		(void)gettimeofday(&now, NULL);
 		timeout.tv_sec = last.tv_sec + options->n_interval.tv_sec - now.tv_sec;
 		timeout.tv_usec = last.tv_usec + options->n_interval.tv_usec - now.tv_usec;
@@ -497,18 +471,18 @@ ping(struct options *const options, cap_channel_t *const capdns)
 		}
 		if (timeout.tv_sec < 0)
 			timerclear(&timeout);
-		n = select(srecv + 1, &rfds, NULL, NULL, &timeout);
+		n = select(vars->srecv + 1, &rfds, NULL, NULL, &timeout);
 		if (n < 0)
 			continue;	/* Must be EINTR. */
 		if (n == 1) {
 			struct timeval *tv = NULL;
 #ifdef SO_TIMESTAMP
-			struct cmsghdr *cmsg = (struct cmsghdr *)&ctrl;
+			struct cmsghdr *cmsg = (struct cmsghdr *)&vars->ctrl;
 
-			msg.msg_controllen = sizeof(ctrl);
+			vars->msg.msg_controllen = sizeof(vars->ctrl);
 #endif
-			msg.msg_namelen = sizeof(from);
-			if ((cc = recvmsg(srecv, &msg, 0)) < 0) {
+			vars->msg.msg_namelen = sizeof(vars->from);
+			if ((cc = recvmsg(vars->srecv, &vars->msg, 0)) < 0) {
 				if (errno == EINTR)
 					continue;
 				warn("recvmsg");
@@ -527,36 +501,36 @@ ping(struct options *const options, cap_channel_t *const capdns)
 				(void)gettimeofday(&now, NULL);
 				tv = &now;
 			}
-			if (!is_packet_too_short((char *)packet, cc, &from, options->f_verbose)) {
-				get_triptime((char *)packet, cc, tv, &vars, timing.enabled);
-				update_timing((char *)packet, cc, tv, &vars, &timing);
-				update_counters((char *)packet, cc, tv, options, &vars, &counters);
-				pr_pack((char *)packet, cc, &from, tv, options, &vars, timing.enabled);
-				mark_packet_as_received((char *)packet, cc, &vars);
+			if (!is_packet_too_short((char *)vars->packet, cc, &vars->from, options->f_verbose)) {
+				get_triptime((char *)vars->packet, cc, tv, vars, timing->enabled);
+				update_timing((char *)vars->packet, cc, tv, vars, timing);
+				update_counters((char *)vars->packet, cc, tv, options, vars, counters);
+				pr_pack((char *)vars->packet, cc, &vars->from, tv, options, vars, timing->enabled);
+				mark_packet_as_received((char *)vars->packet, cc, vars);
 			}
-			if ((options->f_once && counters.received) ||
-			    (options->n_packets && counters.received >= options->n_packets))
+			if ((options->f_once && counters->received) ||
+			    (options->n_packets && counters->received >= options->n_packets))
 				break;
 		}
 		if (n == 0 || options->f_flood) {
-			if (options->n_sweep_max && counters.sweep_transmitted == counters.sweep_max_packets) {
+			if (options->n_sweep_max && counters->sweep_transmitted == counters->sweep_max_packets) {
 				for (int i = 0; i < options->n_sweep_incr ; ++i)
-					*datap++ = i;
+					*vars->datap++ = i;
 				options->n_packet_size += options->n_sweep_incr;
 				if (options->n_packet_size > options->n_sweep_max)
 					break;
-				vars.send_len = icmp_len + options->n_packet_size;
-				counters.sweep_transmitted = 0;
+				vars->send_len = vars->icmp_len + options->n_packet_size;
+				counters->sweep_transmitted = 0;
 			}
-			if (!options->n_packets || counters.transmitted < options->n_packets)
-				pinger(options, &vars, &counters, &timing);
+			if (!options->n_packets || counters->transmitted < options->n_packets)
+				pinger(options, vars, counters, timing);
 			else {
 				if (almost_done)
 					break;
 				almost_done = true;
 				options->n_interval.tv_usec = 0;
-				if (counters.received) {
-					options->n_interval.tv_sec = 2 * timing.max / 1000;
+				if (counters->received) {
+					options->n_interval.tv_sec = 2 * timing->max / 1000;
 					if (!options->n_interval.tv_sec)
 						options->n_interval.tv_sec = 1;
 				} else {
@@ -565,17 +539,21 @@ ping(struct options *const options, cap_channel_t *const capdns)
 				}
 			}
 			(void)gettimeofday(&last, NULL);
-			if (counters.transmitted - counters.received - 1 > counters.missedmax) {
-				counters.missedmax = counters.transmitted - counters.received - 1;
+			if (counters->transmitted - counters->received - 1 > counters->missedmax) {
+				counters->missedmax = counters->transmitted - counters->received - 1;
 				if (options->f_missed)
 					write_char(STDOUT_FILENO, CHAR_BBELL);
 			}
 		}
 	}
+}
+
+void
+ping_finish(struct options *const options, struct shared_variables *const vars,
+    struct counters *const counters, struct timing *const timing)
+{
 	options_free(options);
-	finish(&vars, &counters, &timing, options->target);
-	/* NOTREACHED */
-	exit(0);	/* Make the compiler happy */
+	finish(vars, counters, timing, options->target);
 }
 
 /*

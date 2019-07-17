@@ -31,8 +31,50 @@
 #ifndef PING_H
 #define PING_H 1
 
-#include "options.h"
+#include <sys/types.h>
 
-void ping(struct options *const options, cap_channel_t *capdns);
+#include <netinet/ip.h>
+
+#include "defaults_limits.h"
+#include "options.h"
+#include "timing.h"
+
+struct shared_variables {
+	char rcvd_tbl[MAX_DUP_CHK / 8];
+	int ssend;		/* send socket file descriptor */
+	int srecv;		/* receive socket file descriptor */
+	u_char outpackhdr[IP_MAXPACKET], *outpack;
+	int ident;		/* process id to identify our packets */
+	u_char icmp_type;
+	u_char icmp_type_rsp;
+	int phdr_len;
+	int send_len;
+	const struct sockaddr_in *target_sockaddr;
+	cap_channel_t *capdns;
+	char ctrl[CMSG_SPACE(sizeof(struct timeval))];
+	struct msghdr msg;
+	struct sockaddr_in from;
+	u_char packet[IP_MAXPACKET] __aligned(4);
+	u_char *datap;
+	int icmp_len;
+	struct iovec iov;
+};
+
+struct counters {
+	long missedmax;		/* max value of ntransmitted - received - 1 */
+	long received;		/* # of packets we got back */
+	long repeats;		/* number of duplicates */
+	long transmitted;	/* sequence # for outbound packets = #sent */
+	long sweep_max_packets;	/* max packets to transmit in one sweep */
+	long sweep_transmitted;	/* # of packets we sent in this sweep */
+	long rcvtimeout;	/* # of packets we got back after waittime */
+};
+
+void ping_init(struct options *const options, struct shared_variables *const vars,
+    struct counters *const counters, struct timing *const timing);
+void ping_loop(struct options *const options, struct shared_variables *const vars,
+    struct counters *const counters, struct timing *const timing);
+void ping_finish(struct options *const options, struct shared_variables *const vars,
+    struct counters *const counters, struct timing *const timing);
 
 #endif
