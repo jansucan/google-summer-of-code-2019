@@ -609,8 +609,6 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 	/* CAP_SETSOCKOPT removed */
 	if (!cap_limit_socket(vars->socket_send, RIGHTS_SEND))
 		exit(1);
-
-	/* ping6_loop(options, vars, counters, timing); */
 }
 
 void
@@ -765,8 +763,6 @@ ping6_loop(struct options *const options, struct shared_variables *const vars,
 			}
 		}
 	}
-
-	/* ping6_finish(options, vars, counters, timing); */
 }
 
 void
