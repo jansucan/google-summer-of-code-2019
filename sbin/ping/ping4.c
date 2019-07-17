@@ -144,7 +144,6 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	struct sigaction si_sa;
 	int hold;
 	int ssend_errno, srecv_errno;
-	cap_rights_t rights;
 
 	vars->icmp_type = ICMP_ECHO;
 	vars->icmp_type_rsp = ICMP_ECHOREPLY;
@@ -298,12 +297,10 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	if (!cap_enter_capability_mode())
 		exit(1);
 
-	cap_rights_init(&rights, CAP_RECV, CAP_EVENT, CAP_SETSOCKOPT);
-	if (caph_rights_limit(vars->socket_recv, &rights) < 0)
-		err(1, "cap_rights_limit srecv");
-	cap_rights_init(&rights, CAP_SEND, CAP_SETSOCKOPT);
-	if (caph_rights_limit(vars->socket_send, &rights) < 0)
-		err(1, "cap_rights_limit ssend");
+	if (!cap_limit_socket(vars->socket_recv, RIGHTS_RECV_EVENT_SETSOCKOPT))
+		exit(1);
+	if (!cap_limit_socket(vars->socket_send, RIGHTS_SEND_SETSOCKOPT))
+		exit(1);
 
 	/* record route option */
 	if (options->f_rroute) {
@@ -382,16 +379,14 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	(void)setsockopt(vars->socket_recv, SOL_SOCKET, SO_RCVBUF, (char *)&hold,
 	    sizeof(hold));
 	/* CAP_SETSOCKOPT removed */
-	cap_rights_init(&rights, CAP_RECV, CAP_EVENT);
-	if (caph_rights_limit(vars->socket_recv, &rights) < 0)
-		err(1, "cap_rights_limit srecv setsockopt");
+	if (!cap_limit_socket(vars->socket_recv, RIGHTS_RECV_EVENT))
+		exit(1);
 	if (getuid() == 0)
 		(void)setsockopt(vars->socket_send, SOL_SOCKET, SO_SNDBUF, (char *)&hold,
 		    sizeof(hold));
 	/* CAP_SETSOCKOPT removed */
-	cap_rights_init(&rights, CAP_SEND);
-	if (caph_rights_limit(vars->socket_send, &rights) < 0)
-		err(1, "cap_rights_limit ssend setsockopt");
+	if (!cap_limit_socket(vars->socket_send, RIGHTS_SEND))
+		exit(1);
 
 	pr_heading(vars->target_sockaddr, options);
 

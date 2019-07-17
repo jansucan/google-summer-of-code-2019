@@ -201,7 +201,6 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 	struct in6_pktinfo *pktinfo = NULL;
 	struct ip6_rthdr *rthdr = NULL;
 	size_t rthlen;
-	cap_rights_t rights;
 
 	memset(counters, 0, sizeof(*counters));
 	memset(&vars->smsghdr, 0, sizeof(vars->smsghdr));
@@ -551,12 +550,10 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 	if (!cap_enter_capability_mode())
 		exit(1);
 
-	cap_rights_init(&rights, CAP_RECV, CAP_EVENT, CAP_SETSOCKOPT);
-	if (caph_rights_limit(vars->socket_recv, &rights) < 0)
-		err(1, "cap_rights_limit socket_recv");
-	cap_rights_init(&rights, CAP_SEND, CAP_SETSOCKOPT);
-	if (caph_rights_limit(vars->socket_send, &rights) < 0)
-		err(1, "cap_rights_limit socket_send");
+	if (!cap_limit_socket(vars->socket_recv, RIGHTS_RECV_EVENT_SETSOCKOPT))
+		exit(1);
+	if (!cap_limit_socket(vars->socket_send, RIGHTS_SEND_SETSOCKOPT))
+		exit(1);
 
 #if defined(SO_SNDBUF) && defined(SO_RCVBUF)
 	if (options->f_sock_buff_size) {
@@ -607,13 +604,11 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 #endif
 
 	/* CAP_SETSOCKOPT removed */
-	cap_rights_init(&rights, CAP_RECV, CAP_EVENT);
-	if (caph_rights_limit(vars->socket_recv, &rights) < 0)
-		err(1, "cap_rights_limit socket_recv setsockopt");
+	if (!cap_limit_socket(vars->socket_recv, RIGHTS_RECV_EVENT))
+		exit(1);
 	/* CAP_SETSOCKOPT removed */
-	cap_rights_init(&rights, CAP_SEND);
-	if (caph_rights_limit(vars->socket_send, &rights) < 0)
-		err(1, "cap_rights_limit socket_send setsockopt");
+	if (!cap_limit_socket(vars->socket_send, RIGHTS_SEND))
+		exit(1);
 
 	/* ping6_loop(options, vars, counters, timing); */
 }

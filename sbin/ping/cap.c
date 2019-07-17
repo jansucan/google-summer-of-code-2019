@@ -35,6 +35,38 @@ __FBSDID("$FreeBSD$");
 #include "cap.h"
 #include "utils.h"
 
+bool
+cap_limit_socket(int socket, enum ping_socket_rights rights)
+{
+	cap_rights_t r;
+
+	switch (rights) {
+	case RIGHTS_RECV_EVENT_SETSOCKOPT:
+		cap_rights_init(&r, CAP_RECV, CAP_EVENT, CAP_SETSOCKOPT);
+		break;
+	case RIGHTS_SEND_SETSOCKOPT:
+		cap_rights_init(&r, CAP_SEND, CAP_SETSOCKOPT);
+		break;
+        case RIGHTS_RECV_EVENT:
+		cap_rights_init(&r, CAP_RECV, CAP_EVENT);
+		break;
+	case RIGHTS_SEND:
+		cap_rights_init(&r, CAP_SEND);
+		break;
+	default:
+		print_error("cap_limit_socket: invalid specification of rights");
+		return (false);
+		/* NOTREACHED */
+	}
+
+	if (caph_rights_limit(socket, &r) < 0) {
+		print_error("cap_rights_limit socket: %s", strerror(errno));
+		return (false);
+	}
+
+	return (true);
+}
+
 cap_channel_t *
 capdns_setup(void)
 {

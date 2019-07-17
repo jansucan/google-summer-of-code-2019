@@ -37,6 +37,14 @@
 #include <casper/cap_dns.h>
 #include <capsicum_helpers.h>
 
+enum ping_socket_rights {
+        RIGHTS_RECV_EVENT_SETSOCKOPT,
+	RIGHTS_SEND_SETSOCKOPT,
+        RIGHTS_RECV_EVENT,
+	RIGHTS_SEND
+};
+
+bool cap_limit_socket(int socket, enum ping_socket_rights);
 cap_channel_t *capdns_setup(void);
 bool capdns_limit_family(cap_channel_t *const capdns, int family);
 bool capdns_limit_type(cap_channel_t *const capdns, const char *const type);
