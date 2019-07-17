@@ -90,7 +90,7 @@ __FBSDID("$FreeBSD$");
 #include "cap.h"
 #include "defaults_limits.h"
 #include "ipsec.h"
-#include "ping.h"
+#include "ping4.h"
 #include "timing.h"
 #include "utils.h"
 
@@ -137,7 +137,7 @@ static void update_timing(const char *const, size_t, const struct timeval *const
     const struct shared_variables *const, struct timing *const);
 
 void
-ping_init(struct options *const options, struct shared_variables *const vars,
+ping4_init(struct options *const options, struct shared_variables *const vars,
     struct counters *const counters, struct timing *const timing)
 {
 	struct ip *ip;
@@ -432,7 +432,7 @@ ping_init(struct options *const options, struct shared_variables *const vars,
 }
 
 void
-ping_loop(struct options *const options, struct shared_variables *const vars,
+ping4_loop(struct options *const options, struct shared_variables *const vars,
     struct counters *const counters, struct timing *const timing)
 {
 	struct timeval last;
@@ -549,7 +549,7 @@ ping_loop(struct options *const options, struct shared_variables *const vars,
 }
 
 void
-ping_finish(struct options *const options, struct shared_variables *const vars,
+ping4_finish(struct options *const options, struct shared_variables *const vars,
     struct counters *const counters, struct timing *const timing)
 {
 	options_free(options);

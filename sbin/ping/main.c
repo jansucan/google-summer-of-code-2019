@@ -33,7 +33,7 @@ __FBSDID("$FreeBSD$");
 #include <sysexits.h>
 
 #include "options.h"
-#include "ping.h"
+#include "ping4.h"
 #include "ping6.h"
 
 int
@@ -52,9 +52,9 @@ main(int argc, char *argv[])
 		exit(r);
 
 	if (options.target_type == TARGET_IPV4) {
-		ping_init(&options, &vars, &counters, &timing);
-		ping_loop(&options, &vars, &counters, &timing);
-		ping_finish(&options, &vars, &counters, &timing);
+		ping4_init(&options, &vars, &counters, &timing);
+		ping4_loop(&options, &vars, &counters, &timing);
+		ping4_finish(&options, &vars, &counters, &timing);
 	} else
 		ping6(&options, vars.capdns);
 	/* NOTREACHED */
