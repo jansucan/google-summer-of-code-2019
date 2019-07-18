@@ -744,13 +744,13 @@ options_get_target_type(struct options *const options, bool *const is_hostname, 
 	int r6_pton = 0;
 #endif
 	if ((r_pton = inet_pton(AF_INET, options->target, &a)) == -1) {
-		print_error("inet_pton: %s", strerror(errno));
+		print_error_strerr("inet_pton");
 		return EX_OSERR;
 	}
 #ifdef INET6
 	else if (r_pton == 0) {
 		if ((r6_pton = inet_pton(AF_INET6, options->target, &a6)) == -1) {
-			print_error("inet_pton: %s", strerror(errno));
+			print_error_strerr("inet_pton");
 			return EX_OSERR;
 		}
 	}

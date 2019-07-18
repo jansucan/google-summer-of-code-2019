@@ -30,6 +30,7 @@
 __FBSDID("$FreeBSD$");
 
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "utils.h"
@@ -52,6 +53,22 @@ print_error(const char *const fmt, ...)
 	va_start(ap, fmt);
 	vfprintf(stderr, fmt, ap);
 	va_end(ap);
+	fprintf(stderr, "\n");
+	fflush(stderr);
+}
+
+void
+print_error_strerr(const char *const fmt, ...)
+{
+	va_list ap;
+
+	fprintf(stderr, "ping: ");
+	va_start(ap, fmt);
+	vfprintf(stderr, fmt, ap);
+	va_end(ap);
+	/* Add strerror() message. */
+	if (errno != 0)
+		fprintf(stderr, ": %s", strerror(errno));
 	fprintf(stderr, "\n");
 	fflush(stderr);
 }

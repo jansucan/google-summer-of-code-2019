@@ -60,7 +60,7 @@ cap_limit_socket(int socket, enum ping_socket_rights rights)
 	}
 
 	if (caph_rights_limit(socket, &r) < 0) {
-		print_error("cap_rights_limit socket: %s", strerror(errno));
+		print_error_strerr("cap_rights_limit socket");
 		return (false);
 	}
 
@@ -76,20 +76,20 @@ capdns_setup(void)
 
 	capcas = cap_init();
 	if (capcas == NULL) {
-		print_error("unable to create casper process: %s", strerror(errno));
+		print_error_strerr("unable to create casper process");
 		return (NULL);
 	}
 	capdnsloc = cap_service_open(capcas, "system.dns");
 	/* Casper capability no longer needed. */
 	cap_close(capcas);
 	if (capdnsloc == NULL) {
-		print_error("unable to open system.dns service: %s", strerror(errno));
+		print_error_strerr("unable to open system.dns service");
 		return (NULL);
 	}
 	types[0] = "NAME2ADDR";
 	types[1] = "ADDR2NAME";
 	if (cap_dns_type_limit(capdnsloc, types, 2) < 0) {
-		print_error("unable to limit access to system.dns service: %s", strerror(errno));
+		print_error_strerr("unable to limit access to system.dns service");
 		return (NULL);
 	}
 
@@ -100,7 +100,7 @@ bool
 capdns_limit_family(cap_channel_t *const capdns, int family)
 {
 	if (cap_dns_family_limit(capdns, &family, 1) < 0) {
-		print_error("unable to limit access to system.dns service: %s", strerror(errno));
+		print_error_strerr("unable to limit access to system.dns service");
 		return (false);
 	}
 	return (true);
@@ -110,7 +110,7 @@ bool
 capdns_limit_type(cap_channel_t *const capdns, const char *const type)
 {
 	if (cap_dns_type_limit(capdns, &type, 1) < 0) {
-		print_error("unable to limit access to system.dns service: %s", strerror(errno));
+		print_error_strerr("unable to limit access to system.dns service");
 		return (false);
 	}
 	return (true);
@@ -121,7 +121,7 @@ cap_enter_capability_mode(void)
 {
 	caph_cache_catpages();
 	if (caph_enter_casper() < 0) {
-		print_error("cap_enter: %s", strerror(errno));
+		print_error_strerr("cap_enter");
 		return (false);
 	}
 	return (true);

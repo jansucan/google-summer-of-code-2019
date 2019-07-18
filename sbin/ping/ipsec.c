@@ -62,7 +62,7 @@ ipsec_configure(int socket_send, int socket_recv, const struct options *const op
 #ifdef IPV6_AUTH_TRANS_LEVEL
 		if (setsockopt(vars.socket_send, IPPROTO_IPV6, IPV6_AUTH_TRANS_LEVEL,
 			&optval, sizeof(optval)) == -1) {
-			print_error("setsockopt(IPV6_AUTH_TRANS_LEVEL): %s", strerror(errno));
+			print_error_strerr("setsockopt(IPV6_AUTH_TRANS_LEVEL)");
 			return (false);
 		}
 
@@ -115,7 +115,7 @@ ipsec_setpolicy(int socket, char *const policy, enum target_type target_type)
 
 	buf = ipsec_set_policy(policy, strlen(policy));
 	if (buf == NULL) {
-		print_error("ipsec_set_policy: %s", ipsec_strerror());
+		print_error_strerr("ipsec_set_policy");
 		return (false);
 	}
 
