@@ -81,7 +81,6 @@ __FBSDID("$FreeBSD$");
 #include <errno.h>
 #include <math.h>
 #include <netdb.h>
-#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -100,18 +99,8 @@ __FBSDID("$FreeBSD$");
 #define	TS_LEN		(ICMP_TSLEN - ICMP_MINLEN)
 #define	FLOOD_BACKOFF	20000		/* usecs to back off if F_FLOOD mode */
 
-static struct options *sig_options;
-static volatile sig_atomic_t finish_up;
-static volatile sig_atomic_t siginfo_p;
-/*
- * This pointer is used in the signal handler for accessing received
- * member variable of the local 'struct counters' variable. Thus, the
- * received variable does not have to be global.
- */
-static const long *sig_counters_received;
-
 static u_short in_cksum(u_short *, int);
-static void check_status(const struct counters *const, const struct timing *const);
+static void check_status(const struct counters *const, const struct timing *const, volatile sig_atomic_t *const);
 static void finish(const struct shared_variables *const, const struct counters *const,
     const struct timing *const, const char *const) __dead2;
 static void get_triptime(const char *const, size_t, struct timeval *const,
@@ -129,8 +118,6 @@ static void pr_pack(const char *const, int, const struct sockaddr_in *const,
     const struct timeval *const, const struct options *const,
     const struct shared_variables *const, bool);
 static void pr_retip(struct ip *);
-static void status(int);
-static void stopit(int);
 static void update_counters(const char *const, size_t, const struct timeval *const,
     const struct options *const, const struct shared_variables *const, struct counters *const);
 static void update_timing(const char *const, size_t, const struct timeval *const,
@@ -141,7 +128,6 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
     struct counters *const counters, struct timing *const timing)
 {
 	struct ip *ip;
-	struct sigaction si_sa;
 	int hold;
 	int ssend_errno, srecv_errno;
 
@@ -149,7 +135,6 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	vars->icmp_type_rsp = ICMP_ECHOREPLY;
 
 	memset(counters, 0, sizeof(*counters));
-	sig_counters_received = &counters->received;
 
 	timing_init(timing);
 
@@ -186,10 +171,6 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	}
 
 	vars->outpack = vars->outpackhdr + sizeof(struct ip);
-
-	/* The signal handler needs pointer to options so it can free
-	 * the dynamically allocated memory. */
-	sig_options = options;
 
 	if (options->f_flood)
 		setbuf(stdout, (char *)NULL);
@@ -390,30 +371,6 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 
 	pr_heading(vars->target_sockaddr, options);
 
-	/*
-	 * Use sigaction() instead of signal() to get unambiguous semantics,
-	 * in particular with SA_RESTART not set.
-	 */
-
-	sigemptyset(&si_sa.sa_mask);
-	si_sa.sa_flags = 0;
-
-	si_sa.sa_handler = stopit;
-	if (sigaction(SIGINT, &si_sa, 0) == -1) {
-		err(EX_OSERR, "sigaction SIGINT");
-	}
-
-	si_sa.sa_handler = status;
-	if (sigaction(SIGINFO, &si_sa, 0) == -1) {
-		err(EX_OSERR, "sigaction");
-	}
-
-        if (options->f_timeout) {
-		si_sa.sa_handler = stopit;
-		if (sigaction(SIGALRM, &si_sa, 0) == -1)
-			err(EX_OSERR, "sigaction SIGALRM");
-        }
-
 	bzero(&vars->msg, sizeof(vars->msg));
 	vars->msg.msg_name = (caddr_t)&vars->from;
 	vars->msg.msg_iov = &vars->iov;
@@ -427,7 +384,8 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 
 void
 ping4_loop(struct options *const options, struct shared_variables *const vars,
-    struct counters *const counters, struct timing *const timing)
+    struct counters *const counters, struct timing *const timing,
+    struct signal_variables *const signal_vars)
 {
 	struct timeval last;
 
@@ -442,12 +400,12 @@ ping4_loop(struct options *const options, struct shared_variables *const vars,
 	(void)gettimeofday(&last, NULL);
 
 	bool almost_done = false;
-	while (!finish_up) {
+	while (!signal_vars->sigint_sigalrm) {
 		struct timeval now, timeout;
 		fd_set rfds;
 		int cc, n;
 
-		check_status(counters, timing);
+		check_status(counters, timing, &signal_vars->siginfo);
 		if ((unsigned)vars->socket_recv >= FD_SETSIZE)
 			errx(EX_OSERR, "descriptor too large");
 		FD_ZERO(&rfds);
@@ -548,27 +506,6 @@ ping4_finish(struct options *const options, struct shared_variables *const vars,
 {
 	options_free(options);
 	finish(vars, counters, timing, options->target);
-}
-
-/*
- * stopit --
- *	Set the global bit that causes the main loop to quit.
- * Do NOT call finish() from here, since finish() does far too much
- * to be called from a signal handler.
- */
-void
-stopit(int sig __unused)
-{
-
-	/*
-	 * When doing reverse DNS lookups, the finish_up flag might not
-	 * be noticed for a while.  Just exit if we get a second SIGINT.
-	 */
-	if (!sig_options->f_numeric && finish_up) {
-		options_free(sig_options);
-		_exit(((sig_counters_received != NULL) && (*sig_counters_received != 0)) ? 0 : 2);
-	}
-	finish_up = 1;
 }
 
 /*
@@ -1061,24 +998,13 @@ in_cksum(u_short *addr, int len)
 	return(answer);
 }
 
-/*
- * status --
- *	Print out statistics when SIGINFO is received.
- */
-
 static void
-status(int sig __unused)
+check_status(const struct counters *const counters, const struct timing *const timing,
+	volatile sig_atomic_t *const siginfo)
 {
 
-	siginfo_p = 1;
-}
-
-static void
-check_status(const struct counters *const counters, const struct timing *const timing)
-{
-
-	if (siginfo_p) {
-		siginfo_p = 0;
+	if (*siginfo) {
+		*siginfo = false;
 		(void)printf("\r%ld/%ld packets received (%.1f%%)",
 		    counters->received, counters->transmitted,
 		    counters->transmitted ? counters->received * 100.0 / counters->transmitted : 0.0);
@@ -1098,9 +1024,6 @@ static void
 finish(const struct shared_variables *const vars, const struct counters *const counters,
     const struct timing *const timing, const char *const target)
 {
-
-	(void)signal(SIGINT, SIG_IGN);
-	(void)signal(SIGALRM, SIG_IGN);
 	(void)printf("\n");
 	(void)fflush(stdout);
 	(void)printf("--- %s ping statistics ---\n", target);

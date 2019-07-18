@@ -76,4 +76,12 @@ struct counters {
 	long rcvtimeout;	/* # of packets we got back after waittime */
 };
 
+struct signal_variables {
+	volatile sig_atomic_t siginfo;
+	volatile sig_atomic_t sigint_sigalrm;
+
+	struct options *options;
+	const long *counters_received;
+};
+
 #endif

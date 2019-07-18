@@ -122,7 +122,6 @@ __FBSDID("$FreeBSD$");
 #include <errno.h>
 #include <fcntl.h>
 #include <math.h>
-#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -144,24 +143,10 @@ __FBSDID("$FreeBSD$");
 
 #define DUMMY_PORT	10101
 
-static struct options *sig_options;
-static volatile sig_atomic_t seenint;
-#ifdef SIGINFO
-static volatile sig_atomic_t seeninfo;
-#endif
-/*
- * This pointer is used in the signal handler for accessing received
- * member variable of the local 'struct counters' variable. Thus, the
- * received variable does not have to be global.
- */
-static const long *sig_counters_received;
-
 static int	 get_hoplim(const struct msghdr *const);
 static int	 get_pathmtu(const struct msghdr *const , const struct options *const,
     const struct sockaddr_in6 *const, cap_channel_t *const);
 static struct in6_pktinfo *get_rcvpktinfo(const struct msghdr *const);
-static void	 onsignal(int);
-static void	 onint(int);
 static size_t	 pingerlen(const struct options *const, size_t);
 static int	 pinger(struct options *const, struct shared_variables *const,
     struct counters *const, struct timing *const);
@@ -205,15 +190,9 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 	memset(counters, 0, sizeof(*counters));
 	memset(&vars->smsghdr, 0, sizeof(vars->smsghdr));
 
-	sig_counters_received = &counters->received;
-
 	timing_init(timing);
 
 	datap = &vars->outpack6[ICMP6ECHOLEN + ICMP6ECHOTMLEN];
-
-	/* The signal handler needs pointer to options so it can free
-	 * the dynamically allocated memory. */
-	sig_options = options;
 
 	vars->target_sockaddr_in6 = (struct sockaddr_in6 *) options->target_addrinfo->ai_addr;
 
@@ -609,20 +588,21 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 	/* CAP_SETSOCKOPT removed */
 	if (!cap_limit_socket(vars->socket_send, RIGHTS_SEND))
 		exit(1);
+
+	/* TODO: Remove duplicit arguments */
+	pr_heading(&options->source_sockaddr.in6, vars->target_sockaddr_in6, options, vars->capdns);
 }
 
 void
 ping6_loop(struct options *const options, struct shared_variables *const vars,
-    struct counters *const counters, struct timing *const timing)
+    struct counters *const counters, struct timing *const timing,
+    struct signal_variables *const signal_vars)
 {
 	struct sockaddr_in6 from;
 	struct timeval last;
-	struct sigaction si_sa;
 	/* For control (ancillary) data received from recvmsg() */
 	struct cmsghdr cm[CONTROLLEN];
 	bool almost_done;
-
-	pr_heading(&options->source_sockaddr.in6, vars->target_sockaddr_in6, options, vars->capdns);
 
 	if (options->n_preload == 0)
 		pinger(options, vars, counters, timing);
@@ -634,37 +614,17 @@ ping6_loop(struct options *const options, struct shared_variables *const vars,
 	}
 	gettimeofday(&last, NULL);
 
-	sigemptyset(&si_sa.sa_mask);
-	si_sa.sa_flags = 0;
-	si_sa.sa_handler = onsignal;
-	if (sigaction(SIGINT, &si_sa, 0) == -1)
-		err(EX_OSERR, "sigaction SIGINT");
-	seenint = 0;
-#ifdef SIGINFO
-	if (sigaction(SIGINFO, &si_sa, 0) == -1)
-		err(EX_OSERR, "sigaction SIGINFO");
-	seeninfo = 0;
-#endif
-	if (options->f_timeout) {
-		if (sigaction(SIGALRM, &si_sa, 0) == -1)
-			err(EX_OSERR, "sigaction SIGALRM");
-	}
-
 	almost_done = false;
-	while (seenint == 0) {
+	while (!signal_vars->sigint_sigalrm) {
 		struct timeval now, timeout;
 		fd_set rfds;
 
-		/* signal handling */
-		if (seenint)
-			onint(SIGINT);
-#ifdef SIGINFO
-		if (seeninfo) {
+		if (signal_vars->siginfo) {
 			pr_summary(counters, timing, options->target);
-			seeninfo = 0;
+			signal_vars->siginfo = false;
 			continue;
 		}
-#endif
+
 		FD_ZERO(&rfds);
 		FD_SET(vars->socket_recv, &rfds);
 		gettimeofday(&now, NULL);
@@ -769,13 +729,6 @@ void
 ping6_finish(struct options *const options, struct shared_variables *const vars,
     struct counters *const counters, struct timing *const timing)
 {
-	struct sigaction si_sa;
-
-	sigemptyset(&si_sa.sa_mask);
-	si_sa.sa_flags = 0;
-	si_sa.sa_handler = SIG_IGN;
-	sigaction(SIGINT, &si_sa, 0);
-	sigaction(SIGALRM, &si_sa, 0);
 	pr_summary(counters, timing, options->target);
 
         if(vars->packet6 != NULL)
@@ -783,23 +736,6 @@ ping6_finish(struct options *const options, struct shared_variables *const vars,
 
 	options_free(options);
 	exit(counters->received == 0 ? 2 : 0);
-}
-
-static void
-onsignal(int sig)
-{
-
-	switch (sig) {
-	case SIGINT:
-	case SIGALRM:
-		seenint++;
-		break;
-#ifdef SIGINFO
-	case SIGINFO:
-		seeninfo++;
-		break;
-#endif
-	}
 }
 
 /*
@@ -1746,24 +1682,6 @@ get_pathmtu(const struct msghdr *const mhdr, const struct options *const options
 	}
 #endif
 	return(0);
-}
-
-/*
- * onint --
- *	SIGINT handler.
- */
-/* ARGSUSED */
-static void
-onint(int notused __unused)
-{
-	/*
-	 * When doing reverse DNS lookups, the seenint flag might not
-	 * be noticed for a while.  Just exit if we get a second SIGINT.
-	 */
-	if (!sig_options->f_numeric && seenint != 0) {
-		options_free(sig_options);
-		_exit(((sig_counters_received != NULL) && (*sig_counters_received != 0)) ? 0 : 2);
-	}
 }
 
 /*

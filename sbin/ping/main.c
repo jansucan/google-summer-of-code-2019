@@ -29,6 +29,8 @@
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
+#include <err.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sysexits.h>
@@ -36,6 +38,13 @@ __FBSDID("$FreeBSD$");
 #include "options.h"
 #include "ping4.h"
 #include "ping6.h"
+
+static struct signal_variables signal_vars;
+
+static void signals_setup(struct options *const options, const long *const counters_received);
+static void signals_cleanup(void);
+static void signal_handler_siginfo(int sig __unused);
+static void signal_handler_sigint_sigalrm(int sig __unused);
 
 int
 main(int argc, char *argv[])
@@ -57,12 +66,77 @@ main(int argc, char *argv[])
 
 	if (options.target_type == TARGET_IPV4) {
 		ping4_init(&options, &vars, &counters, &timing);
-		ping4_loop(&options, &vars, &counters, &timing);
+		signals_setup(&options, &counters.received);
+		ping4_loop(&options, &vars, &counters, &timing, &signal_vars);
+		signals_cleanup();
 		ping4_finish(&options, &vars, &counters, &timing);
 	} else {
 		ping6_init(&options, &vars, &counters, &timing);
-		ping6_loop(&options, &vars, &counters, &timing);
+		signals_setup(&options, &counters.received);
+		ping6_loop(&options, &vars, &counters, &timing, &signal_vars);
+		signals_cleanup();
 		ping6_finish(&options, &vars, &counters, &timing);
 	}
 	/* NOTREACHED */
+}
+static void
+signals_setup(struct options *const options, const long *const counters_received)
+{
+	struct sigaction si_sa;
+
+	signal_vars.siginfo = false;
+	signal_vars.sigint_sigalrm = false;
+	signal_vars.options = options;
+
+	/*
+	 * Use sigaction() instead of signal() to get unambiguous semantics,
+	 * in particular with SA_RESTART not set.
+	 */
+	sigemptyset(&si_sa.sa_mask);
+	si_sa.sa_flags = 0;
+
+	si_sa.sa_handler = signal_handler_siginfo;
+	if (sigaction(SIGINFO, &si_sa, 0) == -1)
+		err(EX_OSERR, "sigaction SIGINFO");
+
+	si_sa.sa_handler = signal_handler_sigint_sigalrm;
+	if (sigaction(SIGINT, &si_sa, 0) == -1)
+		err(EX_OSERR, "sigaction SIGINT");
+
+	if (options->f_timeout && (sigaction(SIGALRM, &si_sa, 0) == -1))
+		err(EX_OSERR, "sigaction SIGALRM");
+}
+
+static void
+signals_cleanup(void)
+{
+	struct sigaction si_sa;
+
+	sigemptyset(&si_sa.sa_mask);
+	si_sa.sa_flags = 0;
+	si_sa.sa_handler = SIG_IGN;
+	sigaction(SIGINFO, &si_sa, 0);
+	sigaction(SIGINT, &si_sa, 0);
+	sigaction(SIGALRM, &si_sa, 0);
+}
+
+static void
+signal_handler_siginfo(int sig __unused)
+{
+	signal_vars.siginfo = true;
+}
+
+static void
+signal_handler_sigint_sigalrm(int sig __unused)
+{
+	/*
+	 * When doing reverse DNS lookups, the finish_up flag might not
+	 * be noticed for a while.  Just exit if we get a second SIGINT.
+	 */
+	if (!signal_vars.options->f_numeric && signal_vars.sigint_sigalrm) {
+		options_free(signal_vars.options);
+		_exit(((signal_vars.counters_received != NULL) &&
+			(*signal_vars.counters_received != 0)) ? 0 : 2);
+	}
+	signal_vars.sigint_sigalrm = true;
 }
