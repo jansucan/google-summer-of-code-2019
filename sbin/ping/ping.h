@@ -33,8 +33,10 @@
 
 #include <sys/types.h>
 
+#include <netinet/in.h>
 #include <netinet/ip.h>
 
+#include "cap.h"
 #include "defaults_limits.h"
 
 struct shared_variables {
@@ -83,5 +85,8 @@ struct signal_variables {
 	struct options *options;
 	const long *counters_received;
 };
+
+void ping_init(struct shared_variables *const vars, struct counters *const counters,
+    struct timing *const timing);
 
 #endif

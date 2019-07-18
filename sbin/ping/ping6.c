@@ -187,10 +187,7 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 	struct ip6_rthdr *rthdr = NULL;
 	size_t rthlen;
 
-	memset(counters, 0, sizeof(*counters));
 	memset(&vars->smsghdr, 0, sizeof(vars->smsghdr));
-
-	timing_init(timing);
 
 	datap = &vars->outpack6[ICMP6ECHOLEN + ICMP6ECHOTMLEN];
 

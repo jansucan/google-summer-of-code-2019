@@ -32,7 +32,6 @@ __FBSDID("$FreeBSD$");
 #include <err.h>
 #include <signal.h>
 #include <stdlib.h>
-#include <string.h>
 #include <sysexits.h>
 
 #include "options.h"
@@ -54,15 +53,14 @@ main(int argc, char *argv[])
 	struct counters counters;
 	struct timing timing;
 
-	/* TODO: ping_init() */
-	memset(&vars, 0, sizeof(vars));
-
 	if ((vars.capdns = capdns_setup()) == NULL)
 		exit(1);
 
 	const int r = options_parse(argc, argv, &options, vars.capdns);
 	if (r != EX_OK)
 		exit(r);
+
+	ping_init(&vars, &counters, &timing);
 
 	if (options.target_type == TARGET_IPV4) {
 		ping4_init(&options, &vars, &counters, &timing);

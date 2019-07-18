@@ -134,10 +134,6 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	vars->icmp_type = ICMP_ECHO;
 	vars->icmp_type_rsp = ICMP_ECHOREPLY;
 
-	memset(counters, 0, sizeof(*counters));
-
-	timing_init(timing);
-
 	vars->target_sockaddr = (struct sockaddr_in *) options->target_addrinfo->ai_addr;
 	/*
 	 * Do the stuff that we need root priv's for *first*, and
