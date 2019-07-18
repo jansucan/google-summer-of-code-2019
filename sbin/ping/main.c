@@ -52,15 +52,14 @@ main(int argc, char *argv[])
 	struct shared_variables vars;
 	struct counters counters;
 	struct timing timing;
+	int r;
 
 	if ((vars.capdns = capdns_setup()) == NULL)
 		exit(1);
 
-	const int r = options_parse(argc, argv, &options, vars.capdns);
-	if (r != EX_OK)
+	if (((r = options_parse(argc, argv, &options, vars.capdns)) != EX_OK) ||
+	    ((r = ping_init(&options, &vars, &counters, &timing)) != EX_OK))
 		exit(r);
-
-	ping_init(&options, &vars, &counters, &timing);
 
 	if (options.target_type == TARGET_IPV4) {
 		ping4_init(&options, &vars, &counters, &timing);

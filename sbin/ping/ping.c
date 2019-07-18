@@ -29,7 +29,6 @@
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
-#include <err.h>
 #include <string.h>
 #include <sysexits.h>
 
@@ -37,12 +36,12 @@ __FBSDID("$FreeBSD$");
 #include "ipsec.h"
 #include "ping.h"
 #include "timing.h"
+#include "utils.h"
 
-void
+int
 ping_init(struct options *const options, struct shared_variables *const vars,
     struct counters *const counters, struct timing *const timing)
 {
-	/* TODO: Do not call exit(). Use return values. */
 	cap_channel_t *cap_channel;
 	int protocol;
 
@@ -59,8 +58,11 @@ ping_init(struct options *const options, struct shared_variables *const vars,
 	timing_init(timing);
 
 	if (options->f_timeout &&
-	    (setitimer(ITIMER_REAL, &(options->n_timeout), NULL) != 0))
-		err(EX_OSERR, "setitimer() cannot set the timeout");
+	    (setitimer(ITIMER_REAL, &(options->n_timeout), NULL) != 0)) {
+		print_error_strerr("setitimer() cannot set the timeout");
+		return (EX_OSERR);
+	}
+
 
 	if (options->f_flood)
 		setbuf(stdout, (char *)NULL);
@@ -80,17 +82,25 @@ ping_init(struct options *const options, struct shared_variables *const vars,
 		protocol = IPPROTO_ICMPV6;
 
 	if ((vars->socket_send = socket(options->target_addrinfo->ai_family,
-		    options->target_addrinfo->ai_socktype, protocol)) < 0)
-		err(1, "socket() socket_send");
+		    options->target_addrinfo->ai_socktype, protocol)) < 0) {
+		print_error_strerr("socket() socket_send");
+		return (1);
+	}
 	if ((vars->socket_recv = socket(options->target_addrinfo->ai_family,
-		    options->target_addrinfo->ai_socktype, protocol)) < 0)
-		err(1, "socket() socket_recv");
+		    options->target_addrinfo->ai_socktype, protocol)) < 0) {
+		print_error_strerr("socket() socket_recv");
+		return (1);
+	}
 
 	/* Revoke root privilege. */
-	if (seteuid(getuid()) != 0)
-		err(1, "seteuid() failed");
-	if (setuid(getuid()) != 0)
-		err(1, "setuid() failed");
+	if (seteuid(getuid()) != 0) {
+		print_error_strerr("seteuid() failed");
+		return (1);
+	}
+	if (setuid(getuid()) != 0) {
+		print_error_strerr("setuid() failed");
+		return (1);
+	}
 
 	if (options->f_so_debug) {
 		int optval = 1;
@@ -102,5 +112,7 @@ ping_init(struct options *const options, struct shared_variables *const vars,
 	}
 
 	if (!ipsec_configure(vars->socket_send, vars->socket_recv, options))
-		exit(1);
+		return (1);
+
+	return (EX_OK);
 }
