@@ -88,7 +88,6 @@ __FBSDID("$FreeBSD$");
 
 #include "cap.h"
 #include "defaults_limits.h"
-#include "ipsec.h"
 #include "ping4.h"
 #include "timing.h"
 #include "utils.h"
@@ -135,13 +134,6 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 
 	vars->target_sockaddr = (struct sockaddr_in *) options->target_addrinfo->ai_addr;
 	vars->outpack = vars->outpackhdr + sizeof(struct ip);
-
-	if (options->f_flood)
-		setbuf(stdout, (char *)NULL);
-
-	if (options->f_timeout)
-		if (setitimer(ITIMER_REAL, &(options->n_timeout), NULL) != 0)
-			err(EX_OSERR, "cannot set the timeout");
 
 	if (options->f_mask) {
 		vars->icmp_type = ICMP_MASKREQ;
@@ -192,21 +184,10 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 		for (int i = TIMEVAL_LEN; i < options->n_packet_size; ++i)
 			*vars->datap++ = i;
 
-	vars->ident = getpid() & 0xFFFF;
-
 	hold = 1;
-	if (options->f_so_debug) {
-		(void)setsockopt(vars->socket_send, SOL_SOCKET, SO_DEBUG, (char *)&hold,
-		    sizeof(hold));
-		(void)setsockopt(vars->socket_recv, SOL_SOCKET, SO_DEBUG, (char *)&hold,
-		    sizeof(hold));
-	}
 	if (options->f_so_dontroute)
 		(void)setsockopt(vars->socket_send, SOL_SOCKET, SO_DONTROUTE, (char *)&hold,
 		    sizeof(hold));
-
-	if (!ipsec_configure(vars->socket_send, vars->socket_recv, options))
-		exit(1);
 
 	if (options->f_dont_fragment || options->f_tos) {
 		ip = (struct ip*)vars->outpackhdr;

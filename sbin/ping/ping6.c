@@ -193,13 +193,6 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 
 	vars->target_sockaddr_in6 = (struct sockaddr_in6 *) options->target_addrinfo->ai_addr;
 
-	if (options->f_flood)
-		setbuf(stdout, (char *)NULL);
-
-	if (options->f_timeout)
-		if (setitimer(ITIMER_REAL, &(options->n_timeout), NULL) != 0)
-			err(EX_OSERR, "cannot set the timeout");
-
 	if (options->f_ping_filled) {
 		fill((char *)datap, MAXDATALEN - 8 + sizeof(struct tv32) + options->ping_filled_size,
 		    options);
@@ -307,21 +300,13 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		for (int i = ICMP6ECHOLEN; i < vars->packlen; ++i)
 			*datap++ = i;
 
-	vars->ident = getpid() & 0xFFFF;
 	arc4random_buf(vars->nonce, sizeof(vars->nonce));
 	optval = 1;
 	if (options->f_dont_fragment)
 		if (setsockopt(vars->socket_send, IPPROTO_IPV6, IPV6_DONTFRAG,
 		    &optval, sizeof(optval)) == -1)
 			err(1, "IPV6_DONTFRAG");
-	hold = 1;
 
-	if (options->f_so_debug) {
-		(void)setsockopt(vars->socket_send, SOL_SOCKET, SO_DEBUG, (char *)&hold,
-		    sizeof(hold));
-		(void)setsockopt(vars->socket_recv, SOL_SOCKET, SO_DEBUG, (char *)&hold,
-		    sizeof(hold));
-	}
 	optval = IPV6_DEFHLIM;
 	if (IN6_IS_ADDR_MULTICAST(&vars->target_sockaddr_in6->sin6_addr))
 		if (setsockopt(vars->socket_send, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
@@ -344,9 +329,6 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 	}
 #endif /* IPV6_RECVPATHMTU */
 #endif /* IPV6_USE_MIN_MTU */
-
-	if (!ipsec_configure(vars->socket_send, vars->socket_recv, options))
-		exit(1);
 
 #ifdef ICMP6_FILTER
     {

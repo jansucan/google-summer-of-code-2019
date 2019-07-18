@@ -31,8 +31,10 @@ __FBSDID("$FreeBSD$");
 
 #include <err.h>
 #include <string.h>
+#include <sysexits.h>
 
 #include "cap.h"
+#include "ipsec.h"
 #include "ping.h"
 #include "timing.h"
 
@@ -40,6 +42,7 @@ void
 ping_init(struct options *const options, struct shared_variables *const vars,
     struct counters *const counters, struct timing *const timing)
 {
+	/* TODO: Do not call exit(). Use return values. */
 	cap_channel_t *cap_channel;
 	int protocol;
 
@@ -50,9 +53,17 @@ ping_init(struct options *const options, struct shared_variables *const vars,
 	cap_channel = vars->capdns;
 	memset(vars, 0, sizeof(*vars));
 	vars->capdns = cap_channel;
+	vars->ident = getpid() & 0xFFFF;
 
 	memset(counters, 0, sizeof(*counters));
 	timing_init(timing);
+
+	if (options->f_timeout &&
+	    (setitimer(ITIMER_REAL, &(options->n_timeout), NULL) != 0))
+		err(EX_OSERR, "setitimer() cannot set the timeout");
+
+	if (options->f_flood)
+		setbuf(stdout, (char *)NULL);
 
 	/*
 	 * Historicaly ping was using one socket 's' for sending and
@@ -81,5 +92,15 @@ ping_init(struct options *const options, struct shared_variables *const vars,
 	if (setuid(getuid()) != 0)
 		err(1, "setuid() failed");
 
+	if (options->f_so_debug) {
+		int optval = 1;
 
+		(void)setsockopt(vars->socket_send, SOL_SOCKET, SO_DEBUG, (char *)&optval,
+		    sizeof(optval));
+		(void)setsockopt(vars->socket_recv, SOL_SOCKET, SO_DEBUG, (char *)&optval,
+		    sizeof(optval));
+	}
+
+	if (!ipsec_configure(vars->socket_send, vars->socket_recv, options))
+		exit(1);
 }
