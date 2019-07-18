@@ -144,25 +144,34 @@ __FBSDID("$FreeBSD$");
 #define DUMMY_PORT	10101
 
 static int	 get_hoplim(const struct msghdr *const);
-static int	 get_pathmtu(const struct msghdr *const , const struct options *const,
+static int       get_pathmtu(const struct msghdr *const , const struct options *const,
     const struct sockaddr_in6 *const, cap_channel_t *const);
 static struct in6_pktinfo *get_rcvpktinfo(const struct msghdr *const);
+static bool	 is_packet_valid(int, const struct msghdr *, const struct options *const,
+    cap_channel_t *const);
 static size_t	 pingerlen(const struct options *const, size_t);
 static int	 pinger(struct options *const, struct shared_variables *const,
     struct counters *const, struct timing *const);
+static void	 mark_packet_as_received(struct shared_variables *const);
 static bool	 myechoreply(const struct icmp6_hdr *const, int);
 static bool	 mynireply(const struct icmp6_nodeinfo *const, const uint8_t *const);
 static char *dnsdecode(const u_char **const, const u_char *const, const u_char *const,
     char *const, size_t);
 static u_short   get_node_address_flags(const struct options *const);
+static void	 update_counters(const struct options *const,
+    const struct shared_variables *const,
+    struct counters *const, double);
+static void      update_timing(const struct shared_variables *const, struct timing *const,
+    double *const);
 
 static const char *pr_addr(const struct sockaddr *const, int, bool, cap_channel_t *const);
 static void	 pr_icmph(const struct icmp6_hdr *const, const u_char *const, bool);
 static void	 pr_iph(const struct ip6_hdr *const);
 static void	 pr_suptypes(const struct icmp6_nodeinfo *const, size_t, bool verbose);
 static void	 pr_nodeaddr(const struct icmp6_nodeinfo *const, int, bool verbose);
-static void	 pr_pack(int, struct msghdr *, const struct options *const,
-    struct shared_variables *const, struct counters *const, struct timing *const);
+static void	 pr_pack(int, const struct msghdr *, const struct options *const,
+    const struct shared_variables *const, const struct counters *const,
+    const struct timing *const, double);
 static void	 pr_exthdrs(const struct msghdr *const);
 static void      pr_heading(const struct sockaddr_in6 *const, const struct sockaddr_in6 *const,
     const struct options *const, cap_channel_t *const);
@@ -702,12 +711,17 @@ ping6_loop(struct options *const options, struct shared_variables *const vars,
 					}
 				}
 				continue;
-			} else {
+			} else if (is_packet_valid(cc, &m, options, vars->capdns)) {
 				/*
 				 * an ICMPv6 message (probably an echoreply)
 				 * arrived.
 				 */
-				pr_pack(cc, &m, options, vars, counters, timing);
+				double triptime;
+
+				update_timing(vars, timing, &triptime);
+				update_counters(options, vars, counters, triptime);
+				pr_pack(cc, &m, options, vars, counters, timing, triptime);
+				mark_packet_as_received(vars);
 			}
 			if ((options->f_once != 0 && counters->received > 0) ||
 			    (options->n_packets > 0 && counters->received >= options->n_packets))
@@ -977,6 +991,131 @@ dnsdecode(const u_char **const sp, const u_char *const ep, const u_char *const b
 	return buf;
 }
 
+static bool
+is_packet_valid(int cc, const struct msghdr *mhdr, const struct options *const options,
+	cap_channel_t *const capdns)
+{
+	struct sockaddr *from;
+	struct in6_pktinfo *pktinfo = NULL;
+	int fromlen, hoplim;
+
+	if (!mhdr || !mhdr->msg_name ||
+	    mhdr->msg_namelen != sizeof(struct sockaddr_in6) ||
+	    ((struct sockaddr *)mhdr->msg_name)->sa_family != AF_INET6) {
+		if (options->f_verbose)
+			warnx("invalid peername");
+		return (false);
+	}
+
+	from = (struct sockaddr *)mhdr->msg_name;
+	fromlen = mhdr->msg_namelen;
+
+	if (cc < (int)sizeof(struct icmp6_hdr)) {
+		if (options->f_verbose)
+			warnx("packet too short (%d bytes) from %s", cc,
+			    pr_addr(from, fromlen, options->f_numeric, capdns));
+		return (false);
+	}
+
+	if ((hoplim = get_hoplim(mhdr)) == -1) {
+		warnx("failed to get receiving hop limit");
+		return (false);
+	}
+
+	if ((pktinfo = get_rcvpktinfo(mhdr)) == NULL) {
+		warnx("failed to get receiving packet information");
+		return (false);
+	}
+
+	return (true);
+}
+
+static void
+mark_packet_as_received(struct shared_variables *const vars)
+{
+	struct icmp6_hdr *icp;
+	struct icmp6_nodeinfo *ni;
+	uint16_t seq;
+
+	icp = (struct icmp6_hdr *)vars->packet6;
+	ni = (struct icmp6_nodeinfo *)vars->packet6;
+
+	if (icp->icmp6_type == ICMP6_ECHO_REPLY && myechoreply(icp, vars->ident)) {
+		seq = ntohs(icp->icmp6_seq);
+		BIT_ARRAY_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK);
+	} else if (icp->icmp6_type == ICMP6_NI_REPLY && mynireply(ni, vars->nonce)) {
+		seq = ntohs(*(uint16_t *)ni->icmp6_ni_nonce);
+		BIT_ARRAY_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK);
+	}
+}
+
+static void
+update_counters(const struct options *const options,
+    const struct shared_variables *const vars,
+    struct counters *const counters, double triptime)
+{
+	struct icmp6_hdr *icp;
+	struct icmp6_nodeinfo *ni;
+	uint16_t seq;
+
+	icp = (struct icmp6_hdr *)vars->packet6;
+	ni = (struct icmp6_nodeinfo *)vars->packet6;
+
+	if (icp->icmp6_type == ICMP6_ECHO_REPLY && myechoreply(icp, vars->ident)) {
+		seq = ntohs(icp->icmp6_seq);
+
+		if (BIT_ARRAY_IS_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK))
+			++(counters->repeats);
+		else
+			++(counters->received);
+
+		if (options->f_quiet)
+			return;
+
+		if (options->f_wait_time && triptime > options->n_wait_time)
+			++(counters->rcvtimeout);
+	} else if (icp->icmp6_type == ICMP6_NI_REPLY && mynireply(ni, vars->nonce)) {
+		seq = ntohs(*(uint16_t *)ni->icmp6_ni_nonce);
+
+		if (BIT_ARRAY_IS_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK))
+			++(counters->repeats);
+		else
+			++(counters->received);
+	}
+}
+
+static void
+update_timing(const struct shared_variables *const vars, struct timing *const timing,
+    double *const triptime)
+{
+	struct icmp6_hdr *icp;
+	struct timeval tv, tp;
+	struct tv32 *tpp;
+
+	*triptime = 0;
+
+	(void)gettimeofday(&tv, NULL);
+
+	icp = (struct icmp6_hdr *)vars->packet6;
+
+	if (icp->icmp6_type == ICMP6_ECHO_REPLY && myechoreply(icp, vars->ident)) {
+		if (timing->enabled) {
+			tpp = (struct tv32 *)(icp + 1);
+			tp.tv_sec = ntohl(tpp->tv32_sec);
+			tp.tv_usec = ntohl(tpp->tv32_usec);
+			tvsub(&tv, &tp);
+			*triptime = ((double)tv.tv_sec) * 1000.0 +
+			    ((double)tv.tv_usec) / 1000.0;
+			timing->sum += *triptime;
+			timing->sumsq += *triptime * *triptime;
+			if (*triptime < timing->min)
+				timing->min = *triptime;
+			if (*triptime > timing->max)
+				timing->max = *triptime;
+		}
+	}
+}
+
 /*
  * pr_pack --
  *	Print out the packet, if it came from us.  This logic is necessary
@@ -985,9 +1124,9 @@ dnsdecode(const u_char **const sp, const u_char *const ep, const u_char *const b
  * program to be run without having intermingled output (or statistics!).
  */
 static void
-pr_pack(int cc, struct msghdr *mhdr, const struct options *const options,
-    struct shared_variables *const vars, struct counters *const counters,
-    struct timing *const timing)
+pr_pack(int cc, const struct msghdr *mhdr, const struct options *const options,
+    const struct shared_variables *const vars, const struct counters *const counters,
+    const struct timing *const timing, double triptime)
 {
 #define safeputc(c)	printf((isprint((c)) ? "%c" : "\\%03o"), c)
 	struct icmp6_hdr *icp;
@@ -996,84 +1135,38 @@ pr_pack(int cc, struct msghdr *mhdr, const struct options *const options,
 	int hoplim;
 	struct sockaddr *from;
 	int fromlen;
-	u_char *cp = NULL, *dp, *end = vars->packet6 + cc;
+	u_char *cp = NULL, *end = vars->packet6 + cc;
+	const u_char *dp;
 	struct in6_pktinfo *pktinfo = NULL;
-	struct timeval tv, tp;
-	struct tv32 *tpp;
-	double triptime = 0;
-	int dupflag;
 	size_t off;
 	int oldfqdn;
 	uint16_t seq;
 	char dnsname[MAXDNAME + 1];
 
-	(void)gettimeofday(&tv, NULL);
-
-	if (!mhdr || !mhdr->msg_name ||
-	    mhdr->msg_namelen != sizeof(struct sockaddr_in6) ||
-	    ((struct sockaddr *)mhdr->msg_name)->sa_family != AF_INET6) {
-		if (options->f_verbose)
-			warnx("invalid peername");
-		return;
-	}
 	from = (struct sockaddr *)mhdr->msg_name;
 	fromlen = mhdr->msg_namelen;
-	if (cc < (int)sizeof(struct icmp6_hdr)) {
-		if (options->f_verbose)
-			warnx("packet too short (%d bytes) from %s", cc,
-			    pr_addr(from, fromlen, options->f_numeric, vars->capdns));
-		return;
-	}
+
 	if (((mhdr->msg_flags & MSG_CTRUNC) != 0) &&
 	    options->f_verbose)
 		warnx("some control data discarded, insufficient buffer size");
 	icp = (struct icmp6_hdr *)vars->packet6;
 	ni = (struct icmp6_nodeinfo *)vars->packet6;
 	off = 0;
-
-	if ((hoplim = get_hoplim(mhdr)) == -1) {
-		warnx("failed to get receiving hop limit");
-		return;
-	}
-	if ((pktinfo = get_rcvpktinfo(mhdr)) == NULL) {
-		warnx("failed to get receiving packet information");
-		return;
-	}
+	/*
+	 * The next two calls cannot fail. They were tried and checked
+	 * in is_packet_valid().
+	 */
+	hoplim = get_hoplim(mhdr);
+	pktinfo = get_rcvpktinfo(mhdr);
 
 	if (icp->icmp6_type == ICMP6_ECHO_REPLY && myechoreply(icp, vars->ident)) {
 		seq = ntohs(icp->icmp6_seq);
-		++(counters->received);
-		if (timing->enabled) {
-			tpp = (struct tv32 *)(icp + 1);
-			tp.tv_sec = ntohl(tpp->tv32_sec);
-			tp.tv_usec = ntohl(tpp->tv32_usec);
-			tvsub(&tv, &tp);
-			triptime = ((double)tv.tv_sec) * 1000.0 +
-			    ((double)tv.tv_usec) / 1000.0;
-			timing->sum += triptime;
-			timing->sumsq += triptime * triptime;
-			if (triptime < timing->min)
-				timing->min = triptime;
-			if (triptime > timing->max)
-				timing->max = triptime;
-		}
-
-		if (BIT_ARRAY_IS_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK)) {
-			++(counters->repeats);
-			--(counters->received);
-			dupflag = 1;
-		} else {
-			BIT_ARRAY_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK);
-			dupflag = 0;
-		}
 
 		if (options->f_quiet)
 			return;
 
-		if (options->f_wait_time && triptime > options->n_wait_time) {
-			++(counters->rcvtimeout);
+		if (options->f_wait_time && triptime > options->n_wait_time)
 			return;
-		}
 
 		if (options->f_flood)
 			write_char(STDOUT_FILENO, CHAR_BSPACE);
@@ -1097,7 +1190,7 @@ pr_pack(int cc, struct msghdr *mhdr, const struct options *const options,
 			}
 			if (timing->enabled)
 				(void)printf(" time=%.3f ms", triptime);
-			if (dupflag)
+			if (BIT_ARRAY_IS_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK))
 				(void)printf("(DUP!)");
 			/* check the data */
 			cp = vars->packet6 + off + ICMP6ECHOLEN + ICMP6ECHOTMLEN;
@@ -1111,15 +1204,6 @@ pr_pack(int cc, struct msghdr *mhdr, const struct options *const options,
 		}
 	} else if (icp->icmp6_type == ICMP6_NI_REPLY && mynireply(ni, vars->nonce)) {
 		seq = ntohs(*(uint16_t *)ni->icmp6_ni_nonce);
-		++(counters->received);
-		if (BIT_ARRAY_IS_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK)) {
-			++(counters->repeats);
-			--(counters->received);
-			dupflag = 1;
-		} else {
-			BIT_ARRAY_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK);
-			dupflag = 0;
-		}
 
 		if (options->f_quiet)
 			return;
