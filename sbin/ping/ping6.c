@@ -221,22 +221,6 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		ip6optlen += rthlen;
 	}
 
-	/* Create socket for the ping target. */
-	if ((vars->socket_send = socket(options->target_addrinfo->ai_family,
-		    options->target_addrinfo->ai_socktype,
-		    IPPROTO_ICMPV6)) < 0)
-		err(1, "socket() socket_send");
-	if ((vars->socket_recv = socket(options->target_addrinfo->ai_family,
-		    options->target_addrinfo->ai_socktype,
-		    IPPROTO_ICMPV6)) < 0)
-		err(1, "socket() socket_recv");
-
-	/* revoke root privilege */
-	if (seteuid(getuid()) != 0)
-		err(1, "seteuid() failed");
-	if (setuid(getuid()) != 0)
-		err(1, "setuid() failed");
-
 	/* set the source address if specified. */
 	if (options->f_source) {
 		/* properly fill sin6_scope_id */

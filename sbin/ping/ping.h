@@ -38,6 +38,7 @@
 
 #include "cap.h"
 #include "defaults_limits.h"
+#include "options.h"
 
 struct shared_variables {
 	char rcvd_tbl[MAX_DUP_CHK / 8];
@@ -86,7 +87,7 @@ struct signal_variables {
 	const long *counters_received;
 };
 
-void ping_init(struct shared_variables *const vars, struct counters *const counters,
-    struct timing *const timing);
+void ping_init(struct options *const options, struct shared_variables *const vars,
+    struct counters *const counters, struct timing *const timing);
 
 #endif

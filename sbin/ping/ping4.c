@@ -129,43 +129,11 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 {
 	struct ip *ip;
 	int hold;
-	int ssend_errno, srecv_errno;
 
 	vars->icmp_type = ICMP_ECHO;
 	vars->icmp_type_rsp = ICMP_ECHOREPLY;
 
 	vars->target_sockaddr = (struct sockaddr_in *) options->target_addrinfo->ai_addr;
-	/*
-	 * Do the stuff that we need root priv's for *first*, and
-	 * then drop our setuid bit.  Save error reporting for
-	 * after arg parsing.
-	 *
-	 * Historicaly ping was using one socket 's' for sending and for
-	 * receiving. After capsicum(4) related changes we use two
-	 * sockets. It was done for special ping use case - when user
-	 * issue ping on multicast or broadcast address replies come
-	 * from different addresses, not from the address we
-	 * connect(2)'ed to, and send socket do not receive those
-	 * packets.
-	 */
-	vars->socket_send = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
-	ssend_errno = errno;
-	vars->socket_recv = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
-	srecv_errno = errno;
-
-	if (setuid(getuid()) != 0)
-		err(EX_NOPERM, "setuid() failed");
-
-	if (vars->socket_send < 0) {
-		errno = ssend_errno;
-		err(EX_OSERR, "socket() ssend");
-	}
-
-	if (vars->socket_recv < 0) {
-		errno = srecv_errno;
-		err(EX_OSERR, "socket() srecv");
-	}
-
 	vars->outpack = vars->outpackhdr + sizeof(struct ip);
 
 	if (options->f_flood)

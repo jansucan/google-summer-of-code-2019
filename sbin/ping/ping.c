@@ -29,6 +29,7 @@
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
+#include <err.h>
 #include <string.h>
 
 #include "cap.h"
@@ -36,10 +37,11 @@ __FBSDID("$FreeBSD$");
 #include "timing.h"
 
 void
-ping_init(struct shared_variables *const vars, struct counters *const counters,
-    struct timing *const timing)
+ping_init(struct options *const options, struct shared_variables *const vars,
+    struct counters *const counters, struct timing *const timing)
 {
 	cap_channel_t *cap_channel;
+	int protocol;
 
 	/*
 	 * The DNS channel has already been initialized for options
@@ -51,4 +53,33 @@ ping_init(struct shared_variables *const vars, struct counters *const counters,
 
 	memset(counters, 0, sizeof(*counters));
 	timing_init(timing);
+
+	/*
+	 * Historicaly ping was using one socket 's' for sending and
+	 * for receiving. After capsicum(4) related changes we use two
+	 * sockets. It was done for special ping use case - when user
+	 * issue ping on multicast or broadcast address replies come
+	 * from different addresses, not from the address we
+	 * connect(2)'ed to, and send socket do not receive those
+	 * packets.
+	 */
+	if (options->target_type == TARGET_IPV4)
+		protocol = IPPROTO_ICMP;
+	else
+		protocol = IPPROTO_ICMPV6;
+
+	if ((vars->socket_send = socket(options->target_addrinfo->ai_family,
+		    options->target_addrinfo->ai_socktype, protocol)) < 0)
+		err(1, "socket() socket_send");
+	if ((vars->socket_recv = socket(options->target_addrinfo->ai_family,
+		    options->target_addrinfo->ai_socktype, protocol)) < 0)
+		err(1, "socket() socket_recv");
+
+	/* Revoke root privilege. */
+	if (seteuid(getuid()) != 0)
+		err(1, "seteuid() failed");
+	if (setuid(getuid()) != 0)
+		err(1, "setuid() failed");
+
+
 }

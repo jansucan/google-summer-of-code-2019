@@ -60,7 +60,7 @@ main(int argc, char *argv[])
 	if (r != EX_OK)
 		exit(r);
 
-	ping_init(&vars, &counters, &timing);
+	ping_init(&options, &vars, &counters, &timing);
 
 	if (options.target_type == TARGET_IPV4) {
 		ping4_init(&options, &vars, &counters, &timing);
