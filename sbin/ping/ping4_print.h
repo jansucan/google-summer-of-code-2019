@@ -28,30 +28,29 @@
  * $FreeBSD$
  */
 
-#ifndef TIMING_H
-#define TIMING_H 1
+#ifndef PING4_PRINT_H
+#define PING4_PRINT_H 1
 
-#include <sys/time.h>
+#include <sys/types.h>
 
-#include <stdbool.h>
-#include <stdint.h>
+#include <netinet/in.h>
+#include <netinet/in_systm.h>
+#include <netinet/ip.h>
+#include <netinet/ip_icmp.h>
+#include <netinet/ip_var.h>
+#include <arpa/inet.h>
 
-struct timing {
-	bool   enabled;	/* flag to do timing */
-	double min;	/* minimum round trip time */
-	double max;	/* maximum round trip time */
-	double sum;	/* sum of all times, for doing average */
-	double sumsq;	/* sum of all times squared, for std. dev. */
-};
+#include "options.h"
+#include "ping.h"
+#include "timing.h"
 
-struct tv32 {
-	int32_t tv32_sec;
-	int32_t tv32_usec;
-};
 
-#define	TIMEVAL_LEN	((int)sizeof(struct tv32))
-
-void tvsub(struct timeval *const, const struct timeval *const);
-void timing_init(struct timing *const timing);
+void pr_heading(const struct sockaddr_in *const target_sockaddr,
+    const struct options *const options);
+void pr_pack(const char *const, int, const struct sockaddr_in *const,
+    const struct timeval *const, const struct options *const,
+    const struct shared_variables *const, bool);
+void finish(const struct shared_variables *const, const struct counters *const,
+    const struct timing *const, const char *const);
 
 #endif
