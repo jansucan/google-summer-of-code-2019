@@ -62,19 +62,24 @@ main(int argc, char *argv[])
 		exit(r);
 
 	if (options.target_type == TARGET_IPV4) {
-		ping4_init(&options, &vars, &counters, &timing);
+		if ((r = ping4_init(&options, &vars, &counters, &timing)) != EX_OK)
+			exit(r);
 		signals_setup(&options, &counters.received);
-		ping4_loop(&options, &vars, &counters, &timing, &signal_vars);
+		if ((r = ping4_loop(&options, &vars, &counters, &timing, &signal_vars)) != EX_OK)
+			exit(r);
 		signals_cleanup();
 		ping4_finish(&options, &vars, &counters, &timing);
 	} else {
-		ping6_init(&options, &vars, &counters, &timing);
+		if ((r = ping6_init(&options, &vars, &counters, &timing)) != EX_OK)
+			exit(r);
 		signals_setup(&options, &counters.received);
-		ping6_loop(&options, &vars, &counters, &timing, &signal_vars);
+		if ((r = ping6_loop(&options, &vars, &counters, &timing, &signal_vars)) != EX_OK)
+			exit(r);
 		signals_cleanup();
 		ping6_finish(&options, &vars, &counters, &timing);
 	}
-	/* NOTREACHED */
+
+	exit((counters.received != 0) ? 0 : 2);
 }
 
 static void

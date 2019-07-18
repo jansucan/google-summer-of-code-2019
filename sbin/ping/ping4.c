@@ -101,7 +101,7 @@ __FBSDID("$FreeBSD$");
 static u_short in_cksum(u_short *, int);
 static void check_status(const struct counters *const, const struct timing *const, volatile sig_atomic_t *const);
 static void finish(const struct shared_variables *const, const struct counters *const,
-    const struct timing *const, const char *const) __dead2;
+    const struct timing *const, const char *const);
 static void get_triptime(const char *const, size_t, struct timeval *const,
     const struct shared_variables *const, bool);
 static bool is_packet_too_short(const char *const, size_t, const struct sockaddr_in *const, bool);
@@ -122,7 +122,7 @@ static void update_counters(const char *const, size_t, const struct timeval *con
 static void update_timing(const char *const, size_t, const struct timeval *const,
     const struct shared_variables *const, struct timing *const);
 
-void
+int
 ping4_init(struct options *const options, struct shared_variables *const vars,
     struct counters *const counters, struct timing *const timing)
 {
@@ -156,9 +156,11 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 
 	const int maxpayload = IP_MAXPACKET - vars->icmp_len;
 
-	if (options->n_packet_size > maxpayload)
-		errx(EX_USAGE, "packet size too large: %ld > %d", options->n_packet_size,
+	if (options->n_packet_size > maxpayload) {
+		print_error("packet size too large: %ld > %d", options->n_packet_size,
 		    maxpayload);
+		return (EX_USAGE);
+	}
 	vars->send_len = vars->icmp_len + options->n_packet_size;
 	vars->datap = &vars->outpack[ICMP_MINLEN + vars->phdr_len + TIMEVAL_LEN];
 	if (options->f_ping_filled) {
@@ -170,12 +172,16 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 
 	if ((options->f_source) &&
 	    (bind(vars->socket_send, (struct sockaddr *)&options->source_sockaddr.in,
-		sizeof(options->source_sockaddr.in)) == -1))
-		err(1, "bind");
+		sizeof(options->source_sockaddr.in)) == -1)) {
+		print_error_strerr("bind");
+		return (1);
+	}
 
 	if (connect(vars->socket_send, (struct sockaddr *) vars->target_sockaddr,
-		sizeof(*vars->target_sockaddr)) != 0)
-		err(1, "connect");
+		sizeof(*vars->target_sockaddr)) != 0) {
+		print_error_strerr("connect");
+		return (1);
+	}
 
 	if (options->n_packet_size >= TIMEVAL_LEN)	/* can we time transfer */
 		timing->enabled = true;
@@ -200,8 +206,10 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 			mib[2] = IPPROTO_IP;
 			mib[3] = IPCTL_DEFTTL;
 			sz = sizeof(options->n_ttl);
-			if (sysctl(mib, 4, &options->n_ttl, &sz, NULL, 0) == -1)
-				err(1, "sysctl(net.inet.ip.ttl)");
+			if (sysctl(mib, 4, &options->n_ttl, &sz, NULL, 0) == -1) {
+				print_error_strerr("sysctl(net.inet.ip.ttl)");
+				return (1);
+			}
 		}
 		setsockopt(vars->socket_send, IPPROTO_IP, IP_HDRINCL, &hold, sizeof(hold));
 		ip->ip_v = IPVERSION;
@@ -221,12 +229,12 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	 * We must connect(2) our socket before this point.
 	 */
 	if (!cap_enter_capability_mode())
-		exit(1);
+		return (1);
 
 	if (!cap_limit_socket(vars->socket_recv, RIGHTS_RECV_EVENT_SETSOCKOPT))
-		exit(1);
+		return (1);
 	if (!cap_limit_socket(vars->socket_send, RIGHTS_SEND_SETSOCKOPT))
-		exit(1);
+		return (1);
 
 	/* record route option */
 	if (options->f_rroute) {
@@ -239,18 +247,21 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 		rspace[IPOPT_OFFSET] = IPOPT_MINOFF;
 		rspace[sizeof(rspace) - 1] = IPOPT_EOL;
 		if (setsockopt(vars->socket_send, IPPROTO_IP, IP_OPTIONS, rspace,
-		    sizeof(rspace)) < 0)
-			err(EX_OSERR, "setsockopt IP_OPTIONS");
+			sizeof(rspace)) < 0) {
+			print_error_strerr("setsockopt IP_OPTIONS");
+			return (EX_OSERR);
+		}
 #else
-		errx(EX_UNAVAILABLE,
-		    "record route not available in this implementation");
+		print_error("record route not available in this implementation");
+		return (EX_UNAVAILABLE);
 #endif /* IP_OPTIONS */
 	}
 
 	if (options->f_ttl) {
 		if (setsockopt(vars->socket_send, IPPROTO_IP, IP_TTL, &options->n_ttl,
 		    sizeof(options->n_ttl)) < 0) {
-			err(EX_OSERR, "setsockopt IP_TTL");
+			print_error_strerr("setsockopt IP_TTL");
+			return (EX_OSERR);
 		}
 	}
 	if (options->f_no_loop) {
@@ -258,25 +269,30 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 
 		if (setsockopt(vars->socket_send, IPPROTO_IP, IP_MULTICAST_LOOP, &loop,
 		    sizeof(loop)) < 0) {
-			err(EX_OSERR, "setsockopt IP_MULTICAST_LOOP");
+			print_error_strerr("setsockopt IP_MULTICAST_LOOP");
+			return (EX_OSERR);
 		}
 	}
 	if (options->f_multicast_ttl) {
 		if (setsockopt(vars->socket_send, IPPROTO_IP, IP_MULTICAST_TTL, &options->n_multicast_ttl,
 		    sizeof(options->n_multicast_ttl)) < 0) {
-			err(EX_OSERR, "setsockopt IP_MULTICAST_TTL");
+			print_error_strerr("setsockopt IP_MULTICAST_TTL");
+			return (EX_OSERR);
 		}
 	}
 	if (options->f_interface) {
 		if (setsockopt(vars->socket_send, IPPROTO_IP, IP_MULTICAST_IF, &options->interface.ifaddr,
 		    sizeof(options->interface.ifaddr)) < 0) {
-			err(EX_OSERR, "setsockopt IP_MULTICAST_IF");
+			print_error_strerr("setsockopt IP_MULTICAST_IF");
+			return (EX_OSERR);
 		}
 	}
 #ifdef SO_TIMESTAMP
 	{ int on = 1;
-	if (setsockopt(vars->socket_recv, SOL_SOCKET, SO_TIMESTAMP, &on, sizeof(on)) < 0)
-		err(EX_OSERR, "setsockopt SO_TIMESTAMP");
+		if (setsockopt(vars->socket_recv, SOL_SOCKET, SO_TIMESTAMP, &on, sizeof(on)) < 0) {
+			print_error_strerr("setsockopt SO_TIMESTAMP");
+			return (EX_OSERR);
+		}
 	}
 #endif
 	if (options->f_sweep_max) {
@@ -306,13 +322,13 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	    sizeof(hold));
 	/* CAP_SETSOCKOPT removed */
 	if (!cap_limit_socket(vars->socket_recv, RIGHTS_RECV_EVENT))
-		exit(1);
+		return (1);
 	if (getuid() == 0)
 		(void)setsockopt(vars->socket_send, SOL_SOCKET, SO_SNDBUF, (char *)&hold,
 		    sizeof(hold));
 	/* CAP_SETSOCKOPT removed */
 	if (!cap_limit_socket(vars->socket_send, RIGHTS_SEND))
-		exit(1);
+		return (1);
 
 	pr_heading(vars->target_sockaddr, options);
 
@@ -325,9 +341,11 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 #endif
 	vars->iov.iov_base = vars->packet;
 	vars->iov.iov_len = IP_MAXPACKET;
+
+	return (EX_OK);
 }
 
-void
+int
 ping4_loop(struct options *const options, struct shared_variables *const vars,
     struct counters *const counters, struct timing *const timing,
     struct signal_variables *const signal_vars)
@@ -351,8 +369,10 @@ ping4_loop(struct options *const options, struct shared_variables *const vars,
 		int cc, n;
 
 		check_status(counters, timing, &signal_vars->siginfo);
-		if ((unsigned)vars->socket_recv >= FD_SETSIZE)
-			errx(EX_OSERR, "descriptor too large");
+		if ((unsigned)vars->socket_recv >= FD_SETSIZE) {
+			print_error("descriptor too large");
+			return (EX_OSERR);
+		}
 		FD_ZERO(&rfds);
 		FD_SET(vars->socket_recv, &rfds);
 		(void)gettimeofday(&now, NULL);
@@ -443,6 +463,8 @@ ping4_loop(struct options *const options, struct shared_variables *const vars,
 			}
 		}
 	}
+
+	return (EX_OK);
 }
 
 void
@@ -995,11 +1017,6 @@ finish(const struct shared_variables *const vars, const struct counters *const c
 		    "round-trip min/avg/max/stddev = %.3f/%.3f/%.3f/%.3f ms\n",
 		    timing->min, avg, timing->max, sqrt(vari));
 	}
-
-	if (counters->received)
-		exit(0);
-	else
-		exit(2);
 }
 
 #ifdef notdef
