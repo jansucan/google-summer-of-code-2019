@@ -79,6 +79,7 @@ main(int argc, char *argv[])
 	}
 	/* NOTREACHED */
 }
+
 static void
 signals_setup(struct options *const options, const long *const counters_received)
 {
