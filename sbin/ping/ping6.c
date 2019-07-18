@@ -154,7 +154,6 @@ static bool	 myechoreply(const struct icmp6_hdr *const, int);
 static bool	 mynireply(const struct icmp6_nodeinfo *const, const uint8_t *const);
 static char *dnsdecode(const u_char **const, const u_char *const, const u_char *const,
     char *const, size_t);
-static int	 setpolicy(int, char *const);
 static u_short   get_node_address_flags(const struct options *const);
 
 static const char *pr_addr(const struct sockaddr *const, int, bool, cap_channel_t *const);
