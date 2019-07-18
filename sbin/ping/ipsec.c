@@ -68,18 +68,18 @@ ipsec_configure(int socket_send, int socket_recv, const struct options *const op
 
 		if (setsockopt(vars.socket_recv, IPPROTO_IPV6, IPV6_AUTH_TRANS_LEVEL,
 			&optval, sizeof(optval)) == -1) {
-			print_error(1, "setsockopt(IPV6_AUTH_TRANS_LEVEL)");
+			print_error_strerr("setsockopt(IPV6_AUTH_TRANS_LEVEL)");
 			return (false);
 		}
 #else /* old def */
 		if (setsockopt(vars.socket_send, IPPROTO_IPV6, IPV6_AUTH_LEVEL,
 			&optval, sizeof(optval)) == -1) {
-			print_error(1, "setsockopt(IPV6_AUTH_LEVEL)");
+			print_error_strerr("setsockopt(IPV6_AUTH_LEVEL)");
 			return (false);
 		}
 		if (setsockopt(vars.socket_recv, IPPROTO_IPV6, IPV6_AUTH_LEVEL,
 			&optval, sizeof(optval)) == -1) {
-			print_error(1, "setsockopt(IPV6_AUTH_LEVEL)");
+			print_error_strerr("setsockopt(IPV6_AUTH_LEVEL)");
 			return (false);
 		}
 #endif
@@ -88,12 +88,12 @@ ipsec_configure(int socket_send, int socket_recv, const struct options *const op
 		optval = IPSEC_LEVEL_REQUIRE;
 		if (setsockopt(vars.socket_send, IPPROTO_IPV6, IPV6_ESP_TRANS_LEVEL,
 			&optval, sizeof(optval)) == -1) {
-			print_error(1, "setsockopt(IPV6_ESP_TRANS_LEVEL)");
+			print_error_strerr("setsockopt(IPV6_ESP_TRANS_LEVEL)");
 			return (false);
 		}
 		if (setsockopt(vars.socket_recv, IPPROTO_IPV6, IPV6_ESP_TRANS_LEVEL,
 			&optval, sizeof(optval)) == -1) {
-			print_error(1, "setsockopt(IPV6_ESP_TRANS_LEVEL)");
+			print_error_strerr("setsockopt(IPV6_ESP_TRANS_LEVEL)");
 			return (false);
 		}
 	}
