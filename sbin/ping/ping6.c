@@ -159,7 +159,7 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
     struct counters *const counters, struct timing *const timing)
 {
 	struct sockaddr_in6 *sin6;
-	int hold, optval;
+	int hold, optval, r;
 	u_char *datap;
 	char *scmsg = 0;
 	int ip6optlen = 0;
@@ -167,6 +167,9 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 	struct in6_pktinfo *pktinfo = NULL;
 	struct ip6_rthdr *rthdr = NULL;
 	size_t rthlen;
+
+	if ((r = ping_init(options, vars, counters, timing)) != EX_OK)
+		return (r);
 
 	memset(&vars->smsghdr, 0, sizeof(vars->smsghdr));
 

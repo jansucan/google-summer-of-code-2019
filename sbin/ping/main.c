@@ -57,8 +57,7 @@ main(int argc, char *argv[])
 	if ((vars.capdns = capdns_setup()) == NULL)
 		exit(1);
 
-	if (((r = options_parse(argc, argv, &options, vars.capdns)) != EX_OK) ||
-	    ((r = ping_init(&options, &vars, &counters, &timing)) != EX_OK))
+	if ((r = options_parse(argc, argv, &options, vars.capdns)) != EX_OK)
 		exit(r);
 
 	if (options.target_type == TARGET_IPV4) {
