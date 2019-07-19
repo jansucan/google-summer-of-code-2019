@@ -542,7 +542,7 @@ pr_ntime(n_time timestamp)
  *	Print out statistics.
  */
 void
-pr_summary(const struct shared_variables *const vars, const struct counters *const counters,
+pr_summary(const struct counters *const counters,
     const struct timing *const timing, const char *const target)
 {
 	(void)printf("\n");

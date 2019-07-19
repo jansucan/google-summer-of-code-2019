@@ -86,7 +86,7 @@ main(int argc, char *argv[])
 	signals_cleanup();
 
 	if (options.target_type == TARGET_IPV4) {
-		pr_summary(&vars, &counters, &timing, options.target);
+		pr_summary(&counters, &timing, options.target);
 	} else {
 		pr6_summary(&counters, &timing, options.target);
 	}
