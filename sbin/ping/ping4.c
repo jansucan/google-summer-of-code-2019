@@ -98,7 +98,6 @@ __FBSDID("$FreeBSD$");
 #define	FLOOD_BACKOFF	20000		/* usecs to back off if F_FLOOD mode */
 
 static u_short in_cksum(u_short *, int);
-static void check_status(const struct counters *const, const struct timing *const, volatile sig_atomic_t *const);
 static void get_triptime(const char *const, size_t, struct timeval *const,
     const struct shared_variables *const, bool);
 static bool is_packet_too_short(const char *const, size_t, const struct sockaddr_in *const, bool);
@@ -355,8 +354,11 @@ ping4_loop(struct options *const options, struct shared_variables *const vars,
 		struct timeval now, timeout;
 		fd_set rfds;
 		int cc, n;
-
-		check_status(counters, timing, &signal_vars->siginfo);
+		/* TODO */
+		if (signal_vars->siginfo) {
+			signal_vars->siginfo = false;
+			pr_status(counters, timing);
+		}
 		if ((unsigned)vars->socket_recv >= FD_SETSIZE) {
 			print_error("descriptor too large");
 			return (EX_OSERR);
@@ -726,24 +728,6 @@ in_cksum(u_short *addr, int len)
 	sum += (sum >> 16);			/* add carry */
 	answer = ~sum;				/* truncate to 16 bits */
 	return (answer);
-}
-
-static void
-check_status(const struct counters *const counters, const struct timing *const timing,
-	volatile sig_atomic_t *const siginfo)
-{
-
-	if (*siginfo) {
-		*siginfo = false;
-		(void)printf("\r%ld/%ld packets received (%.1f%%)",
-		    counters->received, counters->transmitted,
-		    counters->transmitted ? counters->received * 100.0 / counters->transmitted : 0.0);
-		if (counters->received && timing->enabled)
-			(void)printf(" %.3f min / %.3f avg / %.3f max",
-			    timing->min, timing->sum / (counters->received + counters->repeats),
-			    timing->max);
-		(void)printf("\n");
-	}
 }
 
 #ifdef notdef

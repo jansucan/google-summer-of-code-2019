@@ -572,3 +572,16 @@ finish(const struct shared_variables *const vars, const struct counters *const c
 		    timing->min, avg, timing->max, sqrt(vari));
 	}
 }
+
+void
+pr_status(const struct counters *const counters, const struct timing *const timing)
+{
+	(void)printf("\r%ld/%ld packets received (%.1f%%)",
+	    counters->received, counters->transmitted,
+	    counters->transmitted ? counters->received * 100.0 / counters->transmitted : 0.0);
+	if (counters->received && timing->enabled)
+		(void)printf(" %.3f min / %.3f avg / %.3f max",
+		    timing->min, timing->sum / (counters->received + counters->repeats),
+		    timing->max);
+	(void)printf("\n");
+}
