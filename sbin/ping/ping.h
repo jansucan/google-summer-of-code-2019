@@ -64,7 +64,6 @@ struct shared_variables {
 	u_char outpack6[MAXPACKETLEN];			/* V6: outpack */
 	uint8_t nonce[8];	/* nonce field for node information */
 	int packlen;
-	char *scmsg;
 	struct msghdr smsghdr;
 	u_char *packet6;
 };
