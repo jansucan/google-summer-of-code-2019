@@ -738,18 +738,6 @@ ping6_loop(struct options *const options, struct shared_variables *const vars,
 	return (EX_OK);
 }
 
-void
-ping6_finish(struct options *const options, struct shared_variables *const vars,
-    struct counters *const counters, struct timing *const timing)
-{
-	pr6_summary(counters, timing, options->target);
-
-        if(vars->packet6 != NULL)
-                free(vars->packet6);
-
-	options_free(options);
-}
-
 /*
  * pinger --
  *	Compose and transmit an ICMP ECHO REQUEST packet.  The IP packet

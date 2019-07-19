@@ -460,14 +460,6 @@ ping4_loop(struct options *const options, struct shared_variables *const vars,
 	return (EX_OK);
 }
 
-void
-ping4_finish(struct options *const options, struct shared_variables *const vars,
-    struct counters *const counters, struct timing *const timing)
-{
-	options_free(options);
-	finish(vars, counters, timing, options->target);
-}
-
 /*
  * pinger --
  *	Compose and transmit an ICMP ECHO REQUEST packet.  The IP packet

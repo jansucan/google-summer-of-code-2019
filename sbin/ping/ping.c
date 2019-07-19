@@ -116,3 +116,19 @@ ping_init(struct options *const options, struct shared_variables *const vars,
 
 	return (EX_OK);
 }
+
+void
+ping_free(struct options *const options, struct shared_variables *const vars)
+{
+	options_free(options);
+#ifdef INET6
+	if (vars->packet6 != NULL) {
+                free(vars->packet6);
+		vars->packet6 = NULL;
+	}
+	if (vars->smsghdr.msg_control != NULL) {
+                free(vars->smsghdr.msg_control);
+		vars->smsghdr.msg_control = NULL;
+	}
+#endif
+}

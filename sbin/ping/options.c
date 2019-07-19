@@ -124,6 +124,11 @@ options_free(struct options *const options)
 		free(options->hops_addrinfo);
 		options->hops_addrinfo = NULL;
 	}
+
+	if (options->hops != NULL) {
+		free(options->hops);
+		options->hops = NULL;
+	}
 }
 
 int

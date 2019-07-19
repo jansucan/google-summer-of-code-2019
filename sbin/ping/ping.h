@@ -86,7 +86,8 @@ struct signal_variables {
 	const long *counters_received;
 };
 
-int ping_init(struct options *const options, struct shared_variables *const vars,
+int	ping_init(struct options *const options, struct shared_variables *const vars,
     struct counters *const counters, struct timing *const timing);
+void	ping_free(struct options *const options, struct shared_variables *const vars);
 
 #endif

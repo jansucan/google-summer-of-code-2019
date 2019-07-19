@@ -36,7 +36,9 @@ __FBSDID("$FreeBSD$");
 
 #include "options.h"
 #include "ping4.h"
+#include "ping4_print.h"
 #include "ping6.h"
+#include "ping6_print.h"
 
 static struct signal_variables signal_vars;
 
@@ -60,23 +62,36 @@ main(int argc, char *argv[])
 	if ((r = options_parse(argc, argv, &options, vars.capdns)) != EX_OK)
 		exit(r);
 
+	/* Initialization. */
 	if (options.target_type == TARGET_IPV4) {
-		if ((r = ping4_init(&options, &vars, &counters, &timing)) != EX_OK)
-			exit(r);
-		signals_setup(&options, &counters.received);
-		if ((r = ping4_loop(&options, &vars, &counters, &timing, &signal_vars)) != EX_OK)
-			exit(r);
-		signals_cleanup();
-		ping4_finish(&options, &vars, &counters, &timing);
+		r = ping4_init(&options, &vars, &counters, &timing);
 	} else {
-		if ((r = ping6_init(&options, &vars, &counters, &timing)) != EX_OK)
-			exit(r);
-		signals_setup(&options, &counters.received);
-		if ((r = ping6_loop(&options, &vars, &counters, &timing, &signal_vars)) != EX_OK)
-			exit(r);
-		signals_cleanup();
-		ping6_finish(&options, &vars, &counters, &timing);
+		r = ping6_init(&options, &vars, &counters, &timing);
 	}
+	if (r != EX_OK)
+		exit(r);
+
+	signals_setup(&options, &counters.received);
+
+	/* Ping loop. */
+	if (options.target_type == TARGET_IPV4) {
+		r = ping4_loop(&options, &vars, &counters, &timing, &signal_vars);
+	} else {
+		r = ping6_loop(&options, &vars, &counters, &timing, &signal_vars);
+	}
+	if (r != EX_OK)
+		exit(r);
+
+	/* Cleanup. */
+	signals_cleanup();
+
+	if (options.target_type == TARGET_IPV4) {
+		pr_summary(&vars, &counters, &timing, options.target);
+	} else {
+		pr6_summary(&counters, &timing, options.target);
+	}
+
+	ping_free(&options, &vars);
 
 	exit((counters.received != 0) ? 0 : 2);
 }
