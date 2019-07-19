@@ -487,16 +487,16 @@ pr_addr(struct in_addr ina, cap_channel_t *const capdns, bool numeric)
 	static char buf[16 + 3 + MAXHOSTNAMELEN];
 
 	if (numeric)
-		return inet_ntoa(ina);
+		return (inet_ntoa(ina));
 
 	hp = cap_gethostbyaddr(capdns, (char *)&ina, 4, AF_INET);
 
 	if (hp == NULL)
-		return inet_ntoa(ina);
+		return (inet_ntoa(ina));
 
 	(void)snprintf(buf, sizeof(buf), "%s (%s)", hp->h_name,
 	    inet_ntoa(ina));
-	return(buf);
+	return (buf);
 }
 
 /*

@@ -75,12 +75,12 @@ dnsdecode(const u_char **const sp, const u_char *const ep, const u_char *const b
 	*buf = '\0';
 
 	if (cp >= ep)
-		return NULL;
+		return (NULL);
 	while (cp < ep) {
 		i = *cp;
 		if (i == 0 || cp != *sp) {
 			if (strlcat((char *)buf, ".", bufsiz) >= bufsiz)
-				return NULL;	/*result overrun*/
+				return (NULL);	/*result overrun*/
 		}
 		if (i == 0)
 			break;
@@ -89,35 +89,35 @@ dnsdecode(const u_char **const sp, const u_char *const ep, const u_char *const b
 		if ((i & 0xc0) == 0xc0 && cp - base > (i & 0x3f)) {
 			/* DNS compression */
 			if (!base)
-				return NULL;
+				return (NULL);
 
 			comp = base + (i & 0x3f);
 			if (dnsdecode(&comp, cp, base, cresult,
 			    sizeof(cresult)) == NULL)
-				return NULL;
+				return (NULL);
 			if (strlcat(buf, cresult, bufsiz) >= bufsiz)
-				return NULL;	/*result overrun*/
+				return (NULL);	/*result overrun*/
 			break;
 		} else if ((i & 0x3f) == i) {
 			if (i > ep - cp)
-				return NULL;	/*source overrun*/
+				return (NULL);	/*source overrun*/
 			while (i-- > 0 && cp < ep) {
 				l = snprintf(cresult, sizeof(cresult),
 				    isprint(*cp) ? "%c" : "\\%03o", *cp & 0xff);
 				if ((size_t)l >= sizeof(cresult) || l < 0)
-					return NULL;
+					return (NULL);
 				if (strlcat(buf, cresult, bufsiz) >= bufsiz)
-					return NULL;	/*result overrun*/
+					return (NULL);	/*result overrun*/
 				cp++;
 			}
 		} else
-			return NULL;	/*invalid label*/
+			return (NULL);	/*invalid label*/
 	}
 	if (i != 0)
-		return NULL;	/*not terminated*/
+		return (NULL);	/*not terminated*/
 	cp++;
 	*sp = cp;
-	return buf;
+	return (buf);
 }
 
 int
@@ -128,12 +128,12 @@ get_hoplim(const struct msghdr *const mhdr)
 	for (cm = (struct cmsghdr *)CMSG_FIRSTHDR(mhdr); cm;
 	     cm = (struct cmsghdr *)CMSG_NXTHDR(mhdr, cm)) {
 		if (cm->cmsg_len == 0)
-			return(-1);
+			return (-1);
 
 		if (cm->cmsg_level == IPPROTO_IPV6 &&
 		    cm->cmsg_type == IPV6_HOPLIMIT &&
 		    cm->cmsg_len == CMSG_LEN(sizeof(int)))
-			return(*(int *)CMSG_DATA(cm));
+			return (*(int *)CMSG_DATA(cm));
 	}
 
 	return (-1);
@@ -147,12 +147,12 @@ get_rcvpktinfo(const struct msghdr *const mhdr)
 	for (cm = (struct cmsghdr *)CMSG_FIRSTHDR(mhdr); cm;
 	     cm = (struct cmsghdr *)CMSG_NXTHDR(mhdr, cm)) {
 		if (cm->cmsg_len == 0)
-			return(NULL);
+			return (NULL);
 
 		if (cm->cmsg_level == IPPROTO_IPV6 &&
 		    cm->cmsg_type == IPV6_PKTINFO &&
 		    cm->cmsg_len == CMSG_LEN(sizeof(struct in6_pktinfo)))
-			return((struct in6_pktinfo *)CMSG_DATA(cm));
+			return ((struct in6_pktinfo *)CMSG_DATA(cm));
 	}
 
 	return (NULL);
@@ -188,7 +188,7 @@ pingerlen(const struct options *const options, size_t sin6_addr_size)
 	else
 		l = ICMP6ECHOLEN + options->n_packet_size;
 
-	return l;
+	return (l);
 }
 
 /*
@@ -638,7 +638,7 @@ pr6_bitrange(uint32_t v, int soff, int ii)
 		ii += i;
 		v >>= i; off += i;
 	}
-	return ii;
+	return (ii);
 }
 
 static void
@@ -1097,7 +1097,7 @@ pr6_addr(const struct sockaddr *const addr, int addrlen, bool numeric,
 	if (cap_getnameinfo(capdns, addr, addrlen, buf, sizeof(buf), NULL, 0, flag) == 0)
 		return (buf);
 	else
-		return "?";
+		return ("?");
 }
 
 /*

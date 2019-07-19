@@ -766,7 +766,7 @@ pinger(struct options *const options, struct shared_variables *const vars,
 	int seq;
 
 	if (options->n_packets && counters->transmitted >= options->n_packets)
-		return(-1);	/* no more transmission */
+		return (-1);	/* no more transmission */
 
 	icp = (struct icmp6_hdr *)vars->outpack6;
 	nip = (struct icmp6_nodeinfo *)vars->outpack6;
@@ -1007,7 +1007,7 @@ get_pathmtu(const struct msghdr *const mhdr, const struct options *const options
 	for (cm = (struct cmsghdr *)CMSG_FIRSTHDR(mhdr); cm;
 	     cm = (struct cmsghdr *)CMSG_NXTHDR(mhdr, cm)) {
 		if (cm->cmsg_len == 0)
-			return(0);
+			return (0);
 
 		if (cm->cmsg_level == IPPROTO_IPV6 &&
 		    cm->cmsg_type == IPV6_PATHMTU &&
@@ -1034,7 +1034,7 @@ get_pathmtu(const struct msghdr *const mhdr, const struct options *const options
 					   pr6_addr((struct sockaddr *)&mtuctl->ip6m_addr,
 					       sizeof(mtuctl->ip6m_addr), options->f_numeric, capdns));
 				}
-				return(0);
+				return (0);
 			}
 
 			/*
@@ -1042,14 +1042,14 @@ get_pathmtu(const struct msghdr *const mhdr, const struct options *const options
 			 * the kernel check?
 			 */
 			if (mtuctl->ip6m_mtu < IPV6_MMTU)
-				return(0);
+				return (0);
 
 			/* notification for our destination. return the MTU. */
-			return((int)mtuctl->ip6m_mtu);
+			return ((int)mtuctl->ip6m_mtu);
 		}
 	}
 #endif
-	return(0);
+	return (0);
 }
 
 static u_short
@@ -1072,5 +1072,5 @@ get_node_address_flags(const struct options *const options)
 		naflags |= NI_NODEADDR_FLAG_ANYCAST;
 #endif
 
-	return naflags;
+	return (naflags);
 }
