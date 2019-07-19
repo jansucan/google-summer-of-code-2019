@@ -42,7 +42,8 @@ __FBSDID("$FreeBSD$");
 
 static struct signal_variables signal_vars;
 
-static void signals_setup(struct options *const options, const long *const counters_received);
+static void signals_setup(struct options *const options,  struct shared_variables *const vars,
+    const long *const counters_received);
 static void signals_cleanup(void);
 static void signal_handler_siginfo(int sig __unused);
 static void signal_handler_sigint_sigalrm(int sig __unused);
@@ -71,7 +72,7 @@ main(int argc, char *argv[])
 	if (r != EX_OK)
 		exit(r);
 
-	signals_setup(&options, &counters.received);
+	signals_setup(&options, &vars, &counters.received);
 
 	/* Ping loop. */
 	if (options.target_type == TARGET_IPV4) {
@@ -97,13 +98,15 @@ main(int argc, char *argv[])
 }
 
 static void
-signals_setup(struct options *const options, const long *const counters_received)
+signals_setup(struct options *const options, struct shared_variables *const vars,
+    const long *const counters_received)
 {
 	struct sigaction si_sa;
 
 	signal_vars.siginfo = false;
 	signal_vars.sigint_sigalrm = false;
 	signal_vars.options = options;
+	signal_vars.vars = vars;
 
 	/*
 	 * Use sigaction() instead of signal() to get unambiguous semantics,
@@ -151,7 +154,7 @@ signal_handler_sigint_sigalrm(int sig __unused)
 	 * be noticed for a while.  Just exit if we get a second SIGINT.
 	 */
 	if (!signal_vars.options->f_numeric && signal_vars.sigint_sigalrm) {
-		options_free(signal_vars.options);
+		ping_free(signal_vars.options, signal_vars.vars);
 		_exit(((signal_vars.counters_received != NULL) &&
 			(*signal_vars.counters_received != 0)) ? 0 : 2);
 	}

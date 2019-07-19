@@ -83,6 +83,7 @@ struct signal_variables {
 	volatile sig_atomic_t sigint_sigalrm;
 
 	struct options *options;
+	struct shared_variables *vars;
 	const long *counters_received;
 };
 
