@@ -634,18 +634,7 @@ ping6_loop(struct options *const options, struct shared_variables *const vars,
 		FD_ZERO(&rfds);
 		FD_SET(vars->socket_recv, &rfds);
 		gettimeofday(&now, NULL);
-		timeout.tv_sec = last.tv_sec + options->n_interval.tv_sec - now.tv_sec;
-		timeout.tv_usec = last.tv_usec + options->n_interval.tv_usec - now.tv_usec;
-		while (timeout.tv_usec < 0) {
-			timeout.tv_usec += 1000000;
-			timeout.tv_sec--;
-		}
-		while (timeout.tv_usec > 1000000) {
-			timeout.tv_usec -= 1000000;
-			timeout.tv_sec++;
-		}
-		if (timeout.tv_sec < 0)
-			timeout.tv_sec = timeout.tv_usec = 0;
+		timeout = timeout_get(&last, &options->n_interval, &now);
 
 		const int n = select(vars->socket_recv + 1, &rfds, NULL, NULL, &timeout);
 		if (n < 0)

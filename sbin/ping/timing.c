@@ -46,6 +46,28 @@ tvsub(struct timeval *const out, const struct timeval *const in)
 	out->tv_sec -= in->tv_sec;
 }
 
+struct timeval
+timeout_get(const struct timeval *const last, const struct timeval *const interval,
+    const struct timeval *const now)
+{
+	struct timeval timeout;
+
+	timeout.tv_sec = last->tv_sec + interval->tv_sec - now->tv_sec;
+	timeout.tv_usec = last->tv_usec + interval->tv_usec - now->tv_usec;
+	while (timeout.tv_usec < 0) {
+		timeout.tv_usec += 1000000;
+		timeout.tv_sec--;
+	}
+	while (timeout.tv_usec >= 1000000) {
+		timeout.tv_usec -= 1000000;
+		timeout.tv_sec++;
+	}
+	if (timeout.tv_sec < 0)
+		timerclear(&timeout);
+
+	return (timeout);
+}
+
 void
 timing_init(struct timing *const timing)
 {
