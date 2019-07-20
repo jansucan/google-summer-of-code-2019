@@ -121,6 +121,7 @@ void
 ping_free(struct options *const options, struct shared_variables *const vars)
 {
 	options_free(options);
+	cap_close(vars->capdns);
 #ifdef INET6
 	if (vars->packet6 != NULL) {
                 free(vars->packet6);

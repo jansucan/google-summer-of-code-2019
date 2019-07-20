@@ -70,7 +70,6 @@ cap_limit_socket(int socket, enum ping_socket_rights rights)
 cap_channel_t *
 capdns_setup(void)
 {
-	/* TODO: cap_close(capdnsloc)? */
 	cap_channel_t *capcas, *capdnsloc;
 	const char *types[2];
 
