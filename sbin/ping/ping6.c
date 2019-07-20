@@ -166,7 +166,6 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 	struct cmsghdr *scmsgp = NULL;
 	struct in6_pktinfo *pktinfo = NULL;
 	struct ip6_rthdr *rthdr = NULL;
-	size_t rthlen;
 
 	if ((r = ping_init(options, vars, counters, timing)) != EX_OK)
 		return (r);
@@ -185,6 +184,7 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 	}
 
 	if (options->hop_count != 0) {
+		size_t rthlen;
 #ifdef IPV6_RECVRTHDR	/* 2292bis */
 		rthlen = CMSG_SPACE(inet6_rth_space(IPV6_RTHDR_TYPE_0,
 		    options->hop_count));
