@@ -91,7 +91,6 @@ struct options {
 	bool f_rroute;
 	bool f_so_dontroute;
 
-	/* TODO: MAXHOSTNAMELEN + 1? */
 	bool f_source;
 	char s_source[MAXHOSTNAMELEN];
 	union {
@@ -208,7 +207,6 @@ struct options {
 	struct addrinfo **hops_addrinfo;
 	unsigned hop_count;
 #endif
-	/* TODO: cannot be const becuse of nigroup() in ping6 */
 	char target[MAXHOSTNAMELEN];
 	/*
 	 * The target can be resolved to multiple protocols by

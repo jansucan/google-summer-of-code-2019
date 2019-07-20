@@ -619,7 +619,6 @@ options_check_post_hosts(struct options *const options, cap_channel_t *const cap
 static int
 options_check_pre_hosts(struct options *const options, cap_channel_t *const capdns)
 {
-	/* TODO: chaining 'else if'? */
 #ifdef INET6
 	if (options->f_nigroup && !options->f_protocol_ipv6) {
 		warnx("-N implies IPv6 target, setting -6 option");
@@ -1148,7 +1147,6 @@ options_has_ipv6_only(const struct options *const options)
 }
 #endif /* INET6 */
 
-/* TODO: rename to options_usage()? */
 void
 usage(void)
 {
