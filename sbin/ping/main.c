@@ -89,11 +89,10 @@ main(int argc, char *argv[])
 	/* Cleanup. */
 	signals_cleanup();
 
-	if (options.target_type == TARGET_IPV4) {
+	if (options.target_type == TARGET_IPV4)
 		pr_summary(&counters, &timing, options.target);
-	} else {
+	else
 		pr6_summary(&counters, &timing, options.target);
-	}
 
 	ping_free(&options, &vars);
 
