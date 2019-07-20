@@ -70,12 +70,19 @@ main(int argc, char *argv[])
 
 	signals_setup(&options, &vars, &counters.received);
 
-	/* Ping loop. */
-	if (options.target_type == TARGET_IPV4) {
-		r = ping4_loop(&options, &vars, &counters, &timing, &signal_vars);
-	} else {
-		r = ping6_loop(&options, &vars, &counters, &timing, &signal_vars);
+	/* Send initial packets. */
+	while (options.n_preload--) {
+		if (options.target_type == TARGET_IPV4)
+			pinger(&options, &vars, &counters, &timing);
+		else
+			pinger6(&options, &vars, &counters, &timing);
 	}
+
+	/* Ping loop. */
+	if (options.target_type == TARGET_IPV4)
+		r = ping4_loop(&options, &vars, &counters, &timing, &signal_vars);
+	else
+		r = ping6_loop(&options, &vars, &counters, &timing, &signal_vars);
 	if (r != EX_OK)
 		exit(r);
 

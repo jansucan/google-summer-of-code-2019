@@ -42,5 +42,7 @@ int ping6_loop(struct options *const options, struct shared_variables *const var
     struct signal_variables *const signal_vars);
 void ping6_finish(struct options *const options, struct shared_variables *const vars,
     struct counters *const counters, struct timing *const timing);
+int pinger6(struct options *const options, struct shared_variables *const vars,
+    struct counters *const counters, struct timing *const timing);
 
 #endif

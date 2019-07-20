@@ -102,8 +102,6 @@ static void get_triptime(const char *const, size_t, struct timeval *const,
     const struct shared_variables *const, bool);
 static bool is_packet_too_short(const char *const, size_t, const struct sockaddr_in *const, bool);
 static void mark_packet_as_received(const char *const, size_t, struct shared_variables *const);
-static void pinger(const struct options *const, struct shared_variables *const,
-    struct counters *const, const struct timing *const);
 static void update_counters(const char *const, size_t, const struct timeval *const,
     const struct options *const, const struct shared_variables *const, struct counters *const);
 static void update_timing(const char *const, size_t, const struct timeval *const,
@@ -339,9 +337,6 @@ ping4_loop(struct options *const options, struct shared_variables *const vars,
 {
 	struct timeval last;
 
-	while (options->n_preload--)
-		pinger(options, vars, counters, timing);
-
 	(void)gettimeofday(&last, NULL);
 
 	bool almost_done = false;
@@ -448,7 +443,7 @@ ping4_loop(struct options *const options, struct shared_variables *const vars,
  * bytes of the data portion are used to hold a UNIX "timeval" struct in
  * host byte-order, to compute the round-trip time.
  */
-static void
+void
 pinger(const struct options *const options, struct shared_variables *const vars,
     struct counters *const counters, const struct timing *const timing)
 {

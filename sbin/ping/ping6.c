@@ -144,8 +144,6 @@ static int       get_pathmtu(const struct msghdr *const , const struct options *
     const struct sockaddr_in6 *const, cap_channel_t *const);
 static bool	 is_packet_valid(int, const struct msghdr *, const struct options *const,
     cap_channel_t *const);
-static int	 pinger(struct options *const, struct shared_variables *const,
-    struct counters *const, struct timing *const);
 static void	 mark_packet_as_received(struct shared_variables *const);
 static u_short   get_node_address_flags(const struct options *const);
 static void	 update_counters(const struct options *const,
@@ -607,9 +605,6 @@ ping6_loop(struct options *const options, struct shared_variables *const vars,
 	struct cmsghdr cm[CONTROLLEN];
 	bool almost_done;
 
-	while (options->n_preload--)
-		pinger(options, vars, counters, timing);
-
 	gettimeofday(&last, NULL);
 
 	almost_done = false;
@@ -687,7 +682,7 @@ ping6_loop(struct options *const options, struct shared_variables *const vars,
 		}
 		if (!is_ready || options->f_flood) {
 			if (options->n_packets == 0 || counters->transmitted < options->n_packets)
-				pinger(options, vars, counters, timing);
+				pinger6(options, vars, counters, timing);
 			else {
 				if (almost_done)
 					break;
@@ -721,15 +716,15 @@ ping6_loop(struct options *const options, struct shared_variables *const vars,
 }
 
 /*
- * pinger --
+ * pinger6 --
  *	Compose and transmit an ICMP ECHO REQUEST packet.  The IP packet
  * will be added on by the kernel.  The ID field is our UNIX process ID,
  * and the sequence number is an ascending integer.  The first 8 bytes
  * of the data portion are used to hold a UNIX "timeval" struct in VAX
  * byte-order, to compute the round-trip time.
  */
-static int
-pinger(struct options *const options, struct shared_variables *const vars,
+int
+pinger6(struct options *const options, struct shared_variables *const vars,
     struct counters *const counters, struct timing *const timing)
 {
 	struct icmp6_hdr *icp;
