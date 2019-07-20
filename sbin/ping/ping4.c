@@ -114,10 +114,7 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
     struct counters *const counters, struct timing *const timing)
 {
 	struct ip *ip;
-	int hold, r;
-
-	if ((r = ping_init(options, vars, counters, timing)) != EX_OK)
-		return (r);
+	int hold;
 
 	vars->icmp_type = ICMP_ECHO;
 	vars->icmp_type_rsp = ICMP_ECHOREPLY;

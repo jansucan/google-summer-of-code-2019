@@ -35,6 +35,10 @@ __FBSDID("$FreeBSD$");
 #include "cap.h"
 #include "ipsec.h"
 #include "ping.h"
+#include "ping4.h"
+#include "ping4_print.h"
+#include "ping6.h"
+#include "ping6_print.h"
 #include "timing.h"
 #include "utils.h"
 
@@ -114,7 +118,14 @@ ping_init(struct options *const options, struct shared_variables *const vars,
 	if (!ipsec_configure(vars->socket_send, vars->socket_recv, options))
 		return (1);
 
-	return (EX_OK);
+	/*
+	 * Do protocol-specific initialization.
+	 */
+	if (options->target_type == TARGET_IPV4) {
+		return (ping4_init(options, vars, counters, timing));
+	} else {
+		return (ping6_init(options, vars, counters, timing));
+	}
 }
 
 void

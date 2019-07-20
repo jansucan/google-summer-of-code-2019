@@ -35,6 +35,7 @@ __FBSDID("$FreeBSD$");
 #include <sysexits.h>
 
 #include "options.h"
+#include "ping.h"
 #include "ping4.h"
 #include "ping4_print.h"
 #include "ping6.h"
@@ -64,12 +65,7 @@ main(int argc, char *argv[])
 		exit(r);
 
 	/* Initialization. */
-	if (options.target_type == TARGET_IPV4) {
-		r = ping4_init(&options, &vars, &counters, &timing);
-	} else {
-		r = ping6_init(&options, &vars, &counters, &timing);
-	}
-	if (r != EX_OK)
+	if ((r = ping_init(&options, &vars, &counters, &timing)) != EX_OK)
 		exit(r);
 
 	signals_setup(&options, &vars, &counters.received);
