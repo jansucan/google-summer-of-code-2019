@@ -188,7 +188,7 @@ options_parse(int argc, char **argv, struct options *const options, cap_channel_
 			options->f_interval = true;
 			break;
 		case 'l':
-			options->n_preload = options_strtonum(optarg, 0, INT_MAX, errbuf);
+			options->n_preload = options_strtonum(optarg, 1, INT_MAX, errbuf);
 			if (errbuf[0] != '\0') {
 				print_error("invalid preload value: `%s': %s", optarg, errbuf);
 				return (EX_USAGE);

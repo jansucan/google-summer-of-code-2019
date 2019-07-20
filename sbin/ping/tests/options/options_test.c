@@ -334,7 +334,7 @@ ATF_TC_BODY(option_preload, tc)
 		cap_close(capdns);
 	}
 	{
-		ARGC_ARGV("-l", "-1", "localhost");
+		ARGC_ARGV("-l", "0", "localhost");
 		capdns = capdns_setup();
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
@@ -366,14 +366,14 @@ ATF_TC_HEAD(privileged_option_preload, tc)
 ATF_TC_BODY(privileged_option_preload, tc)
 {
 	{
-		ARGC_ARGV("-l", "0", "localhost");
+		ARGC_ARGV("-l", "1", "localhost");
 		capdns = capdns_setup();
 
 		options.f_preload = false;
 		options.n_preload = -1;
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
 		ATF_REQUIRE(options.f_preload == true);
-		ATF_REQUIRE(options.n_preload == 0);
+		ATF_REQUIRE(options.n_preload == 1);
 		cap_close(capdns);
 	}
 	{
