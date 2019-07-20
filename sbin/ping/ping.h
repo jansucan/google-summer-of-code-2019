@@ -90,5 +90,12 @@ struct signal_variables {
 int	ping_init(struct options *const options, struct shared_variables *const vars,
     struct counters *const counters, struct timing *const timing);
 void	ping_free(struct options *const options, struct shared_variables *const vars);
+void	ping_send_initial_packets(struct options *const options, struct shared_variables *const vars,
+    struct counters *const counters, struct timing *const timing);
+int	ping_loop(struct options *const options, struct shared_variables *const vars,
+    struct counters *const counters, struct timing *const timing,
+    struct signal_variables *const signal_vars);
+void	ping_print_summary(struct options *const options, const struct counters *const counters,
+    const struct timing *const timing);
 
 #endif
