@@ -37,12 +37,11 @@
 
 int ping4_init(struct options *const options, struct shared_variables *const vars,
     struct counters *const counters, struct timing *const timing);
-int ping4_loop(struct options *const options, struct shared_variables *const vars,
-    struct counters *const counters, struct timing *const timing,
-    struct signal_variables *const signal_vars);
-void ping4_finish(struct options *const options, struct shared_variables *const vars,
-    struct counters *const counters, struct timing *const timing);
 void pinger(const struct options *const options, struct shared_variables *const vars,
     struct counters *const counters, const struct timing *const timing);
+bool ping4_process_received_packet(const struct options *const options, struct shared_variables *const vars,
+    struct counters *const counters, struct timing *const timing);
+bool update_sweep(struct options *const options, struct shared_variables *const vars,
+    struct counters *const counters);
 
 #endif

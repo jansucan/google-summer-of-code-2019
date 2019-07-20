@@ -594,125 +594,65 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 	return (EX_OK);
 }
 
-int
-ping6_loop(struct options *const options, struct shared_variables *const vars,
-    struct counters *const counters, struct timing *const timing,
-    struct signal_variables *const signal_vars)
+bool
+ping6_process_received_packet(const struct options *const options, struct shared_variables *const vars,
+	struct counters *const counters, struct timing *const timing)
 {
 	struct sockaddr_in6 from;
-	struct timeval last;
-	/* For control (ancillary) data received from recvmsg() */
+	/* struct timeval last; */
+	/* /\* For control (ancillary) data received from recvmsg() *\/ */
 	struct cmsghdr cm[CONTROLLEN];
-	bool almost_done;
 
-	gettimeofday(&last, NULL);
+	struct msghdr m;
+	struct iovec iov[2];
 
-	almost_done = false;
-	while (!signal_vars->sigint_sigalrm) {
-		struct timeval now, timeout;
-		bool is_ready, is_eintr;
+	m.msg_name = (caddr_t)&from;
+	m.msg_namelen = sizeof(from);
+	memset(&iov, 0, sizeof(iov));
+	iov[0].iov_base = (caddr_t)vars->packet6;
+	iov[0].iov_len = vars->packlen;
+	m.msg_iov = iov;
+	m.msg_iovlen = 1;
+	memset(cm, 0, CONTROLLEN);
+	m.msg_control = (void *)cm;
+	m.msg_controllen = CONTROLLEN;
 
-		if (signal_vars->siginfo) {
-			pr6_summary(counters, timing, options->target);
-			signal_vars->siginfo = false;
-			continue;
+	const int cc = recvmsg(vars->socket_recv, &m, 0);
+	if (cc < 0) {
+		if (errno != EINTR) {
+			warn("recvmsg");
+			sleep(1);
 		}
+		return (false);
+	} else if (cc == 0) {
+		int mtu;
 
-		gettimeofday(&now, NULL);
-		timeout = timeout_get(&last, &options->n_interval, &now);
-
-		if (!test_socket_for_reading(vars->socket_recv, &timeout,
-			&is_ready, &is_eintr))
-			return (1);
-
-		if (is_eintr)
-			continue;
-		if (is_ready) {
-			struct msghdr m;
-			struct iovec iov[2];
-
-			m.msg_name = (caddr_t)&from;
-			m.msg_namelen = sizeof(from);
-			memset(&iov, 0, sizeof(iov));
-			iov[0].iov_base = (caddr_t)vars->packet6;
-			iov[0].iov_len = vars->packlen;
-			m.msg_iov = iov;
-			m.msg_iovlen = 1;
-			memset(cm, 0, CONTROLLEN);
-			m.msg_control = (void *)cm;
-			m.msg_controllen = CONTROLLEN;
-
-			const int cc = recvmsg(vars->socket_recv, &m, 0);
-			if (cc < 0) {
-				if (errno != EINTR) {
-					warn("recvmsg");
-					sleep(1);
-				}
-				continue;
-			} else if (cc == 0) {
-				int mtu;
-
-				/*
-				 * receive control messages only. Process the
-				 * exceptions (currently the only possibility is
-				 * a path MTU notification.)
-				 */
-				if ((mtu = get_pathmtu(&m, options, vars->target_sockaddr_in6, vars->capdns)) > 0) {
-					if (options->f_verbose) {
-						printf("new path MTU (%d) is "
-						    "notified\n", mtu);
-					}
-				}
-				continue;
-			} else if (is_packet_valid(cc, &m, options, vars->capdns)) {
-				/*
-				 * an ICMPv6 message (probably an echoreply)
-				 * arrived.
-				 */
-				double triptime;
-
-				update_timing(vars, timing, &triptime);
-				update_counters(options, vars, counters, triptime);
-				pr6_pack(cc, &m, options, vars, counters, timing, triptime);
-				mark_packet_as_received(vars);
-			}
-			if ((options->f_once != 0 && counters->received > 0) ||
-			    (options->n_packets > 0 && counters->received >= options->n_packets))
-				break;
-		}
-		if (!is_ready || options->f_flood) {
-			if (options->n_packets == 0 || counters->transmitted < options->n_packets)
-				pinger6(options, vars, counters, timing);
-			else {
-				if (almost_done)
-					break;
-				almost_done = true;
-			/*
-			 * If we're not transmitting any more packets,
-			 * change the timer to wait two round-trip times
-			 * if we've received any packets or (options->n_wait_time)
-			 * milliseconds if we haven't.
-			 */
-				options->n_interval.tv_usec = 0;
-				if (counters->received) {
-					options->n_interval.tv_sec = 2 * timing->max / 1000;
-					if (options->n_interval.tv_sec == 0)
-						options->n_interval.tv_sec = 1;
-				} else {
-					options->n_interval.tv_sec = options->n_wait_time / 1000;
-					options->n_interval.tv_usec = options->n_wait_time % 1000 * 1000;
-				}
-			}
-			gettimeofday(&last, NULL);
-			if (counters->transmitted - counters->received - 1 > counters->missedmax) {
-				counters->missedmax = counters->transmitted - counters->received - 1;
-				if (options->f_missed)
-					write_char(STDOUT_FILENO, CHAR_BBELL);
+		/*
+		 * receive control messages only. Process the
+		 * exceptions (currently the only possibility is
+		 * a path MTU notification.)
+		 */
+		if ((mtu = get_pathmtu(&m, options, vars->target_sockaddr_in6, vars->capdns)) > 0) {
+			if (options->f_verbose) {
+				printf("new path MTU (%d) is "
+				    "notified\n", mtu);
 			}
 		}
+		return (false);
+	} else if (is_packet_valid(cc, &m, options, vars->capdns)) {
+		/*
+		 * an ICMPv6 message (probably an echoreply)
+		 * arrived.
+		 */
+		double triptime;
+
+		update_timing(vars, timing, &triptime);
+		update_counters(options, vars, counters, triptime);
+		pr6_pack(cc, &m, options, vars, counters, timing, triptime);
+		mark_packet_as_received(vars);
 	}
 
-	return (EX_OK);
+	return (true);
 }
 
 /*

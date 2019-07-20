@@ -40,6 +40,7 @@ __FBSDID("$FreeBSD$");
 #include "ping4_print.h"
 #include "ping6.h"
 #include "ping6_print.h"
+#include "utils.h"
 
 static struct signal_variables signal_vars;
 
@@ -79,12 +80,86 @@ main(int argc, char *argv[])
 	}
 
 	/* Ping loop. */
-	if (options.target_type == TARGET_IPV4)
-		r = ping4_loop(&options, &vars, &counters, &timing, &signal_vars);
-	else
-		r = ping6_loop(&options, &vars, &counters, &timing, &signal_vars);
-	if (r != EX_OK)
-		exit(r);
+	struct timeval last;
+	bool almost_done;
+
+	(void)gettimeofday(&last, NULL);
+
+	almost_done = false;
+	while (!signal_vars.sigint_sigalrm) {
+		struct timeval now, timeout;
+		bool is_ready, is_eintr;
+
+		if (signal_vars.siginfo) {
+			if (options.target_type == TARGET_IPV4)
+				pr_status(&counters, &timing);
+			else {
+				pr6_summary(&counters, &timing, options.target);
+				continue;
+			}
+			signal_vars.siginfo = false;
+		}
+
+		(void)gettimeofday(&now, NULL);
+		timeout = timeout_get(&last, &options.n_interval, &now);
+
+		if (!test_socket_for_reading(vars.socket_recv, &timeout,
+			&is_ready, &is_eintr))
+			return (1);
+
+		if (is_eintr)
+			continue;
+		if (is_ready) {
+			bool next_iteration;
+
+			if (options.target_type == TARGET_IPV4)
+				next_iteration = !ping4_process_received_packet(&options, &vars, &counters, &timing);
+			else
+				next_iteration = !ping6_process_received_packet(&options, &vars, &counters, &timing);
+
+			if (next_iteration)
+				continue;
+
+			if ((options.f_once && (counters.received > 0)) ||
+			    ((options.n_packets > 0) && (counters.received >= options.n_packets)))
+				break;
+		}
+		if (!is_ready || options.f_flood) {
+			if (options.target_type == TARGET_IPV4)
+				update_sweep(&options, &vars, &counters);
+			if ((options.n_packets == 0) || (counters.transmitted < options.n_packets)) {
+				if (options.target_type == TARGET_IPV4)
+					pinger(&options, &vars, &counters, &timing);
+				else
+					pinger6(&options, &vars, &counters, &timing);
+			} else {
+				if (almost_done)
+					break;
+				almost_done = true;
+				/*
+				 * If we're not transmitting any more packets,
+				 * change the timer to wait two round-trip times
+				 * if we've received any packets or (options.n_wait_time)
+				 * milliseconds if we haven't.
+				 */
+				options.n_interval.tv_usec = 0;
+				if (counters.received) {
+					options.n_interval.tv_sec = 2 * timing.max / 1000;
+					if (options.n_interval.tv_sec == 0)
+						options.n_interval.tv_sec = 1;
+				} else {
+					options.n_interval.tv_sec = options.n_wait_time / 1000;
+					options.n_interval.tv_usec = options.n_wait_time % 1000 * 1000;
+				}
+			}
+			(void)gettimeofday(&last, NULL);
+			if ((counters.transmitted - counters.received - 1) > counters.missedmax) {
+				counters.missedmax = counters.transmitted - counters.received - 1;
+				if (options.f_missed)
+					write_char(STDOUT_FILENO, CHAR_BBELL);
+			}
+		}
+	}
 
 	/* Cleanup. */
 	signals_cleanup();

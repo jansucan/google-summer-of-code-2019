@@ -330,109 +330,64 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	return (EX_OK);
 }
 
-int
-ping4_loop(struct options *const options, struct shared_variables *const vars,
-    struct counters *const counters, struct timing *const timing,
-    struct signal_variables *const signal_vars)
+bool
+ping4_process_received_packet(const struct options *const options, struct shared_variables *const vars,
+    struct counters *const counters, struct timing *const timing)
 {
-	struct timeval last;
+	int cc;
+	struct timeval now;
+	struct timeval *tv = NULL;
+#ifdef SO_TIMESTAMP
+	struct cmsghdr *cmsg = (struct cmsghdr *)&vars->ctrl;
 
-	(void)gettimeofday(&last, NULL);
-
-	bool almost_done = false;
-	while (!signal_vars->sigint_sigalrm) {
-		struct timeval now, timeout;
-		int cc;
-		bool is_ready, is_eintr;
-		/* TODO */
-		if (signal_vars->siginfo) {
-			signal_vars->siginfo = false;
-			pr_status(counters, timing);
-		}
-
+	vars->msg.msg_controllen = sizeof(vars->ctrl);
+#endif
+	vars->msg.msg_namelen = sizeof(vars->from);
+	if ((cc = recvmsg(vars->socket_recv, &vars->msg, 0)) < 0) {
+		if (errno == EINTR)
+			return (false);
+		warn("recvmsg");
+		return (false);
+	}
+#ifdef SO_TIMESTAMP
+	if (cmsg->cmsg_level == SOL_SOCKET &&
+	    cmsg->cmsg_type == SCM_TIMESTAMP &&
+	    cmsg->cmsg_len == CMSG_LEN(sizeof(*tv))) {
+		/* Copy to avoid alignment problems: */
+		memcpy(&now, CMSG_DATA(cmsg), sizeof(now));
+		tv = &now;
+	}
+#endif
+	if (tv == NULL) {
 		(void)gettimeofday(&now, NULL);
-		timeout = timeout_get(&last, &options->n_interval, &now);
-
-		if (!test_socket_for_reading(vars->socket_recv, &timeout,
-			&is_ready, &is_eintr))
-			return (1);
-
-		if (is_eintr)
-			continue;
-		if (is_ready) {
-			struct timeval *tv = NULL;
-#ifdef SO_TIMESTAMP
-			struct cmsghdr *cmsg = (struct cmsghdr *)&vars->ctrl;
-
-			vars->msg.msg_controllen = sizeof(vars->ctrl);
-#endif
-			vars->msg.msg_namelen = sizeof(vars->from);
-			if ((cc = recvmsg(vars->socket_recv, &vars->msg, 0)) < 0) {
-				if (errno == EINTR)
-					continue;
-				warn("recvmsg");
-				continue;
-			}
-#ifdef SO_TIMESTAMP
-			if (cmsg->cmsg_level == SOL_SOCKET &&
-			    cmsg->cmsg_type == SCM_TIMESTAMP &&
-			    cmsg->cmsg_len == CMSG_LEN(sizeof(*tv))) {
-				/* Copy to avoid alignment problems: */
-				memcpy(&now, CMSG_DATA(cmsg), sizeof(now));
-				tv = &now;
-			}
-#endif
-			if (tv == NULL) {
-				(void)gettimeofday(&now, NULL);
-				tv = &now;
-			}
-			if (!is_packet_too_short((char *)vars->packet, cc, &vars->from, options->f_verbose)) {
-				get_triptime((char *)vars->packet, cc, tv, vars, timing->enabled);
-				update_timing((char *)vars->packet, cc, tv, vars, timing);
-				update_counters((char *)vars->packet, cc, tv, options, vars, counters);
-				pr_pack((char *)vars->packet, cc, &vars->from, tv, options, vars, timing->enabled);
-				mark_packet_as_received((char *)vars->packet, cc, vars);
-			}
-			if ((options->f_once && counters->received) ||
-			    (options->n_packets && counters->received >= options->n_packets))
-				break;
-		}
-		if (!is_ready || options->f_flood) {
-			if (options->n_sweep_max && counters->sweep_transmitted == counters->sweep_max_packets) {
-				for (int i = 0; i < options->n_sweep_incr ; ++i)
-					*vars->datap++ = i;
-				options->n_packet_size += options->n_sweep_incr;
-				if (options->n_packet_size > options->n_sweep_max)
-					break;
-				vars->send_len = vars->icmp_len + options->n_packet_size;
-				counters->sweep_transmitted = 0;
-			}
-			if (!options->n_packets || counters->transmitted < options->n_packets)
-				pinger(options, vars, counters, timing);
-			else {
-				if (almost_done)
-					break;
-				almost_done = true;
-				options->n_interval.tv_usec = 0;
-				if (counters->received) {
-					options->n_interval.tv_sec = 2 * timing->max / 1000;
-					if (!options->n_interval.tv_sec)
-						options->n_interval.tv_sec = 1;
-				} else {
-					options->n_interval.tv_sec = options->n_wait_time / 1000;
-					options->n_interval.tv_usec = options->n_wait_time % 1000 * 1000;
-				}
-			}
-			(void)gettimeofday(&last, NULL);
-			if (counters->transmitted - counters->received - 1 > counters->missedmax) {
-				counters->missedmax = counters->transmitted - counters->received - 1;
-				if (options->f_missed)
-					write_char(STDOUT_FILENO, CHAR_BBELL);
-			}
-		}
+		tv = &now;
+	}
+	if (!is_packet_too_short((char *)vars->packet, cc, &vars->from, options->f_verbose)) {
+		get_triptime((char *)vars->packet, cc, tv, vars, timing->enabled);
+		update_timing((char *)vars->packet, cc, tv, vars, timing);
+		update_counters((char *)vars->packet, cc, tv, options, vars, counters);
+		pr_pack((char *)vars->packet, cc, &vars->from, tv, options, vars, timing->enabled);
+		mark_packet_as_received((char *)vars->packet, cc, vars);
 	}
 
-	return (EX_OK);
+	return (true);
+}
+
+bool
+update_sweep(struct options *const options, struct shared_variables *const vars,
+    struct counters *const counters)
+{
+	if ((options->n_sweep_max > 0) &&
+	    (counters->sweep_transmitted == counters->sweep_max_packets)) {
+		for (int i = 0; i < options->n_sweep_incr ; ++i)
+			*vars->datap++ = i;
+		options->n_packet_size += options->n_sweep_incr;
+		if (options->n_packet_size > options->n_sweep_max)
+			return (false);
+		vars->send_len = vars->icmp_len + options->n_packet_size;
+		counters->sweep_transmitted = 0;
+	}
+	return (true);
 }
 
 /*
