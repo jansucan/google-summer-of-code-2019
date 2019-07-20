@@ -663,7 +663,7 @@ ping6_process_received_packet(const struct options *const options, struct shared
  * of the data portion are used to hold a UNIX "timeval" struct in VAX
  * byte-order, to compute the round-trip time.
  */
-int
+void
 pinger6(struct options *const options, struct shared_variables *const vars,
     struct counters *const counters, struct timing *const timing)
 {
@@ -674,7 +674,7 @@ pinger6(struct options *const options, struct shared_variables *const vars,
 	int seq;
 
 	if (options->n_packets && counters->transmitted >= options->n_packets)
-		return (-1);	/* no more transmission */
+		return;	/* no more transmission */
 
 	icp = (struct icmp6_hdr *)vars->outpack6;
 	nip = (struct icmp6_nodeinfo *)vars->outpack6;
@@ -755,7 +755,7 @@ pinger6(struct options *const options, struct shared_variables *const vars,
 #ifdef DIAGNOSTIC
 	if (pingerlen() != cc) {
 		print_error("internal error; length mismatch");
-		return (1);
+		return;
 	}
 #endif
 
@@ -775,8 +775,6 @@ pinger6(struct options *const options, struct shared_variables *const vars,
 	}
 	if (!options->f_quiet && options->f_flood)
 		write_char(STDOUT_FILENO, CHAR_DOT);
-
-	return (0);
 }
 
 static bool

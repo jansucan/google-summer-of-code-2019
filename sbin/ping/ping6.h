@@ -39,7 +39,7 @@ int ping6_init(struct options *const options, struct shared_variables *const var
     struct counters *const counters, struct timing *const timing);
 bool ping6_process_received_packet(const struct options *const options, struct shared_variables *const vars,
 	struct counters *const counters, struct timing *const timing);
-int pinger6(struct options *const options, struct shared_variables *const vars,
+void pinger6(struct options *const options, struct shared_variables *const vars,
     struct counters *const counters, struct timing *const timing);
 
 #endif
