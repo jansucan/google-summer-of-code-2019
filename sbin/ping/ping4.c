@@ -355,26 +355,24 @@ ping4_loop(struct options *const options, struct shared_variables *const vars,
 	bool almost_done = false;
 	while (!signal_vars->sigint_sigalrm) {
 		struct timeval now, timeout;
-		fd_set rfds;
-		int cc, n;
+		int cc;
+		bool is_ready, is_eintr;
 		/* TODO */
 		if (signal_vars->siginfo) {
 			signal_vars->siginfo = false;
 			pr_status(counters, timing);
 		}
-		if ((unsigned)vars->socket_recv >= FD_SETSIZE) {
-			print_error("descriptor too large");
-			return (EX_OSERR);
-		}
-		FD_ZERO(&rfds);
-		FD_SET(vars->socket_recv, &rfds);
+
 		(void)gettimeofday(&now, NULL);
 		timeout = timeout_get(&last, &options->n_interval, &now);
 
-		n = select(vars->socket_recv + 1, &rfds, NULL, NULL, &timeout);
-		if (n < 0)
-			continue;	/* Must be EINTR. */
-		if (n == 1) {
+		if (!test_socket_for_reading(vars->socket_recv, &timeout,
+			&is_ready, &is_eintr))
+			return (1);
+
+		if (is_eintr)
+			continue;
+		if (is_ready) {
 			struct timeval *tv = NULL;
 #ifdef SO_TIMESTAMP
 			struct cmsghdr *cmsg = (struct cmsghdr *)&vars->ctrl;
@@ -412,7 +410,7 @@ ping4_loop(struct options *const options, struct shared_variables *const vars,
 			    (options->n_packets && counters->received >= options->n_packets))
 				break;
 		}
-		if (n == 0 || options->f_flood) {
+		if (!is_ready || options->f_flood) {
 			if (options->n_sweep_max && counters->sweep_transmitted == counters->sweep_max_packets) {
 				for (int i = 0; i < options->n_sweep_incr ; ++i)
 					*vars->datap++ = i;

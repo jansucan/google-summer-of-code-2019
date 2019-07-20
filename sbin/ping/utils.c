@@ -29,10 +29,13 @@
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
+#include <sys/select.h>
+
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
+#include "timing.h"
 #include "utils.h"
 
 void
@@ -86,4 +89,29 @@ void
 write_char(int fd, char c)
 {
 	(void)write(fd, &c, sizeof(c));
+}
+
+bool
+test_socket_for_reading(int socket, struct timeval *timeout,
+    bool *const is_ready, bool *const is_eintr)
+{
+	fd_set rfds;
+	int n;
+
+	FD_ZERO(&rfds);
+	FD_SET(socket, &rfds);
+
+	n = select(socket + 1, &rfds, NULL, NULL, timeout);
+	*is_ready = (n > 0);
+	*is_eintr = (errno == EINTR);
+
+	if ((n < 0 ) && !(*is_eintr)) {
+		print_error_strerr("select()");
+		return (false);
+	}
+	/*
+	 * No error or EINTR was returned by the select(). Do
+	 * no consider EINTR to be an error.
+	 */
+	return (true);
 }

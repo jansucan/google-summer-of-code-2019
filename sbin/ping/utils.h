@@ -53,6 +53,8 @@ void fill(char *const bp, size_t bp_size, const struct options *const options);
 void print_error(const char *const fmt, ...);
 void print_error_strerr(const char *const fmt, ...);
 void print_fill_pattern(const char *const bp, size_t pattern_size);
+bool test_socket_for_reading(int socket, struct timeval *timeout,
+    bool *const is_ready, bool *const is_eintr);
 void write_char(int fd, char c);
 
 #endif

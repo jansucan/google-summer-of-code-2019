@@ -623,7 +623,7 @@ ping6_loop(struct options *const options, struct shared_variables *const vars,
 	almost_done = false;
 	while (!signal_vars->sigint_sigalrm) {
 		struct timeval now, timeout;
-		fd_set rfds;
+		bool is_ready, is_eintr;
 
 		if (signal_vars->siginfo) {
 			pr6_summary(counters, timing, options->target);
@@ -631,15 +631,16 @@ ping6_loop(struct options *const options, struct shared_variables *const vars,
 			continue;
 		}
 
-		FD_ZERO(&rfds);
-		FD_SET(vars->socket_recv, &rfds);
 		gettimeofday(&now, NULL);
 		timeout = timeout_get(&last, &options->n_interval, &now);
 
-		const int n = select(vars->socket_recv + 1, &rfds, NULL, NULL, &timeout);
-		if (n < 0)
-			continue;	/* EINTR */
-		if (n == 1) {
+		if (!test_socket_for_reading(vars->socket_recv, &timeout,
+			&is_ready, &is_eintr))
+			return (1);
+
+		if (is_eintr)
+			continue;
+		if (is_ready) {
 			struct msghdr m;
 			struct iovec iov[2];
 
@@ -692,7 +693,7 @@ ping6_loop(struct options *const options, struct shared_variables *const vars,
 			    (options->n_packets > 0 && counters->received >= options->n_packets))
 				break;
 		}
-		if (n == 0 || options->f_flood) {
+		if (!is_ready || options->f_flood) {
 			if (options->n_packets == 0 || counters->transmitted < options->n_packets)
 				pinger(options, vars, counters, timing);
 			else {
