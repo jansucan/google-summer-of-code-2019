@@ -610,14 +610,9 @@ ping6_loop(struct options *const options, struct shared_variables *const vars,
 	struct cmsghdr cm[CONTROLLEN];
 	bool almost_done;
 
-	if (options->n_preload == 0)
+	while (options->n_preload--)
 		pinger(options, vars, counters, timing);
-	else {
-		if (options->n_packets != 0 && options->n_preload > options->n_packets)
-			options->n_preload = options->n_packets;
-		while (options->n_preload--)
-			pinger(options, vars, counters, timing);
-	}
+
 	gettimeofday(&last, NULL);
 
 	almost_done = false;

@@ -399,6 +399,32 @@ ATF_TC_BODY(privileged_option_preload, tc)
 		ATF_REQUIRE(options.n_preload == INT_MAX);
 		cap_close(capdns);
 	}
+	{
+		ARGC_ARGV("-c", "(replaced_by_INT_MAX/2)-1","-l","replaced_by_INT_MAX/2", "localhost");
+		capdns = capdns_setup();
+
+		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) ((INT_MAX / 2) - 1)));
+		ARGV_SET_FROM_EXPR(test_argv, 4, ((unsigned long) (INT_MAX / 2)));
+		options.f_preload = false;
+		options.n_preload = -1;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options.f_preload == true);
+		ATF_REQUIRE(options.n_preload == ((INT_MAX / 2) - 1));
+		cap_close(capdns);
+	}
+	{
+		ARGC_ARGV("-c", "(replaced_by_INT_MAX/2)+1","-l","replaced_by_INT_MAX/2", "localhost");
+		capdns = capdns_setup();
+
+		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) ((INT_MAX / 2) + 1)));
+		ARGV_SET_FROM_EXPR(test_argv, 4, ((unsigned long) (INT_MAX / 2)));
+		options.f_preload = false;
+		options.n_preload = -1;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options.f_preload == true);
+		ATF_REQUIRE(options.n_preload == (INT_MAX / 2));
+		cap_close(capdns);
+	}
 }
 
 ATF_TC(unprivileged_option_preload);

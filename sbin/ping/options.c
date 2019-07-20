@@ -722,6 +722,8 @@ options_check_pre_hosts(struct options *const options, cap_channel_t *const capd
 			print_error("Must be superuser to preload");
 			return (EX_NOPERM);
 		}
+		if (options->f_packets && (options->n_packets < options->n_preload))
+			options->n_preload = options->n_packets;
 	}
 
 	return (EX_OK);
@@ -985,6 +987,8 @@ options_set_defaults_post_hosts(struct options *const options)
 static void
 options_set_defaults_pre_hosts(struct options *const options)
 {
+	if (!options->f_preload)
+		options->n_preload = 1;
 	if (!options->f_sweep_incr)
 		options->n_sweep_incr = DEFAULT_SWEEP_INCR;
 	if (!options->f_interval) {

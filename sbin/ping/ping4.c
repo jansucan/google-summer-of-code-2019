@@ -342,14 +342,9 @@ ping4_loop(struct options *const options, struct shared_variables *const vars,
 {
 	struct timeval last;
 
-	if (options->n_preload == 0)
-		pinger(options, vars, counters, timing);	/* send the first ping */
-	else {
-		if (options->n_packets != 0 && options->n_preload > options->n_packets)
-			options->n_preload = options->n_packets;
-		while (options->n_preload--)	/* fire off them quickies */
-			pinger(options, vars, counters, timing);
-	}
+	while (options->n_preload--)
+		pinger(options, vars, counters, timing);
+
 	(void)gettimeofday(&last, NULL);
 
 	bool almost_done = false;
