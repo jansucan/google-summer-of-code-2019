@@ -38,6 +38,7 @@ __FBSDID("$FreeBSD$");
 #include <arpa/nameser.h>
 #include <netdb.h>
 
+#include <assert.h>
 #include <ctype.h>
 #include <err.h>
 #include <string.h>
@@ -645,7 +646,6 @@ pr6_bitrange(uint32_t v, int soff, int ii)
 
 static void
 pr6_suptypes(const struct icmp6_nodeinfo *const ni, size_t nilen, bool verbose)
-	/* ni->qtype must be SUPTYPES */
 {
 	size_t clen;
 	uint32_t v;
@@ -658,6 +658,8 @@ pr6_suptypes(const struct icmp6_nodeinfo *const ni, size_t nilen, bool verbose)
 #define MAXQTYPES	(1 << 16)
 	size_t off;
 	int b;
+
+	assert(ni->ni_qtype == NI_QTYPE_SUPTYPES);
 
 	cp = (const u_char *)(ni + 1);
 	end = ((const u_char *)ni) + nilen;
@@ -711,11 +713,12 @@ pr6_suptypes(const struct icmp6_nodeinfo *const ni, size_t nilen, bool verbose)
 
 static void
 pr6_nodeaddr(const struct icmp6_nodeinfo *const ni, int nilen, bool verbose)
-	/* ni->qtype must be NODEADDR */
 {
 	const u_char *cp = (const u_char *)(ni + 1);
 	char ntop_buf[INET6_ADDRSTRLEN];
 	int withttl = 0;
+
+	assert(ni->ni_qtype == NI_QTYPE_NODEADDR);
 
 	nilen -= sizeof(struct icmp6_nodeinfo);
 
