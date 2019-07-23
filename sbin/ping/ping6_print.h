@@ -41,7 +41,7 @@
 #define ICMP6_NIQLEN	(ICMP6ECHOLEN + 8)
 #define CONTROLLEN	10240	/* ancillary data buffer size RFC3542 20.1 */
 
-char		*dnsdecode(const u_char **const, const u_char *const, const u_char *const,
+char		*dnsdecode(const u_char *, const u_char *const, const u_char *const,
     char *const, size_t);
 int		get_hoplim(const struct msghdr *const);
 struct in6_pktinfo *get_rcvpktinfo(const struct msghdr *const);

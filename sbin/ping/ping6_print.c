@@ -61,7 +61,7 @@ static int	 pr6_bitrange(uint32_t, int, int);
 static void	 pr6_retip(const struct ip6_hdr *const, const u_char *const);
 
 char *
-dnsdecode(const u_char **const sp, const u_char *const ep, const u_char *const base, char *const buf,
+dnsdecode(const u_char *sp, const u_char *const ep, const u_char *const base, char *const buf,
     size_t bufsiz)
 	/*base for compressed name*/
 {
@@ -71,14 +71,14 @@ dnsdecode(const u_char **const sp, const u_char *const ep, const u_char *const b
 	const u_char *comp;
 	int l;
 
-	cp = *sp;
+	cp = sp;
 	*buf = '\0';
 
 	if (cp >= ep)
 		return (NULL);
 	while (cp < ep) {
 		i = *cp;
-		if (i == 0 || cp != *sp) {
+		if (i == 0 || cp != sp) {
 			if (strlcat((char *)buf, ".", bufsiz) >= bufsiz)
 				return (NULL);	/*result overrun*/
 		}
@@ -92,7 +92,7 @@ dnsdecode(const u_char **const sp, const u_char *const ep, const u_char *const b
 				return (NULL);
 
 			comp = base + (i & 0x3f);
-			if (dnsdecode(&comp, cp, base, cresult,
+			if (dnsdecode(comp, cp, base, cresult,
 			    sizeof(cresult)) == NULL)
 				return (NULL);
 			if (strlcat(buf, cresult, bufsiz) >= bufsiz)
@@ -116,7 +116,7 @@ dnsdecode(const u_char **const sp, const u_char *const ep, const u_char *const b
 	if (i != 0)
 		return (NULL);	/*not terminated*/
 	cp++;
-	*sp = cp;
+	sp = cp;
 	return (buf);
 }
 
@@ -327,7 +327,7 @@ pr6_pack(int cc, const struct msghdr *mhdr, const struct options *const options,
 			} else {
 				i = 0;
 				while (cp < end) {
-					if (dnsdecode((const u_char **)&cp, end,
+					if (dnsdecode((const u_char *)cp, end,
 					    (const u_char *)(ni + 1), dnsname,
 					    sizeof(dnsname)) == NULL) {
 						printf("???");
@@ -994,7 +994,7 @@ pr6_icmph(const struct icmp6_hdr *const icp, const u_char *const end, bool verbo
 				}
 				printf(", subject=%s", niqcode[ni->ni_code]);
 				cp = (const u_char *)(ni + 1);
-				if (dnsdecode(&cp, end, NULL, dnsname,
+				if (dnsdecode(cp, end, NULL, dnsname,
 				    sizeof(dnsname)) != NULL)
 					printf("(%s)", dnsname);
 				else
