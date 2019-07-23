@@ -50,6 +50,8 @@ __FBSDID("$FreeBSD$");
 /* FQDN case, 64 bits of nonce + 32 bits ttl */
 #define ICMP6_NIRLEN	(ICMP6ECHOLEN + 12)
 
+static char	*dnsdecode(const u_char *, const u_char *const, const u_char *const,
+    char *const, size_t);
 static void	 pr6_icmph(const struct icmp6_hdr *const, const u_char *const, bool);
 static void	 pr6_iph(const struct ip6_hdr *const);
 static void	 pr6_suptypes(const struct icmp6_nodeinfo *const, size_t, bool verbose);
@@ -60,7 +62,7 @@ static void	 pr6_rthdr(const void *const, size_t);
 static int	 pr6_bitrange(uint32_t, int, int);
 static void	 pr6_retip(const struct ip6_hdr *const, const u_char *const);
 
-char *
+static char *
 dnsdecode(const u_char *sp, const u_char *const ep, const u_char *const base, char *const buf,
     size_t bufsiz)
 	/*base for compressed name*/
