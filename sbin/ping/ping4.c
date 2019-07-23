@@ -162,7 +162,7 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 		return (1);
 	}
 
-	if (connect(vars->socket_send, (struct sockaddr *) vars->target_sockaddr,
+	if (connect(vars->socket_send, (const struct sockaddr *) vars->target_sockaddr,
 		sizeof(*vars->target_sockaddr)) != 0) {
 		print_error_strerr("connect");
 		return (1);
@@ -468,10 +468,10 @@ static bool
 is_packet_too_short(const char *const buf, size_t bufsize,
     const struct sockaddr_in *const from, bool verbose)
 {
-	struct ip *ip;
+	const struct ip *ip;
 	size_t hlen;
 
-	ip = (struct ip *)buf;
+	ip = (const struct ip *)buf;
 	hlen = ip->ip_hl << 2;
 
 	if (bufsize < (hlen + ICMP_MINLEN))  {
@@ -487,17 +487,17 @@ static void
 get_triptime(const char *const buf, size_t bufsize, struct timeval *const triptime,
     const struct shared_variables *const vars, bool timing_enabled)
 {
-	struct icmp *icp;
-	struct ip *ip;
+	const struct icmp *icp;
+	const struct ip *ip;
 	const void *tp;
 	size_t hlen;
 
-	ip = (struct ip *)buf;
+	ip = (const struct ip *)buf;
 	hlen = ip->ip_hl << 2;
 
 	/* Now the ICMP part */
 	bufsize -= hlen;
-	icp = (struct icmp *)(buf + hlen);
+	icp = (const struct icmp *)(buf + hlen);
 	if ((icp->icmp_type == vars->icmp_type_rsp) &&
 	    ((icp->icmp_id == vars->ident) && (timing_enabled))) {
 		struct timeval tv1;
@@ -524,18 +524,18 @@ static void
 update_timing(const char *const buf, size_t bufsize, const struct timeval *const triptime,
     const struct shared_variables *const vars, struct timing *const timing)
 {
-	struct icmp *icp;
-	struct ip *ip;
+	const struct icmp *icp;
+	const struct ip *ip;
 	const void *tp;
 	double triptime_sec;
 	size_t hlen;
 
-	ip = (struct ip *)buf;
+	ip = (const struct ip *)buf;
 	hlen = ip->ip_hl << 2;
 
 	/* Now the ICMP part */
 	bufsize -= hlen;
-	icp = (struct icmp *)(buf + hlen);
+	icp = (const struct icmp *)(buf + hlen);
 
 	if ((icp->icmp_type == vars->icmp_type_rsp) &&
 	    (icp->icmp_id == vars->ident) && (timing->enabled)) {
@@ -567,15 +567,15 @@ update_counters(const char *const buf, size_t bufsize, const struct timeval *con
     const struct options *const options, const struct shared_variables *const vars,
     struct counters *const counters)
 {
-	struct icmp *icp;
-	struct ip *ip;
+	const struct icmp *icp;
+	const struct ip *ip;
 	size_t hlen, seq;
 	double triptime_sec;
 
-	ip = (struct ip *)buf;
+	ip = (const struct ip *)buf;
 	hlen = ip->ip_hl << 2;
 
-	icp = (struct icmp *)(buf + hlen);
+	icp = (const struct icmp *)(buf + hlen);
 	if ((icp->icmp_type == vars->icmp_type_rsp) &&
 	    (icp->icmp_id == vars->ident)) {
 		seq = ntohs(icp->icmp_seq);
@@ -596,15 +596,15 @@ update_counters(const char *const buf, size_t bufsize, const struct timeval *con
 static void
 mark_packet_as_received(const char *const buf, size_t bufsize, struct shared_variables *const vars)
 {
-	struct icmp *icp;
-	struct ip *ip;
+	const struct icmp *icp;
+	const struct ip *ip;
 	size_t hlen, seq;
 
-	ip = (struct ip *)buf;
+	ip = (const struct ip *)buf;
 	hlen = ip->ip_hl << 2;
 
 	/* Now the ICMP part */
-	icp = (struct icmp *)(buf + hlen);
+	icp = (const struct icmp *)(buf + hlen);
 	if ((icp->icmp_type == vars->icmp_type_rsp) &&
 	    (icp->icmp_id == vars->ident)) {
 		seq = ntohs(icp->icmp_seq);

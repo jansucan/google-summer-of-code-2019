@@ -474,8 +474,8 @@ pr6_heading(const struct sockaddr_in6 *const src, const struct sockaddr_in6 *con
 {
 	printf("PING6(%lu=40+8+%lu bytes) ", (unsigned long)(40 + pingerlen(options, sizeof(dst->sin6_addr))),
 	    (unsigned long)(pingerlen(options, sizeof(dst->sin6_addr)) - 8));
-	printf("%s --> ", pr6_addr((struct sockaddr *)src, sizeof(*src), options->f_numeric, capdns));
-	printf("%s\n", pr6_addr((struct sockaddr *)dst, sizeof(*dst), options->f_numeric, capdns));
+	printf("%s --> ", pr6_addr((const struct sockaddr *)src, sizeof(*src), options->f_numeric, capdns));
+	printf("%s\n", pr6_addr((const struct sockaddr *)dst, sizeof(*dst), options->f_numeric, capdns));
 }
 
 static void
@@ -545,7 +545,7 @@ pr6_rthdr(const void *const extbuf, size_t bufsize)
 {
 	struct in6_addr *in6;
 	char ntopbuf[INET6_ADDRSTRLEN];
-	struct ip6_rthdr *rh = (struct ip6_rthdr *)extbuf;
+	const struct ip6_rthdr *rh = (const struct ip6_rthdr *)extbuf;
 	int i, segments, origsegs, rthsize, size0, size1;
 
 	/* print fixed part of the header */
@@ -657,8 +657,8 @@ pr6_suptypes(const struct icmp6_nodeinfo *const ni, size_t nilen, bool verbose)
 	size_t off;
 	int b;
 
-	cp = (u_char *)(ni + 1);
-	end = ((u_char *)ni) + nilen;
+	cp = (const u_char *)(ni + 1);
+	end = ((const u_char *)ni) + nilen;
 	cur = 0;
 	b = 0;
 
@@ -711,7 +711,7 @@ static void
 pr6_nodeaddr(const struct icmp6_nodeinfo *const ni, int nilen, bool verbose)
 	/* ni->qtype must be NODEADDR */
 {
-	u_char *cp = (u_char *)(ni + 1);
+	const u_char *cp = (const u_char *)(ni + 1);
 	char ntop_buf[INET6_ADDRSTRLEN];
 	int withttl = 0;
 
@@ -746,7 +746,7 @@ pr6_nodeaddr(const struct icmp6_nodeinfo *const ni, int nilen, bool verbose)
 
 		if (withttl) {
 			/* XXX: alignment? */
-			ttl = (uint32_t)ntohl(*(uint32_t *)cp);
+			ttl = (uint32_t)ntohl(*(const uint32_t *)cp);
 			cp += sizeof(uint32_t);
 			nilen -= sizeof(uint32_t);
 		}
@@ -830,8 +830,8 @@ pr6_icmph(const struct icmp6_hdr *const icp, const u_char *const end, bool verbo
 	};
 
 	char ntop_buf[INET6_ADDRSTRLEN];
-	struct nd_redirect *red;
-	struct icmp6_nodeinfo *ni;
+	const struct nd_redirect *red;
+	const struct icmp6_nodeinfo *ni;
 	char dnsname[MAXDNAME + 1];
 	const u_char *cp;
 	size_t l;
@@ -861,12 +861,12 @@ pr6_icmph(const struct icmp6_hdr *const icp, const u_char *const end, bool verbo
 			break;
 		}
 		/* Print returned IP header information */
-		pr6_retip((struct ip6_hdr *)(icp + 1), end);
+		pr6_retip((const struct ip6_hdr *)(icp + 1), end);
 		break;
 	case ICMP6_PACKET_TOO_BIG:
 		(void)printf("Packet too big mtu = %d\n",
 		    (int)ntohl(icp->icmp6_mtu));
-		pr6_retip((struct ip6_hdr *)(icp + 1), end);
+		pr6_retip((const struct ip6_hdr *)(icp + 1), end);
 		break;
 	case ICMP6_TIME_EXCEEDED:
 		switch (icp->icmp6_code) {
@@ -881,7 +881,7 @@ pr6_icmph(const struct icmp6_hdr *const icp, const u_char *const end, bool verbo
 			    icp->icmp6_code);
 			break;
 		}
-		pr6_retip((struct ip6_hdr *)(icp + 1), end);
+		pr6_retip((const struct ip6_hdr *)(icp + 1), end);
 		break;
 	case ICMP6_PARAM_PROB:
 		(void)printf("Parameter problem: ");
@@ -901,7 +901,7 @@ pr6_icmph(const struct icmp6_hdr *const icp, const u_char *const end, bool verbo
 		}
 		(void)printf("pointer = 0x%02x\n",
 		    (uint32_t)ntohl(icp->icmp6_pptr));
-		pr6_retip((struct ip6_hdr *)(icp + 1), end);
+		pr6_retip((const struct ip6_hdr *)(icp + 1), end);
 		break;
 	case ICMP6_ECHO_REQUEST:
 		(void)printf("Echo Request");
@@ -933,7 +933,7 @@ pr6_icmph(const struct icmp6_hdr *const icp, const u_char *const end, bool verbo
 		(void)printf("Neighbor Advertisement");
 		break;
 	case ND_REDIRECT:
-		red = (struct nd_redirect *)icp;
+		red = (const struct nd_redirect *)icp;
 		(void)printf("Redirect\n");
 		if (!inet_ntop(AF_INET6, &red->nd_rd_dst, ntop_buf,
 		    sizeof(ntop_buf)))
@@ -947,8 +947,8 @@ pr6_icmph(const struct icmp6_hdr *const icp, const u_char *const end, bool verbo
 	case ICMP6_NI_QUERY:
 		(void)printf("Node Information Query");
 		/* XXX ID + Seq + Data */
-		ni = (struct icmp6_nodeinfo *)icp;
-		l = end - (u_char *)(ni + 1);
+		ni = (const struct icmp6_nodeinfo *)icp;
+		l = end - (const u_char *)(ni + 1);
 		printf(", ");
 		switch (ntohs(ni->ni_qtype)) {
 		case NI_QTYPE_NOOP:
@@ -988,7 +988,7 @@ pr6_icmph(const struct icmp6_hdr *const icp, const u_char *const end, bool verbo
 				}
 				break;
 			case ICMP6_NI_SUBJ_FQDN:
-				if (end == (u_char *)(ni + 1)) {
+				if (end == (const u_char *)(ni + 1)) {
 					(void)printf(", no subject");
 					break;
 				}
@@ -1018,7 +1018,7 @@ pr6_icmph(const struct icmp6_hdr *const icp, const u_char *const end, bool verbo
 	case ICMP6_NI_REPLY:
 		(void)printf("Node Information Reply");
 		/* XXX ID + Seq + Data */
-		ni = (struct icmp6_nodeinfo *)icp;
+		ni = (const struct icmp6_nodeinfo *)icp;
 		printf(", ");
 		switch (ntohs(ni->ni_qtype)) {
 		case NI_QTYPE_NOOP:
@@ -1107,10 +1107,11 @@ pr6_addr(const struct sockaddr *const addr, int addrlen, bool numeric,
 static void
 pr6_retip(const struct ip6_hdr *const ip6, const u_char *const end)
 {
-	u_char *cp = (u_char *)ip6, nh;
+	const u_char *cp = (const u_char *)ip6;
+	u_char nh;
 	int hlen;
 
-	if ((size_t)(end - (u_char *)ip6) < sizeof(*ip6)) {
+	if ((size_t)(end - (const u_char *)ip6) < sizeof(*ip6)) {
 		printf("IP6");
 		goto trunc;
 	}
@@ -1123,29 +1124,29 @@ pr6_retip(const struct ip6_hdr *const ip6, const u_char *const end)
 		switch (nh) {
 		case IPPROTO_HOPOPTS:
 			printf("HBH ");
-			hlen = (((struct ip6_hbh *)cp)->ip6h_len+1) << 3;
-			nh = ((struct ip6_hbh *)cp)->ip6h_nxt;
+			hlen = (((const struct ip6_hbh *)cp)->ip6h_len+1) << 3;
+			nh = ((const struct ip6_hbh *)cp)->ip6h_nxt;
 			break;
 		case IPPROTO_DSTOPTS:
 			printf("DSTOPT ");
-			hlen = (((struct ip6_dest *)cp)->ip6d_len+1) << 3;
-			nh = ((struct ip6_dest *)cp)->ip6d_nxt;
+			hlen = (((const struct ip6_dest *)cp)->ip6d_len+1) << 3;
+			nh = ((const struct ip6_dest *)cp)->ip6d_nxt;
 			break;
 		case IPPROTO_FRAGMENT:
 			printf("FRAG ");
 			hlen = sizeof(struct ip6_frag);
-			nh = ((struct ip6_frag *)cp)->ip6f_nxt;
+			nh = ((const struct ip6_frag *)cp)->ip6f_nxt;
 			break;
 		case IPPROTO_ROUTING:
 			printf("RTHDR ");
-			hlen = (((struct ip6_rthdr *)cp)->ip6r_len+1) << 3;
-			nh = ((struct ip6_rthdr *)cp)->ip6r_nxt;
+			hlen = (((const struct ip6_rthdr *)cp)->ip6r_len+1) << 3;
+			nh = ((const struct ip6_rthdr *)cp)->ip6r_nxt;
 			break;
 #ifdef IPSEC
 		case IPPROTO_AH:
 			printf("AH ");
-			hlen = (((struct ah *)cp)->ah_len+2) << 2;
-			nh = ((struct ah *)cp)->ah_nxt;
+			hlen = (((const struct ah *)cp)->ah_len+2) << 2;
+			nh = ((const struct ah *)cp)->ah_nxt;
 			break;
 #endif
 		case IPPROTO_ICMPV6:

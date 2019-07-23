@@ -40,9 +40,9 @@ __FBSDID("$FreeBSD$");
 
 static char *pr_addr(struct in_addr, cap_channel_t *const, bool);
 static char *pr_ntime(n_time);
-static void pr_icmph(struct icmp *);
-static void pr_iph(struct ip *);
-static void pr_retip(struct ip *);
+static void pr_icmph(const struct icmp *);
+static void pr_iph(const struct ip *);
+static void pr_retip(const struct ip *);
 
 /*
  * pr_pack --
@@ -57,20 +57,21 @@ pr_pack(const char *const buf, int cc, const struct sockaddr_in *const from,
     const struct shared_variables *const vars, bool timing_enabled)
 {
 	struct in_addr ina;
-	u_char *cp, *dp;
-	struct icmp *icp;
-	struct ip *ip;
+	const u_char *cp;
+	u_char *dp;
+	const struct icmp *icp;
+	const struct ip *ip;
 	int hlen, i, j, recv_len, seq;
 	static int old_rrlen;
 	static char old_rr[MAX_IPOPTLEN];
 
-	ip = (struct ip *)buf;
+	ip = (const struct ip *)buf;
 	hlen = ip->ip_hl << 2;
 	recv_len = cc;
 
 	/* Now the ICMP part */
 	cc -= hlen;
-	icp = (struct icmp *)(buf + hlen);
+	icp = (const struct icmp *)(buf + hlen);
 	if (icp->icmp_type == vars->icmp_type_rsp) {
 		double triptime_sec;
 
@@ -92,7 +93,7 @@ pr_pack(const char *const buf, int cc, const struct sockaddr_in *const from,
 			write_char(STDOUT_FILENO, CHAR_BSPACE);
 		else {
 			(void)printf("%d bytes from %s: icmp_seq=%u", cc,
-			   inet_ntoa(*(struct in_addr *)&from->sin_addr.s_addr),
+			   inet_ntoa(*(const struct in_addr *)&from->sin_addr.s_addr),
 			   seq);
 			(void)printf(" ttl=%d", ip->ip_ttl);
 			if (timing_enabled)
@@ -104,7 +105,7 @@ pr_pack(const char *const buf, int cc, const struct sockaddr_in *const from,
 			if (options->f_mask) {
 				/* Just prentend this cast isn't ugly */
 				(void)printf(" mask=%s",
-					inet_ntoa(*(struct in_addr *)&(icp->icmp_mask)));
+					inet_ntoa(*(const struct in_addr *)&(icp->icmp_mask)));
 			}
 			if (options->f_time) {
 				(void)printf(" tso=%s", pr_ntime(icp->icmp_otime));
@@ -117,7 +118,7 @@ pr_pack(const char *const buf, int cc, const struct sockaddr_in *const from,
 				     recv_len, vars->send_len);
 			}
 			/* check the data */
-			cp = (u_char*)&icp->icmp_data[vars->phdr_len];
+			cp = (const u_char*)&icp->icmp_data[vars->phdr_len];
 			dp = &vars->outpack[ICMP_MINLEN + vars->phdr_len];
 			cc -= ICMP_MINLEN + vars->phdr_len;
 			i = 0;
@@ -132,7 +133,7 @@ pr_pack(const char *const buf, int cc, const struct sockaddr_in *const from,
 	(void)printf("\nwrong data byte #%d should be 0x%x but was 0x%x",
 	    i, *dp, *cp);
 					(void)printf("\ncp:");
-					cp = (u_char*)&icp->icmp_data[0];
+					cp = (const u_char*)&icp->icmp_data[0];
 					for (i = 0; i < options->n_packet_size; ++i, ++cp) {
 						if ((i % 16) == 8)
 							(void)printf("\n\t");
@@ -163,9 +164,9 @@ pr_pack(const char *const buf, int cc, const struct sockaddr_in *const from,
 #ifndef icmp_data
 		struct ip *oip = &icp->icmp_ip;
 #else
-		struct ip *oip = (struct ip *)icp->icmp_data;
+		const struct ip *oip = (const struct ip *)icp->icmp_data;
 #endif
-		struct icmp *oicmp = (struct icmp *)(oip + 1);
+		const struct icmp *oicmp = (const struct icmp *)(oip + 1);
 
 		if (((options->f_verbose) && getuid() == 0) ||
 		    (!(options->f_somewhat_quiet) &&
@@ -181,7 +182,7 @@ pr_pack(const char *const buf, int cc, const struct sockaddr_in *const from,
 	}
 
 	/* Display any IP options */
-	cp = (u_char *)buf + sizeof(struct ip);
+	cp = (const u_char *)buf + sizeof(struct ip);
 
 	for (; hlen > (int)sizeof(struct ip); --hlen, ++cp)
 		switch (*cp) {
@@ -227,7 +228,7 @@ pr_pack(const char *const buf, int cc, const struct sockaddr_in *const from,
 				continue;
 			}
 			if (i == old_rrlen
-			    && !bcmp((char *)cp, old_rr, i)
+			    && !bcmp((const char *)cp, old_rr, i)
 			    && !(options->f_flood)) {
 				(void)printf("\t(same route)");
 				hlen -= i;
@@ -235,7 +236,7 @@ pr_pack(const char *const buf, int cc, const struct sockaddr_in *const from,
 				break;
 			}
 			old_rrlen = i;
-			bcopy((char *)cp, old_rr, i);
+			bcopy((const char *)cp, old_rr, i);
 			(void)printf("\nRR: ");
 			if (i >= INADDR_LEN &&
 			    i <= hlen - (int)sizeof(struct ip)) {
@@ -299,7 +300,7 @@ pr_heading(const struct sockaddr_in *const target_sockaddr,
  *	Print a descriptive string about an ICMP header.
  */
 static void
-pr_icmph(struct icmp *icp)
+pr_icmph(const struct icmp *icp)
 {
 
 	switch(icp->icmp_type) {
@@ -340,7 +341,7 @@ pr_icmph(struct icmp *icp)
 #ifndef icmp_data
 		pr_retip(&icp->icmp_ip);
 #else
-		pr_retip((struct ip *)icp->icmp_data);
+		pr_retip((const struct ip *)icp->icmp_data);
 #endif
 		break;
 	case ICMP_SOURCEQUENCH:
@@ -348,7 +349,7 @@ pr_icmph(struct icmp *icp)
 #ifndef icmp_data
 		pr_retip(&icp->icmp_ip);
 #else
-		pr_retip((struct ip *)icp->icmp_data);
+		pr_retip((const struct ip *)icp->icmp_data);
 #endif
 		break;
 	case ICMP_REDIRECT:
@@ -373,7 +374,7 @@ pr_icmph(struct icmp *icp)
 #ifndef icmp_data
 		pr_retip(&icp->icmp_ip);
 #else
-		pr_retip((struct ip *)icp->icmp_data);
+		pr_retip((const struct ip *)icp->icmp_data);
 #endif
 		break;
 	case ICMP_ECHO:
@@ -396,7 +397,7 @@ pr_icmph(struct icmp *icp)
 #ifndef icmp_data
 		pr_retip(&icp->icmp_ip);
 #else
-		pr_retip((struct ip *)icp->icmp_data);
+		pr_retip((const struct ip *)icp->icmp_data);
 #endif
 		break;
 	case ICMP_PARAMPROB:
@@ -405,7 +406,7 @@ pr_icmph(struct icmp *icp)
 #ifndef icmp_data
 		pr_retip(&icp->icmp_ip);
 #else
-		pr_retip((struct ip *)icp->icmp_data);
+		pr_retip((const struct ip *)icp->icmp_data);
 #endif
 		break;
 	case ICMP_TSTAMP:
@@ -446,14 +447,14 @@ pr_icmph(struct icmp *icp)
  *	Print an IP header with options.
  */
 static void
-pr_iph(struct ip *ip)
+pr_iph(const struct ip *ip)
 {
 	struct in_addr ina;
-	u_char *cp;
+	const u_char *cp;
 	int hlen;
 
 	hlen = ip->ip_hl << 2;
-	cp = (u_char *)ip + 20;		/* point to options */
+	cp = (const u_char *)ip + 20;		/* point to options */
 
 	(void)printf("Vr HL TOS  Len   ID Flg  off TTL Pro  cks      Src      Dst\n");
 	(void)printf(" %1x  %1x  %02x %04x %04x",
@@ -504,14 +505,14 @@ pr_addr(struct in_addr ina, cap_channel_t *const capdns, bool numeric)
  *	Dump some info on a returned (via ICMP) IP packet.
  */
 static void
-pr_retip(struct ip *ip)
+pr_retip(const struct ip *ip)
 {
-	u_char *cp;
+	const u_char *cp;
 	int hlen;
 
 	pr_iph(ip);
 	hlen = ip->ip_hl << 2;
-	cp = (u_char *)ip + hlen;
+	cp = (const u_char *)ip + hlen;
 
 	if (ip->ip_p == 6)
 		(void)printf("TCP: from port %u, to port %u (decimal)\n",
