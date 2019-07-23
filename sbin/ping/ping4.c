@@ -97,7 +97,7 @@ __FBSDID("$FreeBSD$");
 #define	TS_LEN		(ICMP_TSLEN - ICMP_MINLEN)
 #define	FLOOD_BACKOFF	20000		/* usecs to back off if F_FLOOD mode */
 
-static u_short in_cksum(u_short *, int);
+static u_short in_cksum(const u_short *const, int);
 static void get_triptime(const char *const, size_t, struct timeval *const,
     const struct shared_variables *const, bool);
 static bool is_packet_too_short(const char *const, size_t, const struct sockaddr_in *const, bool);
@@ -617,10 +617,10 @@ mark_packet_as_received(const char *const buf, struct shared_variables *const va
  *	Checksum routine for Internet Protocol family headers (C Version)
  */
 u_short
-in_cksum(u_short *addr, int len)
+in_cksum(const u_short *const addr, int len)
 {
 	int nleft, sum;
-	u_short *w;
+	const u_short *w;
 	union {
 		u_short	us;
 		u_char	uc[2];
