@@ -374,16 +374,6 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 #endif
 	}
 
-/*
-	optval = 1;
-	if (IN6_IS_ADDR_MULTICAST(&dst.sin6_addr))
-		if (setsockopt(vars->socket_send, IPPROTO_IPV6, IPV6_MULTICAST_LOOP,
-		    &optval, sizeof(optval)) == -1) {
-			print_error("IPV6_MULTICAST_LOOP");
-			return (1);
-		    }
-*/
-
 	/* Specify the outgoing interface and/or the source address */
 	if (options->f_interface_use_pktinfo)
 		ip6optlen += CMSG_SPACE(sizeof(struct in6_pktinfo));
