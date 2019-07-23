@@ -44,8 +44,7 @@ __FBSDID("$FreeBSD$");
 
 static struct signal_variables signal_vars;
 
-static void signals_setup(struct options *const options,  struct shared_variables *const vars,
-    const long *const counters_received);
+static void signals_setup(struct options *const options,  struct shared_variables *const vars);
 static void signals_cleanup(void);
 static void signal_handler_siginfo(int sig __unused);
 static void signal_handler_sigint_sigalrm(int sig __unused);
@@ -69,7 +68,7 @@ main(int argc, char *argv[])
 	if ((r = ping_init(&options, &vars, &counters, &timing)) != EX_OK)
 		exit(r);
 
-	signals_setup(&options, &vars, &counters.received);
+	signals_setup(&options, &vars);
 
 	/* Main. */
 	ping_send_initial_packets(&options, &vars, &counters, &timing);
@@ -88,8 +87,7 @@ main(int argc, char *argv[])
 }
 
 static void
-signals_setup(struct options *const options, struct shared_variables *const vars,
-    const long *const counters_received)
+signals_setup(struct options *const options, struct shared_variables *const vars)
 {
 	struct sigaction si_sa;
 
