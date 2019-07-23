@@ -124,7 +124,7 @@ ping_init(struct options *const options, struct shared_variables *const vars,
 	if (options->target_type == TARGET_IPV4) {
 		return (ping4_init(options, vars, counters, timing));
 	} else {
-		return (ping6_init(options, vars, counters, timing));
+		return (ping6_init(options, vars, timing));
 	}
 }
 

@@ -154,7 +154,7 @@ static void      update_timing(const struct shared_variables *const, struct timi
 
 int
 ping6_init(struct options *const options, struct shared_variables *const vars,
-    struct counters *const counters, struct timing *const timing)
+    struct timing *const timing)
 {
 	struct sockaddr_in6 *sin6;
 	int hold, optval;
@@ -648,7 +648,7 @@ ping6_process_received_packet(const struct options *const options, struct shared
 
 		update_timing(vars, timing, &triptime);
 		update_counters(options, vars, counters, triptime);
-		pr6_pack(cc, &m, options, vars, counters, timing, triptime);
+		pr6_pack(cc, &m, options, vars, timing, triptime);
 		mark_packet_as_received(vars);
 	}
 

@@ -200,8 +200,8 @@ pingerlen(const struct options *const options, size_t sin6_addr_size)
  */
 void
 pr6_pack(int cc, const struct msghdr *mhdr, const struct options *const options,
-    const struct shared_variables *const vars, const struct counters *const counters,
-    const struct timing *const timing, double triptime)
+    const struct shared_variables *const vars, const struct timing *const timing,
+    double triptime)
 {
 #define safeputc(c)	printf((isprint((c)) ? "%c" : "\\%03o"), c)
 	struct icmp6_hdr *icp;

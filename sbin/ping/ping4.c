@@ -101,8 +101,8 @@ static u_short in_cksum(u_short *, int);
 static void get_triptime(const char *const, size_t, struct timeval *const,
     const struct shared_variables *const, bool);
 static bool is_packet_too_short(const char *const, size_t, const struct sockaddr_in *const, bool);
-static void mark_packet_as_received(const char *const, size_t, struct shared_variables *const);
-static void update_counters(const char *const, size_t, const struct timeval *const,
+static void mark_packet_as_received(const char *const, struct shared_variables *const);
+static void update_counters(const char *const, const struct timeval *const,
     const struct options *const, const struct shared_variables *const, struct counters *const);
 static void update_timing(const char *const, size_t, const struct timeval *const,
     const struct shared_variables *const, struct timing *const);
@@ -365,9 +365,9 @@ ping4_process_received_packet(const struct options *const options, struct shared
 	if (!is_packet_too_short((char *)vars->packet, cc, &vars->from, options->f_verbose)) {
 		get_triptime((char *)vars->packet, cc, tv, vars, timing->enabled);
 		update_timing((char *)vars->packet, cc, tv, vars, timing);
-		update_counters((char *)vars->packet, cc, tv, options, vars, counters);
+		update_counters((char *)vars->packet, tv, options, vars, counters);
 		pr_pack((char *)vars->packet, cc, &vars->from, tv, options, vars, timing->enabled);
-		mark_packet_as_received((char *)vars->packet, cc, vars);
+		mark_packet_as_received((char *)vars->packet, vars);
 	}
 
 	return (true);
@@ -563,7 +563,7 @@ update_timing(const char *const buf, size_t bufsize, const struct timeval *const
 }
 
 static void
-update_counters(const char *const buf, size_t bufsize, const struct timeval *const triptime,
+update_counters(const char *const buf, const struct timeval *const triptime,
     const struct options *const options, const struct shared_variables *const vars,
     struct counters *const counters)
 {
@@ -594,7 +594,7 @@ update_counters(const char *const buf, size_t bufsize, const struct timeval *con
 }
 
 static void
-mark_packet_as_received(const char *const buf, size_t bufsize, struct shared_variables *const vars)
+mark_packet_as_received(const char *const buf, struct shared_variables *const vars)
 {
 	const struct icmp *icp;
 	const struct ip *ip;
