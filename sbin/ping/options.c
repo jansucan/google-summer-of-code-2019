@@ -317,7 +317,12 @@ options_parse(int argc, char **argv, struct options *const options, cap_channel_
 			options->f_somewhat_quiet = true;
 			break;
 		case 'R':
+#ifdef IP_OPTIONS
 			options->f_rroute = true;
+#else
+			print_error("record route not available in this implementation");
+			return (1);
+#endif
 			break;
 		case 'r':
 			options->f_so_dontroute = true;

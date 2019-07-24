@@ -221,9 +221,9 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	if (!cap_limit_socket(vars->socket_send, RIGHTS_SEND_SETSOCKOPT))
 		return (1);
 
+#ifdef IP_OPTIONS
 	/* record route option */
 	if (options->f_rroute) {
-#ifdef IP_OPTIONS
 		char rspace[MAX_IPOPTLEN];	/* record route space */
 
 		bzero(rspace, sizeof(rspace));
@@ -236,11 +236,8 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 			print_error_strerr("setsockopt IP_OPTIONS");
 			return (EX_OSERR);
 		}
-#else
-		print_error("record route not available in this implementation");
-		return (EX_UNAVAILABLE);
-#endif /* IP_OPTIONS */
 	}
+#endif /* IP_OPTIONS */
 
 	if (options->f_ttl) {
 		if (setsockopt(vars->socket_send, IPPROTO_IP, IP_TTL, &options->n_ttl,
