@@ -59,14 +59,14 @@ main(int argc, char *argv[])
 	int r;
 
 	if ((vars.capdns = capdns_setup()) == NULL)
-		exit(1);
+	       return (1);
 
 	if ((r = options_parse(argc, argv, &options, vars.capdns)) != EX_OK)
-		exit(r);
+		return (r);
 
 	/* Initialization. */
 	if ((r = ping_init(&options, &vars, &counters, &timing)) != EX_OK)
-		exit(r);
+		return (r);
 
 	signals_setup(&options, &vars);
 
@@ -74,7 +74,7 @@ main(int argc, char *argv[])
 	ping_send_initial_packets(&options, &vars, &counters, &timing);
 
 	if ((r = ping_loop(&options, &vars, &counters, &timing, &signal_vars)) != EX_OK)
-		exit(r);
+		return (r);
 
 	/* Cleanup. */
 	signals_cleanup();
@@ -83,7 +83,7 @@ main(int argc, char *argv[])
 
 	ping_free(&options, &vars);
 
-	exit((counters.received != 0) ? 0 : 2);
+	return ((counters.received != 0) ? 0 : 2);
 }
 
 static void

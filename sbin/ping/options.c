@@ -896,7 +896,7 @@ options_parse_hosts(int argc, char **argv, struct options *const options, cap_ch
 	if ((options->f_nigroup) &&
 	    (!options_ipv6_target_nigroup(options->target, options->c_nigroup))) {
 		usage();
-		exit(EX_USAGE);
+		return (EX_USAGE);
 	}
 #endif
 	const int r = options_get_target_type(options, &is_hostname, capdns);
