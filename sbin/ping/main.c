@@ -44,7 +44,7 @@ __FBSDID("$FreeBSD$");
 
 static struct signal_variables signal_vars;
 
-static void signals_setup(struct options *const options,  struct shared_variables *const vars);
+static bool signals_setup(struct options *const options,  struct shared_variables *const vars);
 static void signals_cleanup(void);
 static void signal_handler_siginfo(int sig __unused);
 static void signal_handler_sigint_sigalrm(int sig __unused);
@@ -68,7 +68,8 @@ main(int argc, char *argv[])
 	if ((r = ping_init(&options, &vars, &counters, &timing)) != EX_OK)
 		return (r);
 
-	signals_setup(&options, &vars);
+	if (!signals_setup(&options, &vars))
+		return (1);
 
 	/* Main. */
 	ping_send_initial_packets(&options, &vars, &counters, &timing);
@@ -86,7 +87,7 @@ main(int argc, char *argv[])
 	return ((counters.received != 0) ? 0 : 2);
 }
 
-static void
+static bool
 signals_setup(struct options *const options, struct shared_variables *const vars)
 {
 	struct sigaction si_sa;
@@ -104,15 +105,23 @@ signals_setup(struct options *const options, struct shared_variables *const vars
 	si_sa.sa_flags = 0;
 
 	si_sa.sa_handler = signal_handler_siginfo;
-	if (sigaction(SIGINFO, &si_sa, 0) == -1)
-		err(EX_OSERR, "sigaction SIGINFO");
+	if (sigaction(SIGINFO, &si_sa, 0) == -1) {
+		print_error_strerr("sigaction SIGINFO");
+		return (false);
+	}
 
 	si_sa.sa_handler = signal_handler_sigint_sigalrm;
-	if (sigaction(SIGINT, &si_sa, 0) == -1)
-		err(EX_OSERR, "sigaction SIGINT");
+	if (sigaction(SIGINT, &si_sa, 0) == -1) {
+		print_error_strerr("sigaction SIGINT");
+		return (false);
+	}
 
-	if (options->f_timeout && (sigaction(SIGALRM, &si_sa, 0) == -1))
-		err(EX_OSERR, "sigaction SIGALRM");
+	if (options->f_timeout && (sigaction(SIGALRM, &si_sa, 0) == -1)) {
+		print_error_strerr("sigaction SIGALRM");
+		return (false);
+	}
+
+	return (true);
 }
 
 static void
