@@ -226,7 +226,7 @@ struct options {
 };
 
 void options_free(struct options *const options);
-int  options_parse(int argc, char **argv, struct options *const options, cap_channel_t *const capdns);
+bool options_parse(int argc, char **argv, struct options *const options, cap_channel_t *const capdns);
 void usage(void);
 
 #endif	/* OPTIONS_H */

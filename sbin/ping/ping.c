@@ -41,7 +41,7 @@ __FBSDID("$FreeBSD$");
 #include "timing.h"
 #include "utils.h"
 
-int
+bool
 ping_init(struct options *const options, struct shared_variables *const vars,
     struct counters *const counters, struct timing *const timing)
 {
@@ -63,7 +63,7 @@ ping_init(struct options *const options, struct shared_variables *const vars,
 	if (options->f_timeout &&
 	    (setitimer(ITIMER_REAL, &(options->n_timeout), NULL) != 0)) {
 		print_error_strerr("setitimer() cannot set the timeout");
-		return (1);
+		return (false);
 	}
 
 
@@ -87,22 +87,22 @@ ping_init(struct options *const options, struct shared_variables *const vars,
 	if ((vars->socket_send = socket(options->target_addrinfo->ai_family,
 		    options->target_addrinfo->ai_socktype, protocol)) < 0) {
 		print_error_strerr("socket() socket_send");
-		return (1);
+		return (false);
 	}
 	if ((vars->socket_recv = socket(options->target_addrinfo->ai_family,
 		    options->target_addrinfo->ai_socktype, protocol)) < 0) {
 		print_error_strerr("socket() socket_recv");
-		return (1);
+		return (false);
 	}
 
 	/* Revoke root privilege. */
 	if (seteuid(getuid()) != 0) {
 		print_error_strerr("seteuid() failed");
-		return (1);
+		return (false);
 	}
 	if (setuid(getuid()) != 0) {
 		print_error_strerr("setuid() failed");
-		return (1);
+		return (false);
 	}
 
 	if (options->f_so_debug) {
@@ -111,17 +111,17 @@ ping_init(struct options *const options, struct shared_variables *const vars,
 		if (setsockopt(vars->socket_send, SOL_SOCKET, SO_DEBUG, (char *)&optval,
 			sizeof(optval)) != 0) {
 			print_error_strerr("setsockopt() socket_send");
-			return (1);
+			return (false);
 		}
 		if (setsockopt(vars->socket_recv, SOL_SOCKET, SO_DEBUG, (char *)&optval,
 			sizeof(optval)) != 0) {
 			print_error_strerr("setsockopt() socket_recv");
-			return (1);
+			return (false);
 		}
 	}
 
 	if (!ipsec_configure(vars->socket_send, vars->socket_recv, options))
-		return (1);
+		return (false);
 
 	/*
 	 * Do protocol-specific initialization.
@@ -167,7 +167,7 @@ ping_send_initial_packets(struct options *const options, struct shared_variables
 	return (true);
 }
 
-int
+bool
 ping_loop(struct options *const options, struct shared_variables *const vars,
     struct counters *const counters, struct timing *const timing,
     struct signal_variables *const signal_vars)
@@ -177,7 +177,7 @@ ping_loop(struct options *const options, struct shared_variables *const vars,
 
 	if (gettimeofday(&last, NULL) != 0) {
 		print_error_strerr("gettimeofday()");
-		return (1);
+		return (false);
 	}
 
 	almost_done = false;
@@ -197,13 +197,13 @@ ping_loop(struct options *const options, struct shared_variables *const vars,
 
 		if (gettimeofday(&now, NULL) != 0) {
 			print_error_strerr("gettimeofday()");
-			return (1);
+			return (false);
 		}
 		timeout = timeout_get(&last, &options->n_interval, &now);
 
 		if (!test_socket_for_reading(vars->socket_recv, &timeout,
 			&is_ready, &is_eintr))
-			return (1);
+			return (false);
 
 		if (is_eintr)
 			continue;
@@ -217,7 +217,7 @@ ping_loop(struct options *const options, struct shared_variables *const vars,
 
 				r = ping6_process_received_packet(options, vars, counters, timing);
 				if (r < 0)
-					return (1);
+					return (false);
 				next_iteration = (r == 1);
 			}
 
@@ -234,10 +234,10 @@ ping_loop(struct options *const options, struct shared_variables *const vars,
 			if ((options->n_packets == 0) || (counters->transmitted < options->n_packets)) {
 				if (options->target_type == TARGET_IPV4) {
 					if (!pinger(options, vars, counters, timing))
-						return (1);
+						return (false);
 				} else {
 					if (!pinger6(options, vars, counters, timing))
-						return (1);
+						return (false);
 				}
 			} else {
 				if (almost_done)
@@ -261,7 +261,7 @@ ping_loop(struct options *const options, struct shared_variables *const vars,
 			}
 			if (gettimeofday(&last, NULL) != 0) {
 				print_error_strerr("gettimeofday()");
-				return (1);
+				return (false);
 			}
 			if ((counters->transmitted - counters->received - 1) > counters->missedmax) {
 				counters->missedmax = counters->transmitted - counters->received - 1;
@@ -271,7 +271,7 @@ ping_loop(struct options *const options, struct shared_variables *const vars,
 		}
 	}
 
-	return (0);
+	return (true);
 }
 
 void

@@ -35,7 +35,7 @@
 #include "ping.h"
 #include "timing.h"
 
-int ping6_init(struct options *const options, struct shared_variables *const vars,
+bool ping6_init(struct options *const options, struct shared_variables *const vars,
     struct timing *const timing);
 int ping6_process_received_packet(const struct options *const options, struct shared_variables *const vars,
 	struct counters *const counters, struct timing *const timing);

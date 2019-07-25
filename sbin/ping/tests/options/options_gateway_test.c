@@ -54,7 +54,7 @@ ATF_TC_BODY(option_gateway, tc)
 		ARGC_ARGV("-e", "host_unknown", "host_ipv6");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == false);
 		cap_close(capdns);
 	}
 	{
@@ -64,7 +64,7 @@ ATF_TC_BODY(option_gateway, tc)
 		options.gateway_sockaddr_in6.sin6_len = 0;
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == true);
 		ATF_REQUIRE_STREQ("host_ipv6", options.s_gateway);
 		ATF_REQUIRE(options.gateway_sockaddr_in6.sin6_family == AF_INET6);
 		ATF_REQUIRE(options.gateway_sockaddr_in6.sin6_len == sizeof(struct sockaddr_in6));

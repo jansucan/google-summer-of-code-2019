@@ -151,7 +151,7 @@ static void	 update_counters(const struct options *const,
 static bool      update_timing(const struct shared_variables *const, struct timing *const,
     double *const);
 
-int
+bool
 ping6_init(struct options *const options, struct shared_variables *const vars,
     struct timing *const timing)
 {
@@ -185,7 +185,7 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		rth_space = inet6_rth_space(IPV6_RTHDR_TYPE_0, options->hop_count);
 		if (rth_space == 0) {
 			print_error("inet6_rth_space() hop_count");
-			return (1);
+			return (false);
 		}
 		rthlen = CMSG_SPACE(rth_space);
 #else  /* RFC2292 */
@@ -193,7 +193,7 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 #endif
 		if (rthlen == 0) {
 			print_error("too many intermediate hops");
-			return (1);
+			return (false);
 		}
 		ip6optlen += rthlen;
 	}
@@ -213,14 +213,14 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		if (bind(vars->socket_send, (struct sockaddr *)&options->source_sockaddr.in6,
 			sizeof(options->source_sockaddr.in6)) != 0) {
 			print_error("bind");
-			return (1);
+			return (false);
 		}
 	}
 
 	if (connect(vars->socket_send, (struct sockaddr *) vars->target_sockaddr_in6,
 		sizeof(*vars->target_sockaddr_in6)) != 0) {
 		print_error("connect");
-		return (1);
+		return (false);
 	}
 
 	/* set the gateway (next hop) if specified */
@@ -229,7 +229,7 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 			&options->gateway_sockaddr_in6,
 			options->gateway_sockaddr_in6.sin6_len)) {
 			print_error("setsockopt(IPV6_NEXTHOP)");
-			return (1);
+			return (false);
 		}
 	}
 
@@ -244,33 +244,33 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		if (setsockopt(vars->socket_recv, IPPROTO_IPV6, IPV6_RECVHOPOPTS, &opton,
 			sizeof(opton))) {
 			print_error("setsockopt(IPV6_RECVHOPOPTS)");
-			return (1);
+			return (false);
 		}
 #else  /* old adv. API */
 		if (setsockopt(vars->socket_recv, IPPROTO_IPV6, IPV6_HOPOPTS, &opton,
 			sizeof(opton))) {
 			print_error("setsockopt(IPV6_HOPOPTS)");
-			return (1);
+			return (false);
 		}
 #endif
 #ifdef IPV6_RECVDSTOPTS
 		if (setsockopt(vars->socket_recv, IPPROTO_IPV6, IPV6_RECVDSTOPTS, &opton,
 			sizeof(opton))) {
 			print_error("setsockopt(IPV6_RECVDSTOPTS)");
-			return (1);
+			return (false);
 		}
 #else  /* old adv. API */
 		if (setsockopt(vars->srec, IPPROTO_IPV6, IPV6_DSTOPTS, &opton,
 			sizeof(opton))) {
 			print_error("setsockopt(IPV6_DSTOPTS)");
-			return (1);
+			return (false);
 		}
 #endif
 #ifdef IPV6_RECVRTHDRDSTOPTS
 		if (setsockopt(vars->srec, IPPROTO_IPV6, IPV6_RECVRTHDRDSTOPTS, &opton,
 			sizeof(opton))) {
 			print_error("setsockopt(IPV6_RECVRTHDRDSTOPTS)");
-			return (1);
+			return (false);
 		}
 #endif
 	}
@@ -295,7 +295,7 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 
 	if (!(vars->packet6 = (u_char *)malloc((u_int)vars->packlen))) {
 		print_error("Unable to allocate packet");
-		return (1);
+		return (false);
 	}
 	if (!options->f_ping_filled)
 		for (int i = ICMP6ECHOLEN; i < vars->packlen; ++i)
@@ -307,7 +307,7 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		if (setsockopt(vars->socket_send, IPPROTO_IPV6, IPV6_DONTFRAG,
 			&optval, sizeof(optval)) == -1) {
 			print_error("IPV6_DONTFRAG");
-			return (1);
+			return (false);
 		}
 
 	optval = IPV6_DEFHLIM;
@@ -315,7 +315,7 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		if (setsockopt(vars->socket_send, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
 			&optval, sizeof(optval)) == -1) {
 			print_error("IPV6_MULTICAST_HOPS");
-			return (1);
+			return (false);
 		}
 #ifdef IPV6_USE_MIN_MTU
 	if (options->c_use_min_mtu != 1) {
@@ -324,7 +324,7 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		if (setsockopt(vars->socket_send, IPPROTO_IPV6, IPV6_USE_MIN_MTU,
 			&optval, sizeof(optval)) == -1) {
 			print_error("setsockopt(IPV6_USE_MIN_MTU)");
-			return (1);
+			return (false);
 		}
 	}
 #ifdef IPV6_RECVPATHMTU
@@ -333,7 +333,7 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		if (setsockopt(vars->socket_recv, IPPROTO_IPV6, IPV6_RECVPATHMTU,
 			&optval, sizeof(optval)) == -1) {
 			print_error("setsockopt(IPV6_RECVPATHMTU)");
-			return (1);
+			return (false);
 		}
 	}
 #endif /* IPV6_RECVPATHMTU */
@@ -355,7 +355,7 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 	if (setsockopt(vars->socket_recv, IPPROTO_ICMPV6, ICMP6_FILTER, &filt,
 		sizeof(filt)) < 0) {
 		print_error("setsockopt(ICMP6_FILTER)");
-		return (1);
+		return (false);
 	}
     }
 #endif /*ICMP6_FILTER*/
@@ -368,13 +368,13 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		if (setsockopt(vars->socket_recv, IPPROTO_IPV6, IPV6_RECVRTHDR, &opton,
 			sizeof(opton))) {
 			print_error("setsockopt(IPV6_RECVRTHDR)");
-			return (1);
+			return (false);
 		}
 #else  /* old adv. API */
 		if (setsockopt(vars->socket_recv, IPPROTO_IPV6, IPV6_RTHDR, &opton,
 			sizeof(opton))) {
 			print_error("setsockopt(IPV6_RTHDR)");
-			return (1);
+			return (false);
 		}
 #endif
 	}
@@ -390,7 +390,7 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 	if (ip6optlen) {
 		if ((scmsg = (char *)malloc(ip6optlen)) == NULL) {
 			print_error("can't allocate enough memory");
-			return (1);
+			return (false);
 		}
 		vars->smsghdr.msg_control = (caddr_t)scmsg;
 		vars->smsghdr.msg_controllen = ip6optlen;
@@ -430,7 +430,7 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		rthdrlen = inet6_rth_space(IPV6_RTHDR_TYPE_0, options->hop_count);
 		if (rthdrlen == 0) {
 			print_error("inet6_rth_space() hop_count");
-			return (1);
+			return (false);
 		}
 		scmsgp->cmsg_len = CMSG_LEN(rthdrlen);
 		scmsgp->cmsg_level = IPPROTO_IPV6;
@@ -440,14 +440,14 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		    IPV6_RTHDR_TYPE_0, options->hop_count);
 		if (rthdr == NULL) {
 			print_error("can't initialize rthdr");
-			return (1);
+			return (false);
 		}
 
 		for (hops = 0; hops < options->hop_count; hops++) {
 			sin6 = (struct sockaddr_in6 *)(void *)options->hops_addrinfo[hops]->ai_addr;
 			if (inet6_rth_add(rthdr, &sin6->sin6_addr)) {
 				print_error("can't add an intermediate node");
-				return (1);
+				return (false);
 			}
 			freeaddrinfo(options->hops_addrinfo[hops]);
 			options->hops_addrinfo[hops] = NULL;
@@ -466,7 +466,7 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		/* TODO: socket errno? */
 		if ((dummy = socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
 			print_error("UDP socket");
-			return (1);
+			return (false);
 		}
 
 		options->source_sockaddr.in6.sin6_family = AF_INET6;
@@ -478,38 +478,38 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		    setsockopt(dummy, IPPROTO_IPV6, IPV6_PKTINFO,
 			(void *)pktinfo, sizeof(*pktinfo))) {
 			print_error("UDP setsockopt(IPV6_PKTINFO)");
-			return (1);
+			return (false);
 		}
 
 		if (options->f_hoplimit &&
 		    setsockopt(dummy, IPPROTO_IPV6, IPV6_UNICAST_HOPS,
 			(void *)&(options->n_hoplimit), sizeof(options->n_hoplimit))) {
 			print_error("UDP setsockopt(IPV6_UNICAST_HOPS)");
-			return (1);
+			return (false);
 		}
 
 		if (options->f_hoplimit &&
 		    setsockopt(dummy, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
 			(void *)&(options->n_hoplimit), sizeof(options->n_hoplimit))) {
 			print_error("UDP setsockopt(IPV6_MULTICAST_HOPS)");
-			return (1);
+			return (false);
 		}
 
 		if (rthdr &&
 		    setsockopt(dummy, IPPROTO_IPV6, IPV6_RTHDR,
 			(void *)rthdr, (rthdr->ip6r_len + 1) << 3)) {
 			print_error("UDP setsockopt(IPV6_RTHDR)");
-			return (1);
+			return (false);
 		}
 
 		if (connect(dummy, (struct sockaddr *)&options->source_sockaddr.in6, len) < 0) {
 			print_error("UDP connect");
-			return (1);
+			return (false);
 		}
 
 		if (getsockname(dummy, (struct sockaddr *)&options->source_sockaddr.in6, &len) < 0) {
 			print_error("getsockname");
-			return (1);
+			return (false);
 		}
 
 		close(dummy);
@@ -521,12 +521,12 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 	 * We must connect(2) our socket before this point.
 	 */
 	if (!cap_enter_capability_mode())
-		return (1);
+		return (false);
 
 	if (!cap_limit_socket(vars->socket_recv, RIGHTS_RECV_EVENT_SETSOCKOPT))
-		return (1);
+		return (false);
 	if (!cap_limit_socket(vars->socket_send, RIGHTS_SEND_SETSOCKOPT))
-		return (1);
+		return (false);
 
 #if defined(SO_SNDBUF) && defined(SO_RCVBUF)
 	if (options->f_sock_buff_size) {
@@ -535,12 +535,12 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		if (setsockopt(vars->socket_send, SOL_SOCKET, SO_SNDBUF, &(options->n_sock_buff_size),
 			sizeof(options->n_sock_buff_size)) < 0) {
 			print_error("setsockopt(SO_SNDBUF)");
-			return (1);
+			return (false);
 		}
 		if (setsockopt(vars->socket_recv, SOL_SOCKET, SO_RCVBUF, &(options->n_sock_buff_size),
 			sizeof(options->n_sock_buff_size)) < 0) {
 			print_error("setsockopt(SO_RCVBUF)");
-			return (1);
+			return (false);
 		}
 	}
 	else {
@@ -556,7 +556,7 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		if (setsockopt(vars->socket_recv, SOL_SOCKET, SO_RCVBUF, (char *)&hold,
 			sizeof(hold)) != 0) {
 			print_error_strerr("setsockopt() SO_RCVBUF");
-			return (1);
+			return (false);
 		}
 	}
 #endif
@@ -585,15 +585,15 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 
 	/* CAP_SETSOCKOPT removed */
 	if (!cap_limit_socket(vars->socket_recv, RIGHTS_RECV_EVENT))
-		return (1);
+		return (false);
 	/* CAP_SETSOCKOPT removed */
 	if (!cap_limit_socket(vars->socket_send, RIGHTS_SEND))
-		return (1);
+		return (false);
 
 	/* TODO: Remove duplicit arguments */
 	pr6_heading(&options->source_sockaddr.in6, vars->target_sockaddr_in6, options, vars->capdns);
 
-	return (0);
+	return (true);
 }
 
 int
@@ -761,7 +761,7 @@ pinger6(struct options *const options, struct shared_variables *const vars,
 #ifdef DIAGNOSTIC
 	if (pingerlen() != cc) {
 		print_error("internal error; length mismatch");
-		return;
+		return (false);
 	}
 #endif
 

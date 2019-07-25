@@ -55,17 +55,16 @@ main(int argc, char *argv[])
 	struct shared_variables vars;
 	struct counters counters;
 	struct timing timing;
-	int r;
 
 	if ((vars.capdns = capdns_setup()) == NULL)
 	       return (1);
 
-	if ((r = options_parse(argc, argv, &options, vars.capdns)) != 0)
-		return (r);
+	if (!options_parse(argc, argv, &options, vars.capdns))
+		return (1);
 
 	/* Initialization. */
-	if ((r = ping_init(&options, &vars, &counters, &timing)) != 0)
-		return (r);
+	if (!ping_init(&options, &vars, &counters, &timing))
+		return (1);
 
 	if (!signals_setup(&options, &vars))
 		return (1);
@@ -74,8 +73,8 @@ main(int argc, char *argv[])
 	if (!ping_send_initial_packets(&options, &vars, &counters, &timing))
 		return (1);
 
-	if ((r = ping_loop(&options, &vars, &counters, &timing, &signal_vars)) != 0)
-		return (r);
+	if (!ping_loop(&options, &vars, &counters, &timing, &signal_vars))
+		return (1);
 
 	/* Cleanup. */
 	if (!signals_cleanup())
