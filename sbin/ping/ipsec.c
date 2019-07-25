@@ -128,8 +128,10 @@ ipsec_setpolicy(int socket, char *const policy, enum target_type target_type)
 	}
 
 	if (setsockopt(socket, level, optname, buf,
-		ipsec_get_policylen(buf)) < 0)
-		warnx("setsockopt: Unable to set IPsec policy");
+		ipsec_get_policylen(buf)) < 0) {
+		print_error_strerr("setsockopt: Unable to set IPsec policy");
+		return (false);
+	}
 	free(buf);
 
 	return (true);
