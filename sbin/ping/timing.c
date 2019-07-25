@@ -29,6 +29,8 @@
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
+#include <assert.h>
+
 #include "timing.h"
 
 /*
@@ -39,6 +41,9 @@ __FBSDID("$FreeBSD$");
 void
 tvsub(struct timeval *const out, const struct timeval *const in)
 {
+	assert((out->tv_sec > in->tv_sec) ||
+	    ((out->tv_sec == in->tv_sec) && (out->tv_usec >= in->tv_usec)));
+
 	if ((out->tv_usec -= in->tv_usec) < 0) {
 		--out->tv_sec;
 		out->tv_usec += 1000000;
