@@ -931,8 +931,17 @@ options_parse_hosts(int argc, char **argv, struct options *const options, cap_ch
 		}
 
 		options->hop_count = argc;
-		options->hops = malloc(argc * sizeof(char *));
-		options->hops_addrinfo = malloc(argc * sizeof(struct addrinfo *));
+		options->hops = (const char **)malloc(argc * sizeof(char *));
+		if (options->hops == NULL) {
+			print_error_strerr("malloc() hops");
+			return (1);
+		}
+		options->hops_addrinfo =
+			(struct addrinfo **)malloc(argc * sizeof(struct addrinfo *));
+		if (options->hops_addrinfo == NULL) {
+			print_error_strerr("malloc() hops_addrinfo");
+			return (1);
+		}
 
 		for (int i = 0; i < argc; ++i) {
 			struct addrinfo hints;

@@ -45,7 +45,7 @@ __FBSDID("$FreeBSD$");
 static struct signal_variables signal_vars;
 
 static bool signals_setup(struct options *const options,  struct shared_variables *const vars);
-static void signals_cleanup(void);
+static bool signals_cleanup(void);
 static void signal_handler_siginfo(int sig __unused);
 static void signal_handler_sigint_sigalrm(int sig __unused);
 
@@ -72,13 +72,15 @@ main(int argc, char *argv[])
 		return (1);
 
 	/* Main. */
-	ping_send_initial_packets(&options, &vars, &counters, &timing);
+	if (!ping_send_initial_packets(&options, &vars, &counters, &timing))
+		return (1);
 
 	if ((r = ping_loop(&options, &vars, &counters, &timing, &signal_vars)) != EX_OK)
 		return (r);
 
 	/* Cleanup. */
-	signals_cleanup();
+	if (!signals_cleanup())
+		return (1);
 
 	ping_print_summary(&options, &counters, &timing);
 
@@ -101,7 +103,10 @@ signals_setup(struct options *const options, struct shared_variables *const vars
 	 * Use sigaction() instead of signal() to get unambiguous semantics,
 	 * in particular with SA_RESTART not set.
 	 */
-	sigemptyset(&si_sa.sa_mask);
+	if (sigemptyset(&si_sa.sa_mask) == -1) {
+		print_error_strerr("sigemptyset");
+		return (false);
+	}
 	si_sa.sa_flags = 0;
 
 	si_sa.sa_handler = signal_handler_siginfo;
@@ -124,17 +129,23 @@ signals_setup(struct options *const options, struct shared_variables *const vars
 	return (true);
 }
 
-static void
+static bool
 signals_cleanup(void)
 {
 	struct sigaction si_sa;
 
-	sigemptyset(&si_sa.sa_mask);
+	if (sigemptyset(&si_sa.sa_mask) == -1) {
+		print_error_strerr("sigemptyset");
+		return (false);
+	}
+
 	si_sa.sa_flags = 0;
 	si_sa.sa_handler = SIG_IGN;
 	sigaction(SIGINFO, &si_sa, 0);
 	sigaction(SIGINT, &si_sa, 0);
 	sigaction(SIGALRM, &si_sa, 0);
+
+	return (true);
 }
 
 static void

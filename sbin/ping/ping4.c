@@ -176,9 +176,13 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 			*vars->datap++ = i;
 
 	hold = 1;
-	if (options->f_so_dontroute)
-		(void)setsockopt(vars->socket_send, SOL_SOCKET, SO_DONTROUTE, (char *)&hold,
-		    sizeof(hold));
+	if (options->f_so_dontroute) {
+		if (setsockopt(vars->socket_send, SOL_SOCKET, SO_DONTROUTE, (char *)&hold,
+			sizeof(hold)) != 0) {
+			print_error_strerr("setsockopt() SO_DONTROUTE");
+			return (1);
+		}
+	}
 
 	if (options->f_dont_fragment || options->f_tos) {
 		ip = (struct ip*)vars->outpackhdr;
@@ -196,7 +200,10 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 				return (1);
 			}
 		}
-		setsockopt(vars->socket_send, IPPROTO_IP, IP_HDRINCL, &hold, sizeof(hold));
+		if (setsockopt(vars->socket_send, IPPROTO_IP, IP_HDRINCL, &hold, sizeof(hold)) != 0) {
+			print_error_strerr("setsockopt() IP_HDRINCL");
+			return (1);
+		}
 		ip->ip_v = IPVERSION;
 		ip->ip_hl = sizeof(struct ip) >> 2;
 		ip->ip_tos = options->n_tos;
@@ -300,14 +307,21 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	 * as well.
 	 */
 	hold = IP_MAXPACKET + 128;
-	(void)setsockopt(vars->socket_recv, SOL_SOCKET, SO_RCVBUF, (char *)&hold,
-	    sizeof(hold));
+	if (setsockopt(vars->socket_recv, SOL_SOCKET, SO_RCVBUF, (char *)&hold,
+		sizeof(hold)) != 0) {
+		print_error_strerr("setsockopt() SO_RCVBUF");
+		return (1);
+	}
 	/* CAP_SETSOCKOPT removed */
 	if (!cap_limit_socket(vars->socket_recv, RIGHTS_RECV_EVENT))
 		return (1);
-	if (getuid() == 0)
-		(void)setsockopt(vars->socket_send, SOL_SOCKET, SO_SNDBUF, (char *)&hold,
-		    sizeof(hold));
+	if (getuid() == 0) {
+		if (setsockopt(vars->socket_send, SOL_SOCKET, SO_SNDBUF, (char *)&hold,
+			sizeof(hold)) != 0) {
+			print_error_strerr("setsockopt() SO_SNDBUF");
+			return (1);
+		}
+	}
 	/* CAP_SETSOCKOPT removed */
 	if (!cap_limit_socket(vars->socket_send, RIGHTS_SEND))
 		return (1);
@@ -356,7 +370,10 @@ ping4_process_received_packet(const struct options *const options, struct shared
 	}
 #endif
 	if (tv == NULL) {
-		(void)gettimeofday(&now, NULL);
+		if (gettimeofday(&now, NULL) != 0) {
+			print_error_strerr("gettimeofday()");
+			return (1);
+		}
 		tv = &now;
 	}
 	if (!is_packet_too_short((char *)vars->packet, cc, &vars->from, options->f_verbose)) {
@@ -395,7 +412,7 @@ update_sweep(struct options *const options, struct shared_variables *const vars,
  * bytes of the data portion are used to hold a UNIX "timeval" struct in
  * host byte-order, to compute the round-trip time.
  */
-void
+bool
 pinger(const struct options *const options, struct shared_variables *const vars,
     struct counters *const counters, const struct timing *const timing)
 {
@@ -417,7 +434,10 @@ pinger(const struct options *const options, struct shared_variables *const vars,
 	BIT_ARRAY_CLR(vars->rcvd_tbl, counters->transmitted % MAX_DUP_CHK);
 
 	if (options->f_time || timing->enabled) {
-		(void)gettimeofday(&now, NULL);
+		if (gettimeofday(&now, NULL) != 0) {
+			print_error_strerr("gettimeofday()");
+			return (false);
+		}
 
 		tv32.tv32_sec = htonl(now.tv_sec);
 		tv32.tv32_usec = htonl(now.tv_usec);
@@ -447,7 +467,7 @@ pinger(const struct options *const options, struct shared_variables *const vars,
 		if (i < 0) {
 			if (options->f_flood && errno == ENOBUFS) {
 				usleep(FLOOD_BACKOFF);
-				return;
+				return (true);
 			}
 			warn("sendto");
 		} else {
@@ -459,6 +479,8 @@ pinger(const struct options *const options, struct shared_variables *const vars,
 	counters->sweep_transmitted++;
 	if (!options->f_quiet && options->f_flood)
 		write_char(STDOUT_FILENO, CHAR_DOT);
+
+	return (true);
 }
 
 static bool

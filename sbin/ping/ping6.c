@@ -149,7 +149,7 @@ static u_short   get_node_address_flags(const struct options *const);
 static void	 update_counters(const struct options *const,
     const struct shared_variables *const,
     struct counters *const, double);
-static void      update_timing(const struct shared_variables *const, struct timing *const,
+static bool      update_timing(const struct shared_variables *const, struct timing *const,
     double *const);
 
 int
@@ -181,8 +181,14 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 	if (options->hop_count != 0) {
 		size_t rthlen;
 #ifdef IPV6_RECVRTHDR	/* 2292bis */
-		rthlen = CMSG_SPACE(inet6_rth_space(IPV6_RTHDR_TYPE_0,
-		    options->hop_count));
+		socklen_t rth_space;
+
+		rth_space = inet6_rth_space(IPV6_RTHDR_TYPE_0, options->hop_count);
+		if (rth_space == 0) {
+			print_error("inet6_rth_space() hop_count");
+			return (1);
+		}
+		rthlen = CMSG_SPACE(rth_space);
 #else  /* RFC2292 */
 		rthlen = inet6_rthdr_space(IPV6_RTHDR_TYPE_0, options->hop_count);
 #endif
@@ -423,6 +429,10 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		int rthdrlen;
 
 		rthdrlen = inet6_rth_space(IPV6_RTHDR_TYPE_0, options->hop_count);
+		if (rthdrlen == 0) {
+			print_error("inet6_rth_space() hop_count");
+			return (1);
+		}
 		scmsgp->cmsg_len = CMSG_LEN(rthdrlen);
 		scmsgp->cmsg_level = IPPROTO_IPV6;
 		scmsgp->cmsg_type = IPV6_RTHDR;
@@ -544,8 +554,11 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		 * to get some stuff for /etc/ethers.
 		 */
 		hold = 48 * 1024;
-		setsockopt(vars->socket_recv, SOL_SOCKET, SO_RCVBUF, (char *)&hold,
-		    sizeof(hold));
+		if (setsockopt(vars->socket_recv, SOL_SOCKET, SO_RCVBUF, (char *)&hold,
+			sizeof(hold)) != 0) {
+			print_error_strerr("setsockopt() SO_RCVBUF");
+			return (1);
+		}
 	}
 #endif
 
@@ -584,7 +597,7 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 	return (EX_OK);
 }
 
-bool
+int
 ping6_process_received_packet(const struct options *const options, struct shared_variables *const vars,
 	struct counters *const counters, struct timing *const timing)
 {
@@ -613,7 +626,7 @@ ping6_process_received_packet(const struct options *const options, struct shared
 			warn("recvmsg");
 			sleep(1);
 		}
-		return (false);
+		return (0);
 	} else if (cc == 0) {
 		int mtu;
 
@@ -628,7 +641,7 @@ ping6_process_received_packet(const struct options *const options, struct shared
 				    "notified\n", mtu);
 			}
 		}
-		return (false);
+		return (0);
 	} else if (is_packet_valid(cc, &m, options, vars->capdns)) {
 		/*
 		 * an ICMPv6 message (probably an echoreply)
@@ -636,13 +649,14 @@ ping6_process_received_packet(const struct options *const options, struct shared
 		 */
 		double triptime;
 
-		update_timing(vars, timing, &triptime);
+		if (!update_timing(vars, timing, &triptime))
+			return (-1);
 		update_counters(options, vars, counters, triptime);
 		pr6_pack(cc, &m, options, vars, timing, triptime);
 		mark_packet_as_received(vars);
 	}
 
-	return (true);
+	return (1);
 }
 
 /*
@@ -653,7 +667,7 @@ ping6_process_received_packet(const struct options *const options, struct shared
  * of the data portion are used to hold a UNIX "timeval" struct in VAX
  * byte-order, to compute the round-trip time.
  */
-void
+bool
 pinger6(struct options *const options, struct shared_variables *const vars,
     struct counters *const counters, struct timing *const timing)
 {
@@ -664,7 +678,7 @@ pinger6(struct options *const options, struct shared_variables *const vars,
 	int seq;
 
 	if (options->n_packets && counters->transmitted >= options->n_packets)
-		return;	/* no more transmission */
+		return (true);	/* no more transmission */
 
 	icp = (struct icmp6_hdr *)vars->outpack6;
 	nip = (struct icmp6_nodeinfo *)vars->outpack6;
@@ -734,7 +748,10 @@ pinger6(struct options *const options, struct shared_variables *const vars,
 		if (timing->enabled) {
 			struct timeval tv;
 			struct tv32 *tv32;
-			(void)gettimeofday(&tv, NULL);
+			if (gettimeofday(&tv, NULL) != 0) {
+				print_error_strerr("gettimeofday()");
+				return (false);
+			}
 			tv32 = (struct tv32 *)&vars->outpack6[ICMP6ECHOLEN];
 			tv32->tv32_sec = htonl(tv.tv_sec);
 			tv32->tv32_usec = htonl(tv.tv_usec);
@@ -765,6 +782,8 @@ pinger6(struct options *const options, struct shared_variables *const vars,
 	}
 	if (!options->f_quiet && options->f_flood)
 		write_char(STDOUT_FILENO, CHAR_DOT);
+
+	return (true);
 }
 
 static bool
@@ -860,7 +879,7 @@ update_counters(const struct options *const options,
 	}
 }
 
-static void
+static bool
 update_timing(const struct shared_variables *const vars, struct timing *const timing,
     double *const triptime)
 {
@@ -870,7 +889,10 @@ update_timing(const struct shared_variables *const vars, struct timing *const ti
 
 	*triptime = 0;
 
-	(void)gettimeofday(&tv, NULL);
+	if (gettimeofday(&tv, NULL) != 0) {
+		print_error_strerr("gettimeofday()");
+		return (false);
+	}
 
 	icp = (struct icmp6_hdr *)vars->packet6;
 
@@ -890,6 +912,8 @@ update_timing(const struct shared_variables *const vars, struct timing *const ti
 				timing->max = *triptime;
 		}
 	}
+
+	return (true);
 }
 
 static int

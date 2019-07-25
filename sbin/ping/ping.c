@@ -109,10 +109,16 @@ ping_init(struct options *const options, struct shared_variables *const vars,
 	if (options->f_so_debug) {
 		int optval = 1;
 
-		(void)setsockopt(vars->socket_send, SOL_SOCKET, SO_DEBUG, (char *)&optval,
-		    sizeof(optval));
-		(void)setsockopt(vars->socket_recv, SOL_SOCKET, SO_DEBUG, (char *)&optval,
-		    sizeof(optval));
+		if (setsockopt(vars->socket_send, SOL_SOCKET, SO_DEBUG, (char *)&optval,
+			sizeof(optval)) != 0) {
+			print_error_strerr("setsockopt() socket_send");
+			return (1);
+		}
+		if (setsockopt(vars->socket_recv, SOL_SOCKET, SO_DEBUG, (char *)&optval,
+			sizeof(optval)) != 0) {
+			print_error_strerr("setsockopt() socket_recv");
+			return (1);
+		}
 	}
 
 	if (!ipsec_configure(vars->socket_send, vars->socket_recv, options))
@@ -145,16 +151,21 @@ ping_free(struct options *const options, struct shared_variables *const vars)
 #endif
 }
 
-void
+bool
 ping_send_initial_packets(struct options *const options, struct shared_variables *const vars,
     struct counters *const counters, struct timing *const timing)
 {
 	while (options->n_preload--) {
-		if (options->target_type == TARGET_IPV4)
-			pinger(options, vars, counters, timing);
-		else
-			pinger6(options, vars, counters, timing);
+		if (options->target_type == TARGET_IPV4) {
+			if (!pinger(options, vars, counters, timing))
+				return (false);
+		} else {
+			if (!pinger6(options, vars, counters, timing))
+				return (false);
+		}
 	}
+
+	return (true);
 }
 
 int
@@ -165,7 +176,10 @@ ping_loop(struct options *const options, struct shared_variables *const vars,
 	struct timeval last;
 	bool almost_done;
 
-	(void)gettimeofday(&last, NULL);
+	if (gettimeofday(&last, NULL) != 0) {
+		print_error_strerr("gettimeofday()");
+		return (1);
+	}
 
 	almost_done = false;
 	while (!signal_vars->sigint_sigalrm) {
@@ -182,7 +196,10 @@ ping_loop(struct options *const options, struct shared_variables *const vars,
 			signal_vars->siginfo = false;
 		}
 
-		(void)gettimeofday(&now, NULL);
+		if (gettimeofday(&now, NULL) != 0) {
+			print_error_strerr("gettimeofday()");
+			return (1);
+		}
 		timeout = timeout_get(&last, &options->n_interval, &now);
 
 		if (!test_socket_for_reading(vars->socket_recv, &timeout,
@@ -196,8 +213,14 @@ ping_loop(struct options *const options, struct shared_variables *const vars,
 
 			if (options->target_type == TARGET_IPV4)
 				next_iteration = !ping4_process_received_packet(options, vars, counters, timing);
-			else
-				next_iteration = !ping6_process_received_packet(options, vars, counters, timing);
+			else {
+				int r;
+
+				r = ping6_process_received_packet(options, vars, counters, timing);
+				if (r < 0)
+					return (1);
+				next_iteration = (r == 1);
+			}
 
 			if (next_iteration)
 				continue;
@@ -210,10 +233,13 @@ ping_loop(struct options *const options, struct shared_variables *const vars,
 			if (options->target_type == TARGET_IPV4)
 				update_sweep(options, vars, counters);
 			if ((options->n_packets == 0) || (counters->transmitted < options->n_packets)) {
-				if (options->target_type == TARGET_IPV4)
-					pinger(options, vars, counters, timing);
-				else
-					pinger6(options, vars, counters, timing);
+				if (options->target_type == TARGET_IPV4) {
+					if (!pinger(options, vars, counters, timing))
+						return (1);
+				} else {
+					if (!pinger6(options, vars, counters, timing))
+						return (1);
+				}
 			} else {
 				if (almost_done)
 					break;
@@ -234,7 +260,10 @@ ping_loop(struct options *const options, struct shared_variables *const vars,
 					options->n_interval.tv_usec = options->n_wait_time % 1000 * 1000;
 				}
 			}
-			(void)gettimeofday(&last, NULL);
+			if (gettimeofday(&last, NULL) != 0) {
+				print_error_strerr("gettimeofday()");
+				return (1);
+			}
 			if ((counters->transmitted - counters->received - 1) > counters->missedmax) {
 				counters->missedmax = counters->transmitted - counters->received - 1;
 				if (options->f_missed)

@@ -37,7 +37,7 @@
 
 int ping4_init(struct options *const options, struct shared_variables *const vars,
     struct counters *const counters, struct timing *const timing);
-void pinger(const struct options *const options, struct shared_variables *const vars,
+bool pinger(const struct options *const options, struct shared_variables *const vars,
     struct counters *const counters, const struct timing *const timing);
 bool ping4_process_received_packet(const struct options *const options, struct shared_variables *const vars,
     struct counters *const counters, struct timing *const timing);
