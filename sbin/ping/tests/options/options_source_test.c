@@ -30,7 +30,6 @@
 __FBSDID("$FreeBSD$");
 
 #include <atf-c.h>
-#include <sysexits.h>
 
 #include "cap_getaddrinfo.h"
 #include "test_argc_argv.h"
@@ -55,7 +54,7 @@ ATF_TC_BODY(option_source, tc)
 		ARGC_ARGV("-S", "host_unknown", "host_ipv4");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_NOHOST);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
@@ -65,7 +64,7 @@ ATF_TC_BODY(option_source, tc)
 		options.source_sockaddr.in6.sin6_len = 0;
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE_STREQ("host_ipv4", options.s_source);
 		ATF_REQUIRE(options.source_sockaddr.in.sin_family == AF_INET);
 		ATF_REQUIRE(options.source_sockaddr.in.sin_len == sizeof(struct sockaddr_in));
@@ -79,7 +78,7 @@ ATF_TC_BODY(option_source, tc)
 		options.source_sockaddr.in6.sin6_len = 0;
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE_STREQ("host_ipv6", options.s_source);
 		ATF_REQUIRE(options.source_sockaddr.in6.sin6_family == AF_INET6);
 		ATF_REQUIRE(options.source_sockaddr.in6.sin6_len == sizeof(struct sockaddr_in6));

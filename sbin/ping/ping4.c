@@ -84,7 +84,6 @@ __FBSDID("$FreeBSD$");
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sysexits.h>
 
 #include "cap.h"
 #include "defaults_limits.h"
@@ -144,7 +143,7 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	if (options->n_packet_size > maxpayload) {
 		print_error("packet size too large: %ld > %d", options->n_packet_size,
 		    maxpayload);
-		return (EX_USAGE);
+		return (1);
 	}
 	vars->send_len = vars->icmp_len + options->n_packet_size;
 	vars->datap = &vars->outpack[ICMP_MINLEN + vars->phdr_len + TIMEVAL_LEN];
@@ -241,7 +240,7 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 		if (setsockopt(vars->socket_send, IPPROTO_IP, IP_OPTIONS, rspace,
 			sizeof(rspace)) < 0) {
 			print_error_strerr("setsockopt IP_OPTIONS");
-			return (EX_OSERR);
+			return (1);
 		}
 	}
 #endif /* IP_OPTIONS */
@@ -250,7 +249,7 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 		if (setsockopt(vars->socket_send, IPPROTO_IP, IP_TTL, &options->n_ttl,
 		    sizeof(options->n_ttl)) < 0) {
 			print_error_strerr("setsockopt IP_TTL");
-			return (EX_OSERR);
+			return (1);
 		}
 	}
 	if (options->f_no_loop) {
@@ -259,28 +258,28 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 		if (setsockopt(vars->socket_send, IPPROTO_IP, IP_MULTICAST_LOOP, &loop,
 		    sizeof(loop)) < 0) {
 			print_error_strerr("setsockopt IP_MULTICAST_LOOP");
-			return (EX_OSERR);
+			return (1);
 		}
 	}
 	if (options->f_multicast_ttl) {
 		if (setsockopt(vars->socket_send, IPPROTO_IP, IP_MULTICAST_TTL, &options->n_multicast_ttl,
 		    sizeof(options->n_multicast_ttl)) < 0) {
 			print_error_strerr("setsockopt IP_MULTICAST_TTL");
-			return (EX_OSERR);
+			return (1);
 		}
 	}
 	if (options->f_interface) {
 		if (setsockopt(vars->socket_send, IPPROTO_IP, IP_MULTICAST_IF, &options->interface.ifaddr,
 		    sizeof(options->interface.ifaddr)) < 0) {
 			print_error_strerr("setsockopt IP_MULTICAST_IF");
-			return (EX_OSERR);
+			return (1);
 		}
 	}
 #ifdef SO_TIMESTAMP
 	{ int on = 1;
 		if (setsockopt(vars->socket_recv, SOL_SOCKET, SO_TIMESTAMP, &on, sizeof(on)) < 0) {
 			print_error_strerr("setsockopt SO_TIMESTAMP");
-			return (EX_OSERR);
+			return (1);
 		}
 	}
 #endif
@@ -338,7 +337,7 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	vars->iov.iov_base = vars->packet;
 	vars->iov.iov_len = IP_MAXPACKET;
 
-	return (EX_OK);
+	return (0);
 }
 
 bool

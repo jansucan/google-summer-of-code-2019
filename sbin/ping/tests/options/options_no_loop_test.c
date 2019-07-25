@@ -30,7 +30,6 @@
 __FBSDID("$FreeBSD$");
 
 #include <atf-c.h>
-#include <sysexits.h>
 
 #include "cap_getaddrinfo.h"
 #include "test_argc_argv.h"
@@ -55,7 +54,7 @@ ATF_TC_BODY(option_no_loop, tc)
 		ARGC_ARGV("-L", "host_ipv4");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
@@ -63,7 +62,7 @@ ATF_TC_BODY(option_no_loop, tc)
 		capdns = capdns_setup();
 
 		options.f_no_loop = false;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_no_loop == true);
 		cap_close(capdns);
 	}

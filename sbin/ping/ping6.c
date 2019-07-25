@@ -125,7 +125,6 @@ __FBSDID("$FreeBSD$");
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sysexits.h>
 #include <unistd.h>
 
 #include "cap.h"
@@ -464,7 +463,7 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		 */
 		int dummy;
 		socklen_t len = sizeof(options->source_sockaddr.in6);
-
+		/* TODO: socket errno? */
 		if ((dummy = socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
 			print_error("UDP socket");
 			return (1);
@@ -594,7 +593,7 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 	/* TODO: Remove duplicit arguments */
 	pr6_heading(&options->source_sockaddr.in6, vars->target_sockaddr_in6, options, vars->capdns);
 
-	return (EX_OK);
+	return (0);
 }
 
 int

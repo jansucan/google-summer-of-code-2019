@@ -30,7 +30,6 @@
 __FBSDID("$FreeBSD$");
 
 #include <atf-c.h>
-#include <sysexits.h>
 
 #include "cap_getaddrinfo.h"
 #include "test_argc_argv.h"
@@ -54,7 +53,7 @@ ATF_TC_BODY(option_flood, tc)
 	ARGC_ARGV("-f", "-i", "1","host_ipv4");
 	capdns = capdns_setup();
 
-	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 	cap_close(capdns);
 }
 
@@ -70,7 +69,7 @@ ATF_TC_BODY(privileged_option_flood, tc)
 		capdns = capdns_setup();
 
 		options.f_flood = false;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_flood == true);
 		cap_close(capdns);
 	}
@@ -78,7 +77,7 @@ ATF_TC_BODY(privileged_option_flood, tc)
 		ARGC_ARGV("-f", "multicast_ipv4");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 }
@@ -94,7 +93,7 @@ ATF_TC_BODY(unprivileged_option_flood, tc)
 	capdns = capdns_setup();
 
 	options.f_flood = false;
-	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_NOPERM);
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 	ATF_REQUIRE(options.f_flood == true);
 	cap_close(capdns);
 }

@@ -32,7 +32,6 @@ __FBSDID("$FreeBSD$");
 #include <err.h>
 #include <signal.h>
 #include <stdlib.h>
-#include <sysexits.h>
 
 #include "options.h"
 #include "ping.h"
@@ -61,11 +60,11 @@ main(int argc, char *argv[])
 	if ((vars.capdns = capdns_setup()) == NULL)
 	       return (1);
 
-	if ((r = options_parse(argc, argv, &options, vars.capdns)) != EX_OK)
+	if ((r = options_parse(argc, argv, &options, vars.capdns)) != 0)
 		return (r);
 
 	/* Initialization. */
-	if ((r = ping_init(&options, &vars, &counters, &timing)) != EX_OK)
+	if ((r = ping_init(&options, &vars, &counters, &timing)) != 0)
 		return (r);
 
 	if (!signals_setup(&options, &vars))
@@ -75,7 +74,7 @@ main(int argc, char *argv[])
 	if (!ping_send_initial_packets(&options, &vars, &counters, &timing))
 		return (1);
 
-	if ((r = ping_loop(&options, &vars, &counters, &timing, &signal_vars)) != EX_OK)
+	if ((r = ping_loop(&options, &vars, &counters, &timing, &signal_vars)) != 0)
 		return (r);
 
 	/* Cleanup. */

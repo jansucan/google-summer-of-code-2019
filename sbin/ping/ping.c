@@ -30,7 +30,6 @@
 __FBSDID("$FreeBSD$");
 
 #include <string.h>
-#include <sysexits.h>
 
 #include "cap.h"
 #include "ipsec.h"
@@ -64,7 +63,7 @@ ping_init(struct options *const options, struct shared_variables *const vars,
 	if (options->f_timeout &&
 	    (setitimer(ITIMER_REAL, &(options->n_timeout), NULL) != 0)) {
 		print_error_strerr("setitimer() cannot set the timeout");
-		return (EX_OSERR);
+		return (1);
 	}
 
 
@@ -272,7 +271,7 @@ ping_loop(struct options *const options, struct shared_variables *const vars,
 		}
 	}
 
-	return (EX_OK);
+	return (0);
 }
 
 void

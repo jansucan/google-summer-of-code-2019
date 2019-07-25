@@ -35,7 +35,6 @@ __FBSDID("$FreeBSD$");
 #include <netinet/ip.h>
 
 #include <atf-c.h>
-#include <sysexits.h>
 
 #include "cap_getaddrinfo.h"
 #include "test_argc_argv.h"
@@ -60,21 +59,21 @@ ATF_TC_BODY(option_multicast_ttl, tc)
 		ARGC_ARGV("-T", "-1000", "multicast_ipv4");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
 		ARGC_ARGV("-T", "-1", "multicast_ipv4");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
 		ARGC_ARGV("-T", "0", "host_ipv4");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
@@ -83,7 +82,7 @@ ATF_TC_BODY(option_multicast_ttl, tc)
 
 		options.f_multicast_ttl = false;
 		options.n_multicast_ttl = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_multicast_ttl == true);
 		ATF_REQUIRE(options.n_multicast_ttl == 0);
 		cap_close(capdns);
@@ -95,7 +94,7 @@ ATF_TC_BODY(option_multicast_ttl, tc)
 		ARGV_SET_FROM_EXPR(test_argv, 2, (unsigned long) (MAXTTL / 2));
 		options.f_multicast_ttl = false;
 		options.n_multicast_ttl = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_multicast_ttl == true);
 		ATF_REQUIRE(options.n_multicast_ttl == (MAXTTL / 2));
 		cap_close(capdns);
@@ -106,7 +105,7 @@ ATF_TC_BODY(option_multicast_ttl, tc)
 
 		options.f_multicast_ttl = false;
 		options.n_multicast_ttl = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_multicast_ttl == true);
 		ATF_REQUIRE(options.n_multicast_ttl == MAXTTL);
 		cap_close(capdns);
@@ -116,7 +115,7 @@ ATF_TC_BODY(option_multicast_ttl, tc)
 		capdns = capdns_setup();
 
 		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) MAXTTL) + 1);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
@@ -124,7 +123,7 @@ ATF_TC_BODY(option_multicast_ttl, tc)
 		capdns = capdns_setup();
 
 		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) MAXTTL) + 1000);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 }

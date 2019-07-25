@@ -42,7 +42,6 @@ __FBSDID("$FreeBSD$");
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sysexits.h>
 
 #include "test_argc_argv.h"
 
@@ -72,7 +71,7 @@ ATF_TC_BODY(options_no, tc)
 	ARGC_ARGV_EMPTY;
 	capdns = capdns_setup();
 
-	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 	cap_close(capdns);
 }
 
@@ -82,7 +81,7 @@ ATF_TC_BODY(missing_argument, tc)
 	ARGC_ARGV("-c");
 	capdns = capdns_setup();
 
-	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 	cap_close(capdns);
 }
 
@@ -93,7 +92,7 @@ ATF_TC_BODY(option_missed, tc)
 	capdns = capdns_setup();
 
 	options.f_missed = false;
-	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 	ATF_REQUIRE(options.f_missed == true);
 	cap_close(capdns);
 }
@@ -105,7 +104,7 @@ ATF_TC_BODY(option_audible, tc)
 	capdns = capdns_setup();
 
 	options.f_audible = false;
-	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 	ATF_REQUIRE(options.f_audible == true);
 	cap_close(capdns);
 }
@@ -117,14 +116,14 @@ ATF_TC_BODY(option_count, tc)
 		ARGC_ARGV("-c", "-1000", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
 		ARGC_ARGV("-c", "0", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
@@ -133,7 +132,7 @@ ATF_TC_BODY(option_count, tc)
 
 		options.f_packets = false;
 		options.n_packets = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_packets == true);
 		ATF_REQUIRE(options.n_packets == 1);
 		cap_close(capdns);
@@ -145,7 +144,7 @@ ATF_TC_BODY(option_count, tc)
 		ARGV_SET_FROM_EXPR(test_argv, 2, (unsigned long) (LONG_MAX / 2));
 		options.f_packets = false;
 		options.n_packets = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_packets == true);
 		ATF_REQUIRE(options.n_packets == (LONG_MAX / 2));
 		cap_close(capdns);
@@ -156,7 +155,7 @@ ATF_TC_BODY(option_count, tc)
 
 		options.f_packets = false;
 		options.n_packets = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_packets == true);
 		ATF_REQUIRE(options.n_packets == LONG_MAX);
 		cap_close(capdns);
@@ -166,7 +165,7 @@ ATF_TC_BODY(option_count, tc)
 		capdns = capdns_setup();
 
 		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) LONG_MAX) + 1);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
@@ -174,7 +173,7 @@ ATF_TC_BODY(option_count, tc)
 		capdns = capdns_setup();
 
 		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) LONG_MAX) + 1000);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 }
@@ -186,7 +185,7 @@ ATF_TC_BODY(option_dont_fragment, tc)
 	capdns = capdns_setup();
 
 	options.f_dont_fragment = false;
-	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 	ATF_REQUIRE(options.f_dont_fragment == true);
 	cap_close(capdns);
 }
@@ -198,7 +197,7 @@ ATF_TC_BODY(option_so_debug, tc)
 	capdns = capdns_setup();
 
 	options.f_so_debug = false;
-	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 	ATF_REQUIRE(options.f_so_debug == true);
 	cap_close(capdns);
 }
@@ -213,7 +212,7 @@ ATF_TC_BODY(option_interval, tc)
 		options.f_interval = true;
 		options.n_interval.tv_sec = DEFAULT_INTERVAL_TV_SEC + 123;
 		options.n_interval.tv_usec = DEFAULT_INTERVAL_TV_USEC + 123;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_interval == false);
 		ATF_REQUIRE(options.n_interval.tv_sec == DEFAULT_INTERVAL_TV_SEC);
 		ATF_REQUIRE(options.n_interval.tv_usec == DEFAULT_INTERVAL_TV_USEC);
@@ -223,14 +222,14 @@ ATF_TC_BODY(option_interval, tc)
 		ARGC_ARGV("-i", "-1000", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
 		ARGC_ARGV("-i", "0", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
@@ -240,7 +239,7 @@ ATF_TC_BODY(option_interval, tc)
 
 		ARGV_SET_LDBL_FROM_EXPR(test_argv, 2, dbl);
 		options.f_interval = false;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 
 		double dbl_integer_part;
 		const suseconds_t expected_tv_usec = (suseconds_t) (modf(dbl, &dbl_integer_part) * 1000 * 1000);
@@ -258,7 +257,7 @@ ATF_TC_BODY(option_interval, tc)
 		ARGV_SET_LDBL_FROM_EXPR(test_argv, 2, DBL_MAX);
 
 		options.f_interval = false;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 
 		const double dbl = DBL_MAX;
 		double dbl_integer_part;
@@ -280,7 +279,7 @@ ATF_TC_BODY(option_interval, tc)
 		capdns = capdns_setup();
 		ARGV_SET_LDBL_FROM_EXPR(test_argv, 2, ((long double) DBL_MAX) * 2);
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 }
@@ -297,7 +296,7 @@ ATF_TC_BODY(privileged_option_interval, tc)
 	ARGV_SET_LDBL_FROM_EXPR(test_argv, 2, DBL_MIN);
 
 	options.f_interval = false;
-	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 	/*
 	 * Values less than 1 microsecond are raised to 1
 	 * microsecond.
@@ -319,7 +318,7 @@ ATF_TC_BODY(unprivileged_option_interval, tc)
 	capdns = capdns_setup();
 	ARGV_SET_LDBL_FROM_EXPR(test_argv, 2, DBL_MIN);
 
-	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_NOPERM);
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 	cap_close(capdns);
 }
 
@@ -330,14 +329,14 @@ ATF_TC_BODY(option_preload, tc)
 		ARGC_ARGV("-l", "-1000", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
 		ARGC_ARGV("-l", "0", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
@@ -345,7 +344,7 @@ ATF_TC_BODY(option_preload, tc)
 		capdns = capdns_setup();
 
 		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) INT_MAX) + 1);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
@@ -353,7 +352,7 @@ ATF_TC_BODY(option_preload, tc)
 		capdns = capdns_setup();
 
 		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) INT_MAX) + 1000);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 }
@@ -371,7 +370,7 @@ ATF_TC_BODY(privileged_option_preload, tc)
 
 		options.f_preload = false;
 		options.n_preload = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_preload == true);
 		ATF_REQUIRE(options.n_preload == 1);
 		cap_close(capdns);
@@ -383,7 +382,7 @@ ATF_TC_BODY(privileged_option_preload, tc)
 		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) (INT_MAX / 2)));
 		options.f_preload = false;
 		options.n_preload = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_preload == true);
 		ATF_REQUIRE(options.n_preload == (INT_MAX / 2));
 		cap_close(capdns);
@@ -394,7 +393,7 @@ ATF_TC_BODY(privileged_option_preload, tc)
 
 		options.f_preload = false;
 		options.n_preload = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_preload == true);
 		ATF_REQUIRE(options.n_preload == INT_MAX);
 		cap_close(capdns);
@@ -407,7 +406,7 @@ ATF_TC_BODY(privileged_option_preload, tc)
 		ARGV_SET_FROM_EXPR(test_argv, 4, ((unsigned long) (INT_MAX / 2)));
 		options.f_preload = false;
 		options.n_preload = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_preload == true);
 		ATF_REQUIRE(options.n_preload == ((INT_MAX / 2) - 1));
 		cap_close(capdns);
@@ -420,7 +419,7 @@ ATF_TC_BODY(privileged_option_preload, tc)
 		ARGV_SET_FROM_EXPR(test_argv, 4, ((unsigned long) (INT_MAX / 2)));
 		options.f_preload = false;
 		options.n_preload = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_preload == true);
 		ATF_REQUIRE(options.n_preload == (INT_MAX / 2));
 		cap_close(capdns);
@@ -437,7 +436,7 @@ ATF_TC_BODY(unprivileged_option_preload, tc)
 	ARGC_ARGV("-l", "1", "localhost");
 	capdns = capdns_setup();
 
-	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_NOPERM);
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 	cap_close(capdns);
 }
 
@@ -448,7 +447,7 @@ ATF_TC_BODY(option_numeric, tc)
 	capdns = capdns_setup();
 
 	options.f_numeric = false;
-	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 	ATF_REQUIRE(options.f_numeric == true);
 	cap_close(capdns);
 }
@@ -460,7 +459,7 @@ ATF_TC_BODY(option_once, tc)
 	capdns = capdns_setup();
 
 	options.f_once = false;
-	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 	ATF_REQUIRE(options.f_once == true);
 	cap_close(capdns);
 }
@@ -472,7 +471,7 @@ ATF_TC_BODY(option_ping_filled, tc)
 		ARGC_ARGV("-p", "0123abcDEFG", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
@@ -485,7 +484,7 @@ ATF_TC_BODY(option_ping_filled, tc)
 		options.a_ping_filled[1] = 10;
 		options.a_ping_filled[2] = 15;
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_ping_filled == true);
 		ATF_REQUIRE(options.ping_filled_size == 3);
 		ATF_REQUIRE(options.a_ping_filled[0] == 1);
@@ -503,7 +502,7 @@ ATF_TC_BODY(option_ping_filled, tc)
 		for (int i = 0; i < (sizeof(options.a_ping_filled) / sizeof(options.a_ping_filled[0])); ++i)
 			options.a_ping_filled[i] = i;
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_ping_filled == true);
 		ATF_REQUIRE(options.ping_filled_size == 16);
 
@@ -521,7 +520,7 @@ ATF_TC_BODY(option_ping_filled, tc)
 		for (int i = 0; i < (sizeof(options.a_ping_filled) / sizeof(options.a_ping_filled[0])); ++i)
 			options.a_ping_filled[i] = 0x70 + i;
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_ping_filled == true);
 		ATF_REQUIRE(options.ping_filled_size == 16);
 
@@ -538,7 +537,7 @@ ATF_TC_BODY(option_quiet, tc)
 	capdns = capdns_setup();
 
 	options.f_quiet = false;
-	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 	ATF_REQUIRE(options.f_quiet == true);
 	cap_close(capdns);
 }
@@ -553,7 +552,7 @@ ATF_TC_BODY(option_packet_size, tc)
 
 		options.f_packet_size = true;
 		options.n_packet_size = DEFAULT_DATALEN_IPV6 + 123;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_packet_size == false);
 		ATF_REQUIRE(options.n_packet_size == DEFAULT_DATALEN_IPV6);
 		cap_close(capdns);
@@ -565,7 +564,7 @@ ATF_TC_BODY(option_packet_size, tc)
 
 		options.f_packet_size = true;
 		options.n_packet_size = DEFAULT_DATALEN_IPV4 + 123;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_packet_size == false);
 		ATF_REQUIRE(options.n_packet_size == DEFAULT_DATALEN_IPV4);
 		cap_close(capdns);
@@ -574,14 +573,14 @@ ATF_TC_BODY(option_packet_size, tc)
 		ARGC_ARGV("-s", "-1000", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
 		ARGC_ARGV("-s", "0", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
@@ -590,7 +589,7 @@ ATF_TC_BODY(option_packet_size, tc)
 
 		options.f_packet_size = false;
 		options.n_packet_size = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_packet_size == true);
 		ATF_REQUIRE(options.n_packet_size == 1);
 		cap_close(capdns);
@@ -603,7 +602,7 @@ ATF_TC_BODY(option_packet_size, tc)
 		ARGV_SET_FROM_EXPR(test_argv, 3, (unsigned long) (MAXDATALEN / 2));
 		options.f_packet_size = false;
 		options.n_packet_size = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_packet_size == true);
 		ATF_REQUIRE(options.n_packet_size == (MAXDATALEN / 2));
 		cap_close(capdns);
@@ -615,7 +614,7 @@ ATF_TC_BODY(option_packet_size, tc)
 		ARGV_SET_FROM_EXPR(test_argv, 3, (unsigned long) MAXDATALEN);
 		options.f_packet_size = false;
 		options.n_packet_size = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_packet_size == true);
 		ATF_REQUIRE(options.n_packet_size == MAXDATALEN);
 		cap_close(capdns);
@@ -625,7 +624,7 @@ ATF_TC_BODY(option_packet_size, tc)
 		capdns = capdns_setup();
 
 		ARGV_SET_FROM_EXPR(test_argv, 3, ((unsigned long) MAXDATALEN) + 1);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
@@ -633,7 +632,7 @@ ATF_TC_BODY(option_packet_size, tc)
 		capdns = capdns_setup();
 
 		ARGV_SET_FROM_EXPR(test_argv, 3, ((unsigned long) MAXDATALEN) + 1000);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 #endif /* !INET6 */
@@ -642,7 +641,7 @@ ATF_TC_BODY(option_packet_size, tc)
 		capdns = capdns_setup();
 
 		ARGV_SET_FROM_EXPR(test_argv, 3, ((unsigned long) LONG_MAX) + 1);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
@@ -650,7 +649,7 @@ ATF_TC_BODY(option_packet_size, tc)
 		capdns = capdns_setup();
 
 		ARGV_SET_FROM_EXPR(test_argv, 3, ((unsigned long) LONG_MAX) + 1000);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 }
@@ -669,7 +668,7 @@ ATF_TC_BODY(privileged_option_packet_size, tc)
 		ARGV_SET_FROM_EXPR(test_argv, 3, (unsigned long) (LONG_MAX / 2));
 		options.f_packet_size = false;
 		options.n_packet_size = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_packet_size == true);
 		ATF_REQUIRE(options.n_packet_size == (LONG_MAX / 2));
 		cap_close(capdns);
@@ -681,7 +680,7 @@ ATF_TC_BODY(privileged_option_packet_size, tc)
 		ARGV_SET_FROM_EXPR(test_argv, 3, (unsigned long) LONG_MAX);
 		options.f_packet_size = false;
 		options.n_packet_size = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_packet_size == true);
 		ATF_REQUIRE(options.n_packet_size == LONG_MAX);
 		cap_close(capdns);
@@ -702,7 +701,7 @@ ATF_TC_BODY(unprivileged_option_packet_size, tc)
 		ARGV_SET_FROM_EXPR(test_argv, 3, (unsigned long) (DEFAULT_DATALEN_IPV4 / 2));
 		options.f_packet_size = false;
 		options.n_packet_size = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_packet_size == true);
 		ATF_REQUIRE(options.n_packet_size == (DEFAULT_DATALEN_IPV4 / 2));
 		cap_close(capdns);
@@ -714,7 +713,7 @@ ATF_TC_BODY(unprivileged_option_packet_size, tc)
 		ARGV_SET_FROM_EXPR(test_argv, 3, (unsigned long) DEFAULT_DATALEN_IPV4);
 		options.f_packet_size = false;
 		options.n_packet_size = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_packet_size == true);
 		ATF_REQUIRE(options.n_packet_size == DEFAULT_DATALEN_IPV4);
 		cap_close(capdns);
@@ -724,7 +723,7 @@ ATF_TC_BODY(unprivileged_option_packet_size, tc)
 		capdns = capdns_setup();
 
 		ARGV_SET_FROM_EXPR(test_argv, 3, ((unsigned long) DEFAULT_DATALEN_IPV4) + 1);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_NOPERM);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
@@ -732,7 +731,7 @@ ATF_TC_BODY(unprivileged_option_packet_size, tc)
 		capdns = capdns_setup();
 
 		ARGV_SET_FROM_EXPR(test_argv, 3, ((unsigned long) DEFAULT_DATALEN_IPV4) + 1000);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_NOPERM);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 }
@@ -744,14 +743,14 @@ ATF_TC_BODY(option_timeout, tc)
 		ARGC_ARGV("-t", "-1000", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
 		ARGC_ARGV("-t", "0", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
@@ -760,7 +759,7 @@ ATF_TC_BODY(option_timeout, tc)
 
 		options.f_timeout = false;
 		options.n_timeout.it_value.tv_sec = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_timeout == true);
 		ATF_REQUIRE(options.n_timeout.it_value.tv_sec == 1);
 		cap_close(capdns);
@@ -772,7 +771,7 @@ ATF_TC_BODY(option_timeout, tc)
 		ARGV_SET_FROM_EXPR(test_argv, 2, (unsigned long) (MAX_TIMEOUT / 2));
 		options.f_timeout = false;
 		options.n_timeout.it_value.tv_sec = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_timeout == true);
 		ATF_REQUIRE(options.n_timeout.it_value.tv_sec == (MAX_TIMEOUT / 2));
 		cap_close(capdns);
@@ -783,7 +782,7 @@ ATF_TC_BODY(option_timeout, tc)
 
 		options.f_timeout = false;
 		options.n_timeout.it_value.tv_sec = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_timeout == true);
 		ATF_REQUIRE(options.n_timeout.it_value.tv_sec == MAX_TIMEOUT);
 		cap_close(capdns);
@@ -793,7 +792,7 @@ ATF_TC_BODY(option_timeout, tc)
 		capdns = capdns_setup();
 
 		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) MAX_TIMEOUT) + 1);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
@@ -801,7 +800,7 @@ ATF_TC_BODY(option_timeout, tc)
 		capdns = capdns_setup();
 
 		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) MAX_TIMEOUT) + 1000);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 }
@@ -813,7 +812,7 @@ ATF_TC_BODY(option_verbose, tc)
 	capdns = capdns_setup();
 
 	options.f_verbose = false;
-	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 	ATF_REQUIRE(options.f_verbose == true);
 	cap_close(capdns);
 }
@@ -827,7 +826,7 @@ ATF_TC_BODY(option_wait_time, tc)
 
 		options.f_wait_time = true;
 		options.n_wait_time = DEFAULT_WAIT_TIME + 123;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_wait_time == false);
 		ATF_REQUIRE(options.n_wait_time == DEFAULT_WAIT_TIME);
 		cap_close(capdns);
@@ -836,14 +835,14 @@ ATF_TC_BODY(option_wait_time, tc)
 		ARGC_ARGV("-W", "-1000", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
 		ARGC_ARGV("-W", "-1", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
@@ -852,7 +851,7 @@ ATF_TC_BODY(option_wait_time, tc)
 
 		options.f_wait_time = false;
 		options.n_wait_time = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_wait_time == true);
 		ATF_REQUIRE(options.n_wait_time == 0);
 		cap_close(capdns);
@@ -864,7 +863,7 @@ ATF_TC_BODY(option_wait_time, tc)
 		ARGV_SET_FROM_EXPR(test_argv, 2, (unsigned long) (INT_MAX / 2));
 		options.f_wait_time = false;
 		options.n_wait_time = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_wait_time == true);
 		ATF_REQUIRE(options.n_wait_time == (INT_MAX / 2));
 		cap_close(capdns);
@@ -875,7 +874,7 @@ ATF_TC_BODY(option_wait_time, tc)
 
 		options.f_wait_time = false;
 		options.n_wait_time = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_wait_time == true);
 		ATF_REQUIRE(options.n_wait_time == INT_MAX);
 		cap_close(capdns);
@@ -885,7 +884,7 @@ ATF_TC_BODY(option_wait_time, tc)
 		capdns = capdns_setup();
 
 		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) INT_MAX) + 1);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
@@ -893,7 +892,7 @@ ATF_TC_BODY(option_wait_time, tc)
 		capdns = capdns_setup();
 
 		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) INT_MAX) + 1000);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 }
@@ -905,7 +904,7 @@ ATF_TC_BODY(option_protocol_ipv4, tc)
 	capdns = capdns_setup();
 
 	options.f_protocol_ipv4 = false;
-	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 	ATF_REQUIRE(options.f_protocol_ipv4 == true);
 	cap_close(capdns);
 }
@@ -917,14 +916,14 @@ ATF_TC_BODY(option_sweep_max, tc)
 		ARGC_ARGV("-G", "-1000", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
 		ARGC_ARGV("-G", "0", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
@@ -933,7 +932,7 @@ ATF_TC_BODY(option_sweep_max, tc)
 
 		options.f_sweep_max = false;
 		options.n_sweep_max = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_sweep_max == true);
 		ATF_REQUIRE(options.n_sweep_max == 1);
 		cap_close(capdns);
@@ -943,7 +942,7 @@ ATF_TC_BODY(option_sweep_max, tc)
 		capdns = capdns_setup();
 
 		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) INT_MAX) + 1);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
@@ -951,14 +950,14 @@ ATF_TC_BODY(option_sweep_max, tc)
 		capdns = capdns_setup();
 
 		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) INT_MAX) + 1000);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
 		ARGC_ARGV("-G", "1", "-s", "1", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 }
@@ -977,7 +976,7 @@ ATF_TC_BODY(privileged_option_sweep_max, tc)
 		ARGV_SET_FROM_EXPR(test_argv, 2, (unsigned long) (INT_MAX / 2));
 		options.f_sweep_max = false;
 		options.n_sweep_max = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_sweep_max == true);
 		ATF_REQUIRE(options.n_sweep_max == (INT_MAX / 2));
 		cap_close(capdns);
@@ -988,7 +987,7 @@ ATF_TC_BODY(privileged_option_sweep_max, tc)
 
 		options.f_sweep_max = false;
 		options.n_sweep_max = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_sweep_max == true);
 		ATF_REQUIRE(options.n_sweep_max == INT_MAX);
 		cap_close(capdns);
@@ -1007,7 +1006,7 @@ ATF_TC_BODY(unprivileged_option_sweep_max, tc)
 		capdns = capdns_setup();
 
 		options.n_sweep_max = DEFAULT_DATALEN_IPV4 + 123;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		options.n_sweep_max = DEFAULT_DATALEN_IPV4;
 		cap_close(capdns);
 	}
@@ -1016,7 +1015,7 @@ ATF_TC_BODY(unprivileged_option_sweep_max, tc)
 		capdns = capdns_setup();
 
 		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) DEFAULT_DATALEN_IPV4) + 1);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_NOPERM);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 }
@@ -1028,28 +1027,28 @@ ATF_TC_BODY(option_sweep_min, tc)
 		ARGC_ARGV("-g", "-1000", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
 		ARGC_ARGV("-g", "0", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
 		ARGC_ARGV("-g", "1", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
 		ARGC_ARGV("-g", "2", "-G", "1", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
@@ -1058,7 +1057,7 @@ ATF_TC_BODY(option_sweep_min, tc)
 
 		options.f_sweep_min = false;
 		options.n_sweep_min = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_sweep_min == true);
 		ATF_REQUIRE(options.n_sweep_min == 1);
 		cap_close(capdns);
@@ -1068,7 +1067,7 @@ ATF_TC_BODY(option_sweep_min, tc)
 		capdns = capdns_setup();
 
 		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) INT_MAX) + 1);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
@@ -1076,7 +1075,7 @@ ATF_TC_BODY(option_sweep_min, tc)
 		capdns = capdns_setup();
 
 		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) INT_MAX) + 1000);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 }
@@ -1096,7 +1095,7 @@ ATF_TC_BODY(privileged_option_sweep_min, tc)
 		ARGV_SET_FROM_EXPR(test_argv, 4, (unsigned long) (INT_MAX / 2));
 		options.f_sweep_min = false;
 		options.n_sweep_min = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_sweep_min == true);
 		ATF_REQUIRE(options.n_sweep_min == (INT_MAX / 2));
 		cap_close(capdns);
@@ -1107,7 +1106,7 @@ ATF_TC_BODY(privileged_option_sweep_min, tc)
 
 		options.f_sweep_min = false;
 		options.n_sweep_min = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_sweep_min == true);
 		ATF_REQUIRE(options.n_sweep_min == INT_MAX);
 		cap_close(capdns);
@@ -1127,7 +1126,7 @@ ATF_TC_BODY(unprivileged_option_sweep_min, tc)
 		capdns = capdns_setup();
 
 		options.n_sweep_min = DEFAULT_DATALEN_IPV4 + 123;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		options.n_sweep_min = DEFAULT_DATALEN_IPV4;
 		cap_close(capdns);
 	}
@@ -1138,7 +1137,7 @@ ATF_TC_BODY(unprivileged_option_sweep_min, tc)
 
 		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) DEFAULT_DATALEN_IPV4) + 1);
 		ARGV_SET_FROM_EXPR(test_argv, 4, ((unsigned long) DEFAULT_DATALEN_IPV4) + 1);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_NOPERM);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 }
@@ -1152,7 +1151,7 @@ ATF_TC_BODY(option_sweep_incr, tc)
 
 		options.f_sweep_incr = true;
 		options.n_sweep_incr = DEFAULT_SWEEP_INCR + 123;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_sweep_incr == false);
 		ATF_REQUIRE(options.n_sweep_incr == DEFAULT_SWEEP_INCR);
 		cap_close(capdns);
@@ -1161,21 +1160,21 @@ ATF_TC_BODY(option_sweep_incr, tc)
 		ARGC_ARGV("-h", "-1000", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
 		ARGC_ARGV("-h", "0", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
 		ARGC_ARGV("-h", "1", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
@@ -1184,7 +1183,7 @@ ATF_TC_BODY(option_sweep_incr, tc)
 
 		options.f_sweep_incr = false;
 		options.n_sweep_incr = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_sweep_incr == true);
 		ATF_REQUIRE(options.n_sweep_incr == 1);
 		cap_close(capdns);
@@ -1194,7 +1193,7 @@ ATF_TC_BODY(option_sweep_incr, tc)
 		capdns = capdns_setup();
 
 		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) INT_MAX) + 1);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
@@ -1202,7 +1201,7 @@ ATF_TC_BODY(option_sweep_incr, tc)
 		capdns = capdns_setup();
 
 		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) INT_MAX) + 1000);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 }
@@ -1221,7 +1220,7 @@ ATF_TC_BODY(privileged_option_sweep_incr, tc)
 		ARGV_SET_FROM_EXPR(test_argv, 2, (unsigned long) (INT_MAX / 2));
 		options.f_sweep_incr = false;
 		options.n_sweep_incr = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_sweep_incr == true);
 		ATF_REQUIRE(options.n_sweep_incr == (INT_MAX / 2));
 		cap_close(capdns);
@@ -1232,7 +1231,7 @@ ATF_TC_BODY(privileged_option_sweep_incr, tc)
 
 		options.f_sweep_incr = false;
 		options.n_sweep_incr = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_sweep_incr == true);
 		ATF_REQUIRE(options.n_sweep_incr == INT_MAX);
 		cap_close(capdns);
@@ -1252,7 +1251,7 @@ ATF_TC_BODY(unprivileged_option_sweep_incr, tc)
 		capdns = capdns_setup();
 
 		options.n_sweep_incr = DEFAULT_DATALEN_IPV4 + 123;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		options.n_sweep_incr = DEFAULT_DATALEN_IPV4;
 		cap_close(capdns);
 	}
@@ -1263,7 +1262,7 @@ ATF_TC_BODY(unprivileged_option_sweep_incr, tc)
 
 		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) DEFAULT_DATALEN_IPV4) + 1);
 		ARGV_SET_FROM_EXPR(test_argv, 4, ((unsigned long) DEFAULT_DATALEN_IPV4) + 1);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_NOPERM);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 }
@@ -1275,7 +1274,7 @@ ATF_TC_BODY(option_mask_time, tc)
 		ARGC_ARGV("-M", "x", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
@@ -1283,7 +1282,7 @@ ATF_TC_BODY(option_mask_time, tc)
 		capdns = capdns_setup();
 
 		options.f_mask= false;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_mask == true);
 		cap_close(capdns);
 	}
@@ -1292,7 +1291,7 @@ ATF_TC_BODY(option_mask_time, tc)
 		capdns = capdns_setup();
 
 		options.f_mask= false;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_mask == true);
 		cap_close(capdns);
 	}
@@ -1301,7 +1300,7 @@ ATF_TC_BODY(option_mask_time, tc)
 		capdns = capdns_setup();
 
 		options.f_time= false;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_time == true);
 		cap_close(capdns);
 	}
@@ -1310,7 +1309,7 @@ ATF_TC_BODY(option_mask_time, tc)
 		capdns = capdns_setup();
 
 		options.f_time= false;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_time == true);
 		cap_close(capdns);
 	}
@@ -1320,7 +1319,7 @@ ATF_TC_BODY(option_mask_time, tc)
 
 		options.f_mask = false;
 		options.f_time = false;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_mask == true);
 		ATF_REQUIRE(options.f_time == false);
 		cap_close(capdns);
@@ -1331,7 +1330,7 @@ ATF_TC_BODY(option_mask_time, tc)
 
 		options.f_mask = false;
 		options.f_time = false;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_mask == false);
 		ATF_REQUIRE(options.f_time == true);
 		cap_close(capdns);
@@ -1340,7 +1339,7 @@ ATF_TC_BODY(option_mask_time, tc)
 		ARGC_ARGV("-M", "m", "-M", "t", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 }
@@ -1352,14 +1351,14 @@ ATF_TC_BODY(option_ttl, tc)
 		ARGC_ARGV("-m", "-1000", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
 		ARGC_ARGV("-m", "-1", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
@@ -1368,7 +1367,7 @@ ATF_TC_BODY(option_ttl, tc)
 
 		options.f_ttl = false;
 		options.n_ttl = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_ttl == true);
 		ATF_REQUIRE(options.n_ttl == 0);
 		cap_close(capdns);
@@ -1380,7 +1379,7 @@ ATF_TC_BODY(option_ttl, tc)
 		ARGV_SET_FROM_EXPR(test_argv, 2, (unsigned long) (MAXTTL / 2));
 		options.f_ttl = false;
 		options.n_ttl = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_ttl == true);
 		ATF_REQUIRE(options.n_ttl == (MAXTTL / 2));
 		cap_close(capdns);
@@ -1391,7 +1390,7 @@ ATF_TC_BODY(option_ttl, tc)
 
 		options.f_ttl = false;
 		options.n_ttl = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_ttl == true);
 		ATF_REQUIRE(options.n_ttl == MAXTTL);
 		cap_close(capdns);
@@ -1401,7 +1400,7 @@ ATF_TC_BODY(option_ttl, tc)
 		capdns = capdns_setup();
 
 		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) MAXTTL) + 1);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
@@ -1409,7 +1408,7 @@ ATF_TC_BODY(option_ttl, tc)
 		capdns = capdns_setup();
 
 		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) MAXTTL) + 1000);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 }
@@ -1421,7 +1420,7 @@ ATF_TC_BODY(option_somewhat_quiet, tc)
 	capdns = capdns_setup();
 
 	options.f_somewhat_quiet = false;
-	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 	ATF_REQUIRE(options.f_somewhat_quiet == true);
 	cap_close(capdns);
 }
@@ -1433,7 +1432,7 @@ ATF_TC_BODY(option_rroute, tc)
 	capdns = capdns_setup();
 
 	options.f_rroute = false;
-	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 	ATF_REQUIRE(options.f_rroute == true);
 	cap_close(capdns);
 }
@@ -1445,7 +1444,7 @@ ATF_TC_BODY(option_so_dontroute, tc)
 	capdns = capdns_setup();
 
 	options.f_so_dontroute = false;
-	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 	ATF_REQUIRE(options.f_so_dontroute == true);
 	cap_close(capdns);
 }
@@ -1457,14 +1456,14 @@ ATF_TC_BODY(option_multicast_ttl, tc)
 		ARGC_ARGV("-T", "-1000", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
 		ARGC_ARGV("-T", "-1", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
@@ -1473,7 +1472,7 @@ ATF_TC_BODY(option_multicast_ttl, tc)
 
 		options.f_multicast_ttl = false;
 		options.n_multicast_ttl = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_multicast_ttl == true);
 		ATF_REQUIRE(options.n_multicast_ttl == 0);
 		cap_close(capdns);
@@ -1485,7 +1484,7 @@ ATF_TC_BODY(option_multicast_ttl, tc)
 		ARGV_SET_FROM_EXPR(test_argv, 2, (unsigned long) (MAXTTL / 2));
 		options.f_multicast_ttl = false;
 		options.n_multicast_ttl = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_multicast_ttl == true);
 		ATF_REQUIRE(options.n_multicast_ttl == (MAXTTL / 2));
 		cap_close(capdns);
@@ -1496,7 +1495,7 @@ ATF_TC_BODY(option_multicast_ttl, tc)
 
 		options.f_multicast_ttl = false;
 		options.n_multicast_ttl = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_multicast_ttl == true);
 		ATF_REQUIRE(options.n_multicast_ttl == MAXTTL);
 		cap_close(capdns);
@@ -1506,7 +1505,7 @@ ATF_TC_BODY(option_multicast_ttl, tc)
 		capdns = capdns_setup();
 
 		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) MAXTTL) + 1);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
@@ -1514,7 +1513,7 @@ ATF_TC_BODY(option_multicast_ttl, tc)
 		capdns = capdns_setup();
 
 		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) MAXTTL) + 1000);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 }
@@ -1526,14 +1525,14 @@ ATF_TC_BODY(option_tos, tc)
 		ARGC_ARGV("-z", "-1000", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
 		ARGC_ARGV("-z", "-1", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
@@ -1542,7 +1541,7 @@ ATF_TC_BODY(option_tos, tc)
 
 		options.f_tos = false;
 		options.n_tos = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_tos == true);
 		ATF_REQUIRE(options.n_tos == 0);
 		cap_close(capdns);
@@ -1554,7 +1553,7 @@ ATF_TC_BODY(option_tos, tc)
 		ARGV_SET_FROM_EXPR(test_argv, 2, (unsigned long) (MAX_TOS / 2));
 		options.f_tos = false;
 		options.n_tos = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_tos == true);
 		ATF_REQUIRE(options.n_tos == (MAX_TOS / 2));
 		cap_close(capdns);
@@ -1565,7 +1564,7 @@ ATF_TC_BODY(option_tos, tc)
 
 		options.f_tos = false;
 		options.n_tos = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_tos == true);
 		ATF_REQUIRE(options.n_tos == MAX_TOS);
 		cap_close(capdns);
@@ -1575,7 +1574,7 @@ ATF_TC_BODY(option_tos, tc)
 		capdns = capdns_setup();
 
 		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) MAX_TOS) + 1);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
@@ -1583,7 +1582,7 @@ ATF_TC_BODY(option_tos, tc)
 		capdns = capdns_setup();
 
 		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) MAX_TOS) + 1000);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 }
@@ -1596,7 +1595,7 @@ ATF_TC_BODY(option_protocol_ipv6, tc)
 	capdns = capdns_setup();
 
 	options.f_protocol_ipv6 = false;
-	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 	ATF_REQUIRE(options.f_protocol_ipv6 == true);
 	cap_close(capdns);
 }
@@ -1609,14 +1608,14 @@ ATF_TC_BODY(option_sock_buf_size, tc)
 		ARGC_ARGV("-b", "-1000", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
 		ARGC_ARGV("-b", "-1", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
@@ -1625,7 +1624,7 @@ ATF_TC_BODY(option_sock_buf_size, tc)
 
 		options.f_sock_buff_size = false;
 		options.n_sock_buff_size = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_sock_buff_size == true);
 		ATF_REQUIRE(options.n_sock_buff_size == 0);
 		cap_close(capdns);
@@ -1637,7 +1636,7 @@ ATF_TC_BODY(option_sock_buf_size, tc)
 		ARGV_SET_FROM_EXPR(test_argv, 2, (unsigned long) (INT_MAX / 2));
 		options.f_sock_buff_size = false;
 		options.n_sock_buff_size = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_sock_buff_size == true);
 		ATF_REQUIRE(options.n_sock_buff_size == (INT_MAX / 2));
 		cap_close(capdns);
@@ -1647,7 +1646,7 @@ ATF_TC_BODY(option_sock_buf_size, tc)
 		capdns = capdns_setup();
 		options.f_sock_buff_size = false;
 		options.n_sock_buff_size = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_sock_buff_size == true);
 		ATF_REQUIRE(options.n_sock_buff_size == INT_MAX);
 		cap_close(capdns);
@@ -1657,7 +1656,7 @@ ATF_TC_BODY(option_sock_buf_size, tc)
 		capdns = capdns_setup();
 
 		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) INT_MAX) + 1);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
@@ -1665,7 +1664,7 @@ ATF_TC_BODY(option_sock_buf_size, tc)
 		capdns = capdns_setup();
 
 		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) INT_MAX) + 1000);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 #else /* !SO_SNDBUF || !SO_RCVBUF */
@@ -1673,7 +1672,7 @@ ATF_TC_BODY(option_sock_buf_size, tc)
 		ARGC_ARGV("-b", "0", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 #endif /* SO_SNDBUF && SO_RCVBUF */
@@ -1686,14 +1685,14 @@ ATF_TC_BODY(option_hoplimit, tc)
 		ARGC_ARGV("-j", "-1000", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
 		ARGC_ARGV("-j", "-1", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
@@ -1702,7 +1701,7 @@ ATF_TC_BODY(option_hoplimit, tc)
 
 		options.f_hoplimit = false;
 		options.n_hoplimit = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_hoplimit == true);
 		ATF_REQUIRE(options.n_hoplimit == 0);
 		cap_close(capdns);
@@ -1714,7 +1713,7 @@ ATF_TC_BODY(option_hoplimit, tc)
 		ARGV_SET_FROM_EXPR(test_argv, 2, (unsigned long) (MAX_HOPLIMIT / 2));
 		options.f_hoplimit = false;
 		options.n_hoplimit = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_hoplimit == true);
 		ATF_REQUIRE(options.n_hoplimit == (MAX_HOPLIMIT / 2));
 		cap_close(capdns);
@@ -1725,7 +1724,7 @@ ATF_TC_BODY(option_hoplimit, tc)
 
 		options.f_hoplimit = false;
 		options.n_hoplimit = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_hoplimit == true);
 		ATF_REQUIRE(options.n_hoplimit == MAX_HOPLIMIT);
 		cap_close(capdns);
@@ -1735,7 +1734,7 @@ ATF_TC_BODY(option_hoplimit, tc)
 		capdns = capdns_setup();
 
 		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) MAX_HOPLIMIT) + 1);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
@@ -1743,7 +1742,7 @@ ATF_TC_BODY(option_hoplimit, tc)
 		capdns = capdns_setup();
 
 		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) MAX_HOPLIMIT) + 1000);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 }
@@ -1755,7 +1754,7 @@ ATF_TC_BODY(option_nodeaddr, tc)
 		ARGC_ARGV("-k", "aclsgX", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
@@ -1767,7 +1766,7 @@ ATF_TC_BODY(option_nodeaddr, tc)
 		options.f_subtypes = true;
 		options.f_nodeaddr = false;
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_fqdn == false);
 		ATF_REQUIRE(options.f_fqdn_old == false);
 		ATF_REQUIRE(options.f_subtypes == false);
@@ -1780,7 +1779,7 @@ ATF_TC_BODY(option_nodeaddr, tc)
 
 		options.f_nodeaddr_flag_all = false;
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_nodeaddr_flag_all == true);
 		cap_close(capdns);
 	}
@@ -1790,7 +1789,7 @@ ATF_TC_BODY(option_nodeaddr, tc)
 
 		options.f_nodeaddr_flag_compat = false;
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_nodeaddr_flag_compat == true);
 		cap_close(capdns);
 	}
@@ -1800,7 +1799,7 @@ ATF_TC_BODY(option_nodeaddr, tc)
 
 		options.f_nodeaddr_flag_compat = false;
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_nodeaddr_flag_compat == true);
 		cap_close(capdns);
 	}
@@ -1810,7 +1809,7 @@ ATF_TC_BODY(option_nodeaddr, tc)
 
 		options.f_nodeaddr_flag_linklocal = false;
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_nodeaddr_flag_linklocal == true);
 		cap_close(capdns);
 	}
@@ -1820,7 +1819,7 @@ ATF_TC_BODY(option_nodeaddr, tc)
 
 		options.f_nodeaddr_flag_linklocal = false;
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_nodeaddr_flag_linklocal == true);
 		cap_close(capdns);
 	}
@@ -1830,7 +1829,7 @@ ATF_TC_BODY(option_nodeaddr, tc)
 
 		options.f_nodeaddr_flag_sitelocal = false;
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_nodeaddr_flag_sitelocal == true);
 		cap_close(capdns);
 	}
@@ -1840,7 +1839,7 @@ ATF_TC_BODY(option_nodeaddr, tc)
 
 		options.f_nodeaddr_flag_sitelocal = false;
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_nodeaddr_flag_sitelocal == true);
 		cap_close(capdns);
 	}
@@ -1850,7 +1849,7 @@ ATF_TC_BODY(option_nodeaddr, tc)
 
 		options.f_nodeaddr_flag_global = false;
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_nodeaddr_flag_global == true);
 		cap_close(capdns);
 	}
@@ -1860,7 +1859,7 @@ ATF_TC_BODY(option_nodeaddr, tc)
 
 		options.f_nodeaddr_flag_global = false;
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_nodeaddr_flag_global == true);
 		cap_close(capdns);
 	}
@@ -1871,10 +1870,10 @@ ATF_TC_BODY(option_nodeaddr, tc)
 #ifdef NI_NODEADDR_FLAG_ANYCAST
 		options.f_nodeaddr_flag_anycast = false;
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_nodeaddr_flag_anycast == true);
 #else
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 #endif /* NI_NODEADDR_FLAG_ANYCAST */
 		cap_close(capdns);
 	}
@@ -1895,7 +1894,7 @@ ATF_TC_BODY(option_nodeaddr, tc)
 #ifdef NI_NODEADDR_FLAG_ANYCAST
 		options.f_nodeaddr_flag_anycast = false;
 #endif
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_nodeaddr_flag_all == true);
 		ATF_REQUIRE(options.f_nodeaddr_flag_compat == true);
 		ATF_REQUIRE(options.f_nodeaddr_flag_linklocal == true);
@@ -1917,7 +1916,7 @@ ATF_TC_BODY(option_nigroup, tc)
 
 		options.f_nigroup = true;
 		options.c_nigroup = -123;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_nigroup == false);
 		ATF_REQUIRE(options.c_nigroup == -1);
 		cap_close(capdns);
@@ -1929,7 +1928,7 @@ ATF_TC_BODY(option_nigroup, tc)
 		options.f_nigroup = false;
 		options.c_nigroup = 123;
 		options.target[0] = '\0';
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_nigroup == true);
 		/* Default value of c_nigroup is -1 and every -N
 		 * increments it. */
@@ -1944,7 +1943,7 @@ ATF_TC_BODY(option_nigroup, tc)
 		options.f_nigroup = false;
 		options.c_nigroup = 123;
 		options.target[0] = '\0';
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_nigroup == true);
 		ATF_REQUIRE(options.c_nigroup == 1);
 		ATF_REQUIRE_STREQ("ff02::2:65d0:d71e", options.target);
@@ -1957,7 +1956,7 @@ ATF_TC_BODY(option_nigroup, tc)
 		options.f_nigroup = false;
 		options.c_nigroup = 123;
 		options.target[0] = '\0';
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_nigroup == true);
 		ATF_REQUIRE(options.c_nigroup == 6);
 		ATF_REQUIRE_STREQ("ff02::2:65d0:d71e", options.target);
@@ -1974,7 +1973,7 @@ ATF_TC_BODY(option_use_min_mtu, tc)
 		capdns = capdns_setup();
 
 		options.c_use_min_mtu = 123;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.c_use_min_mtu == 1);
 		cap_close(capdns);
 	}
@@ -1983,7 +1982,7 @@ ATF_TC_BODY(option_use_min_mtu, tc)
 		capdns = capdns_setup();
 
 		options.c_use_min_mtu = 123;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.c_use_min_mtu == 2);
 		cap_close(capdns);
 	}
@@ -1992,7 +1991,7 @@ ATF_TC_BODY(option_use_min_mtu, tc)
 		capdns = capdns_setup();
 
 		options.c_use_min_mtu = 123;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.c_use_min_mtu == 7);
 		cap_close(capdns);
 	}
@@ -2001,7 +2000,7 @@ ATF_TC_BODY(option_use_min_mtu, tc)
 		ARGC_ARGV("-u", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 #endif /* IPV6_USE_MIN_MTU */
@@ -2019,7 +2018,7 @@ ATF_TC_BODY(option_fqdn, tc)
 	options.f_subtypes = true;
 	options.f_fqdn = false;
 
-	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 	ATF_REQUIRE(options.f_nodeaddr == false);
 	ATF_REQUIRE(options.f_fqdn_old == false);
 	ATF_REQUIRE(options.f_subtypes == false);
@@ -2038,7 +2037,7 @@ ATF_TC_BODY(option_fqdn_old, tc)
 	options.f_subtypes = true;
 	options.f_fqdn = true;
 
-	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 	ATF_REQUIRE(options.f_nodeaddr == false);
 	ATF_REQUIRE(options.f_fqdn_old == true);
 	ATF_REQUIRE(options.f_subtypes == false);
@@ -2057,7 +2056,7 @@ ATF_TC_BODY(option_subtypes, tc)
 	options.f_subtypes = false;
 	options.f_fqdn = true;
 
-	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 	ATF_REQUIRE(options.f_nodeaddr == false);
 	ATF_REQUIRE(options.f_fqdn_old == false);
 	ATF_REQUIRE(options.f_subtypes == true);
@@ -2074,7 +2073,7 @@ ATF_TC_BODY(option_policy, tc)
 		ARGC_ARGV("-P", "unknown", "localhost");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_USAGE);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 1);
 		cap_close(capdns);
 	}
 	{
@@ -2085,7 +2084,7 @@ ATF_TC_BODY(option_policy, tc)
 		options.s_policy_in = NULL;
 		options.s_policy_out = NULL;
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_policy == true);
 		ATF_REQUIRE_STREQ("in_policy_2", options.s_policy_in);
 		ATF_REQUIRE(options.s_policy_out == NULL);
@@ -2099,7 +2098,7 @@ ATF_TC_BODY(option_policy, tc)
 		options.s_policy_in = NULL;
 		options.s_policy_out = NULL;
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_policy == true);
 		ATF_REQUIRE(options.s_policy_in == NULL);
 		ATF_REQUIRE_STREQ("out_policy_2", options.s_policy_out);
@@ -2114,7 +2113,7 @@ ATF_TC_BODY(option_policy, tc)
 		options.s_policy_in = NULL;
 		options.s_policy_out = NULL;
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 		ATF_REQUIRE(options.f_policy == true);
 		ATF_REQUIRE_STREQ("in_policy", options.s_policy_in);
 		ATF_REQUIRE_STREQ("out_policy", options.s_policy_out);
@@ -2129,7 +2128,7 @@ ATF_TC_BODY(option_authhdr, tc)
 	capdns = capdns_setup();
 
 	options.f_authhdr = false;
-	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 	ATF_REQUIRE(options.f_authhdr == true);
 	cap_close(capdns);
 }
@@ -2141,7 +2140,7 @@ ATF_TC_BODY(option_encrypt, tc)
 	capdns = capdns_setup();
 
 	options.f_encrypt = false;
-	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == EX_OK);
+	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == 0);
 	ATF_REQUIRE(options.f_encrypt == true);
 	cap_close(capdns);
 }
