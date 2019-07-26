@@ -596,7 +596,7 @@ ping6_process_received_packet(const struct options *const options, struct shared
 	struct counters *const counters, struct timing *const timing)
 {
 	struct sockaddr_in6 from;
-	/* /\* For control (ancillary) data received from recvmsg() *\/ */
+	/* For control (ancillary) data received from recvmsg() */
 	struct cmsghdr cm[CONTROLLEN];
 
 	struct msghdr m;
