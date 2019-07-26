@@ -654,7 +654,7 @@ pr6_suptypes(const struct icmp6_nodeinfo *const ni, size_t nilen, bool verbose)
 		uint16_t words;	/*32bit count*/
 		uint16_t skip;
 	} cbit;
-#define MAXQTYPES	(1 << 16)
+	const size_t maxqtypes = (1 << 16);
 	size_t off;
 	int b;
 
@@ -676,7 +676,7 @@ pr6_suptypes(const struct icmp6_nodeinfo *const ni, size_t nilen, bool verbose)
 	while (cp < end) {
 		clen = (size_t)(end - cp);
 		if ((ni->ni_flags & NI_SUPTYPE_FLAG_COMPRESS) == 0) {
-			if (clen == 0 || clen > MAXQTYPES / 8 ||
+			if (clen == 0 || clen > maxqtypes / 8 ||
 			    clen % sizeof(v)) {
 				printf("???");
 				return;
@@ -691,7 +691,7 @@ pr6_suptypes(const struct icmp6_nodeinfo *const ni, size_t nilen, bool verbose)
 			cp += sizeof(cbit);
 			clen = ntohs(cbit.words) * sizeof(v);
 			if (cur + clen * 8 + (u_long)ntohs(cbit.skip) * 32 >
-			    MAXQTYPES)
+			    maxqtypes)
 				return;
 		}
 
