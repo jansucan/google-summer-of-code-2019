@@ -206,7 +206,6 @@ pr6_pack(int cc, const struct msghdr *mhdr, const struct options *const options,
     const struct shared_variables *const vars, const struct timing *const timing,
     double triptime)
 {
-#define safeputc(c)	printf((isprint((c)) ? "%c" : "\\%03o"), c)
 	struct icmp6_hdr *icp;
 	struct icmp6_nodeinfo *ni;
 	int i;
@@ -324,7 +323,8 @@ pr6_pack(int cc, const struct msghdr *mhdr, const struct options *const options,
 			if (oldfqdn) {
 				cp++;	/* skip length */
 				while (cp < end) {
-					safeputc(*cp & 0xff);
+					const int c = *cp & 0xff;
+					printf((isprint(c) ? "%c" : "\\%03o"), c);
 					cp++;
 				}
 			} else {
@@ -431,7 +431,6 @@ pr6_pack(int cc, const struct msghdr *mhdr, const struct options *const options,
 			pr6_exthdrs(mhdr);
 		(void)fflush(stdout);
 	}
-#undef safeputc
 }
 
 static void
