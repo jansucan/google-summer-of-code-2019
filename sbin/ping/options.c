@@ -455,7 +455,7 @@ options_parse(int argc, char **argv, struct options *const options, cap_channel_
 					 */
 					free(options->s_policy_in);
 				if ((options->s_policy_in = strdup(optarg)) == NULL) {
-					print_error("strdup");
+					print_error_strerr("strdup");
 					return (false);
 				}
 			} else if (!strncmp("out", optarg, 3)) {
@@ -467,7 +467,7 @@ options_parse(int argc, char **argv, struct options *const options, cap_channel_
 					 */
 					free(options->s_policy_out);
 				if ((options->s_policy_out = strdup(optarg)) == NULL) {
-					print_error("strdup");
+					print_error_strerr("strdup");
 					return (false);
 				}
 			} else {
