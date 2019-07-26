@@ -52,8 +52,6 @@ __FBSDID("$FreeBSD$");
 #include "options.h"
 #include "defaults_limits.h"
 #include "utils.h"
-/* TODO: Move into options_strtonum()? */
-#define OPTIONS_STRTONUM_ERRBUF_SIZE 72
 
 #define OPSTR_COMMON        "Aac:DdfI:i:l:nop:qS:s:t:vW:"
 #define OPSTR_IPV4          "4G:g:h:LM:m:QRrT:z:"
@@ -1026,7 +1024,8 @@ options_strtonum(const char *const str, long long minval,
 {
 	assert(minval <= maxval);
 
-	static char errbuf[OPTIONS_STRTONUM_ERRBUF_SIZE];
+	const int errbuf_size = 72;
+	static char errbuf[errbuf_size];
 	char *ep;
 	const long long val = strtoll(str, &ep, 0);
 	int r;
@@ -1036,18 +1035,18 @@ options_strtonum(const char *const str, long long minval,
 	r = 0;
 
 	if (!(*str != '\0' && *ep == '\0'))
-		r = snprintf(errbuf, OPTIONS_STRTONUM_ERRBUF_SIZE,
+		r = snprintf(errbuf, errbuf_size,
 		    "invalid character `%c'", *ep);
 	else if	(val == 0 && errno == EINVAL)
-		r = snprintf(errbuf, OPTIONS_STRTONUM_ERRBUF_SIZE, "invalid");
+		r = snprintf(errbuf, errbuf_size, "invalid");
 	else if	((val == LLONG_MIN && errno == ERANGE) || val < minval)
-		r = snprintf(errbuf, OPTIONS_STRTONUM_ERRBUF_SIZE,
+		r = snprintf(errbuf, errbuf_size,
 		    "too small, outside range [%lld, %lld]", minval, maxval);
 	else if	((val == LLONG_MAX && errno == ERANGE) || val > maxval)
-		r = snprintf(errbuf, OPTIONS_STRTONUM_ERRBUF_SIZE,
+		r = snprintf(errbuf, errbuf_size,
 		    "too large, outside range [%lld, %lld]", minval, maxval);
 
-	if ((r < 0) || (r >= OPTIONS_STRTONUM_ERRBUF_SIZE)) {
+	if ((r < 0) || (r >= errbuf_size)) {
 		print_error("snprintf() %s",
 		    (r < 0) ? "error" : "buffer too small");
 		/* End the program if snprintf() fails. */
