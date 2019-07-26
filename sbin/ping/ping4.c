@@ -219,12 +219,9 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	 * namespaces (e.g filesystem) is restricted (see capsicum(4)).
 	 * We must connect(2) our socket before this point.
 	 */
-	if (!cap_enter_capability_mode())
-		return (false);
-
-	if (!cap_limit_socket(vars->socket_recv, RIGHTS_RECV_EVENT_SETSOCKOPT))
-		return (false);
-	if (!cap_limit_socket(vars->socket_send, RIGHTS_SEND_SETSOCKOPT))
+	if (!cap_enter_capability_mode() ||
+	    !cap_limit_socket(vars->socket_recv, RIGHTS_RECV_EVENT_SETSOCKOPT) ||
+	    !cap_limit_socket(vars->socket_send, RIGHTS_SEND_SETSOCKOPT))
 		return (false);
 
 #ifdef IP_OPTIONS
