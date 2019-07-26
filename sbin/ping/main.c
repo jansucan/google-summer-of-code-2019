@@ -56,32 +56,16 @@ main(int argc, char *argv[])
 	struct counters counters;
 	struct timing timing;
 
-	if ((vars.capdns = capdns_setup()) == NULL)
-	       return (1);
-
-	if (!options_parse(argc, argv, &options, vars.capdns))
-		return (1);
-
-	/* Initialization. */
-	if (!ping_init(&options, &vars, &counters, &timing))
-		return (1);
-
-	if (!signals_setup(&options, &vars))
-		return (1);
-
-	/* Main. */
-	if (!ping_send_initial_packets(&options, &vars, &counters, &timing))
-		return (1);
-
-	if (!ping_loop(&options, &vars, &counters, &timing, &signal_vars))
-		return (1);
-
-	/* Cleanup. */
-	if (!signals_cleanup())
+	if (((vars.capdns = capdns_setup()) == NULL) ||
+	    !options_parse(argc, argv, &options, vars.capdns) ||
+	    !ping_init(&options, &vars, &counters, &timing) ||
+	    !signals_setup(&options, &vars) ||
+	    !ping_send_initial_packets(&options, &vars, &counters, &timing) ||
+	    !ping_loop(&options, &vars, &counters, &timing, &signal_vars) ||
+	    !signals_cleanup())
 		return (1);
 
 	ping_print_summary(&options, &counters, &timing);
-
 	ping_free(&options, &vars);
 
 	return ((counters.received != 0) ? 0 : 2);
