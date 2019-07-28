@@ -16,7 +16,7 @@ SRCS.options_no_loop_test=	options_no_loop_test.c cap_getaddrinfo.c ../../cap.c 
 SRCS.options_source_test=	options_source_test.c cap_getaddrinfo.c ../../cap.c ../../options.c ../../utils.c
 
 .if ${MK_INET6_SUPPORT} != "no"
-CFLAGS+= -DINET6 -DKAME_SCOPEID
+CFLAGS+= -DINET6
 ATF_TESTS_C+=	options_gateway_test
 SRCS.options_gateway_test=	options_gateway_test.c cap_getaddrinfo.c ../../cap.c ../../options.c ../../utils.c
 SRCS.options_interface_test+=	if_nametoindex.c

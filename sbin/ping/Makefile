@@ -13,7 +13,7 @@ WARNS?=	3
 LIBADD=	m
 
 .if ${MK_INET6_SUPPORT} != "no"
-CFLAGS+= -DINET6 -DKAME_SCOPEID
+CFLAGS+= -DINET6
 SRCS+= ping6.c ping6_print.c
 LIBADD+=	md
 .endif
