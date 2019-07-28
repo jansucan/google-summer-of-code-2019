@@ -126,11 +126,10 @@ ping_init(struct options *const options, struct shared_variables *const vars,
 	/*
 	 * Do protocol-specific initialization.
 	 */
-	if (options->target_type == TARGET_IPV4) {
+	if (options->target_type == TARGET_IPV4)
 		return (ping4_init(options, vars, counters, timing));
-	} else {
+	else
 		return (ping6_init(options, vars, timing));
-	}
 }
 
 void
