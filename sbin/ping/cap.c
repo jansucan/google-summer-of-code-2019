@@ -125,3 +125,25 @@ cap_enter_capability_mode(void)
 	}
 	return (true);
 }
+
+bool
+cap_limit_stdio(void)
+{
+	cap_rights_t r;
+
+	cap_rights_init(&r);
+
+	if (caph_rights_limit(STDIN_FILENO, &r) < 0) {
+		print_error_strerr("cap_rights_limit stdin");
+		return (false);
+	}
+	if (caph_limit_stdout() < 0) {
+		print_error_strerr("caph_limit_stdout");
+		return (false);
+	}
+	if (caph_limit_stderr() < 0) {
+		print_error_strerr("caph_limit_stderr");
+		return (false);
+	}
+	return (true);
+}

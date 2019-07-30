@@ -522,7 +522,8 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 	 */
 	if (!cap_enter_capability_mode() ||
 	    !cap_limit_socket(vars->socket_recv, RIGHTS_RECV_EVENT_SETSOCKOPT) ||
-	    !cap_limit_socket(vars->socket_send, RIGHTS_SEND_SETSOCKOPT))
+	    !cap_limit_socket(vars->socket_send, RIGHTS_SEND_SETSOCKOPT) ||
+	    !cap_limit_stdio())
 		return (false);
 
 #if defined(SO_SNDBUF) && defined(SO_RCVBUF)

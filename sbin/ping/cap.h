@@ -49,5 +49,6 @@ cap_channel_t *capdns_setup(void);
 bool capdns_limit_family(cap_channel_t *const capdns, int family);
 bool capdns_limit_type(cap_channel_t *const capdns, const char *const type);
 bool cap_enter_capability_mode(void);
+bool cap_limit_stdio(void);
 
 #endif
