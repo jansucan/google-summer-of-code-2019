@@ -61,6 +61,7 @@ ATF_TC_BODY(option_interface, tc)
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == false);
 		cap_close(capdns);
+		options_free(&options);
 	}
 	{
 		ARGC_ARGV("-I", "1.2.3.4", "host_ipv4");
@@ -68,6 +69,7 @@ ATF_TC_BODY(option_interface, tc)
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == false);
 		cap_close(capdns);
+		options_free(&options);
 	}
 	{
 		ARGC_ARGV("-I", "1.2.3.4", "multicast_ipv4");
@@ -81,6 +83,7 @@ ATF_TC_BODY(option_interface, tc)
 		ATF_REQUIRE_STREQ("1.2.3.4", options.s_interface);
 		ATF_REQUIRE(options.interface.ifaddr.s_addr == inet_addr("1.2.3.4"));
 		cap_close(capdns);
+		options_free(&options);
 	}
 #ifdef INET6
 	{
@@ -89,6 +92,7 @@ ATF_TC_BODY(option_interface, tc)
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == false);
 		cap_close(capdns);
+		options_free(&options);
 	}
 	{
 		ARGC_ARGV("-I", "interface0", "host_ipv6");
@@ -109,6 +113,7 @@ ATF_TC_BODY(option_interface, tc)
 #endif
 
 		cap_close(capdns);
+		options_free(&options);
 	}
 #endif	/* INET6 */
 }

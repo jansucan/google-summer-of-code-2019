@@ -56,6 +56,7 @@ ATF_TC_BODY(target, tc)
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == false);
 		cap_close(capdns);
+		options_free(&options);
 	}
 	{
 		ARGC_ARGV("host_ipv4");
@@ -69,6 +70,7 @@ ATF_TC_BODY(target, tc)
 		ATF_REQUIRE(options.target_addrinfo->ai_family == AF_INET);
 		ATF_REQUIRE(options.target_type == TARGET_IPV4);
 		cap_close(capdns);
+		options_free(&options);
 	}
 	{
 		ARGC_ARGV("127.0.0.1");
@@ -82,6 +84,7 @@ ATF_TC_BODY(target, tc)
 		ATF_REQUIRE(options.target_addrinfo->ai_family == AF_INET);
 		ATF_REQUIRE(options.target_type == TARGET_IPV4);
 		cap_close(capdns);
+		options_free(&options);
 	}
 	{
 		ARGC_ARGV("-4", "host_ipv4");
@@ -95,6 +98,7 @@ ATF_TC_BODY(target, tc)
 		ATF_REQUIRE(options.target_addrinfo->ai_family == AF_INET);
 		ATF_REQUIRE(options.target_type == TARGET_IPV4);
 		cap_close(capdns);
+		options_free(&options);
 	}
 	{
 		ARGC_ARGV("-4", "host_ipv4_with_canonname");
@@ -108,6 +112,7 @@ ATF_TC_BODY(target, tc)
 		ATF_REQUIRE(options.target_addrinfo->ai_family == AF_INET);
 		ATF_REQUIRE(options.target_type == TARGET_IPV4);
 		cap_close(capdns);
+		options_free(&options);
 	}
 	{
 		ARGC_ARGV("-4", "127.0.0.1");
@@ -121,6 +126,7 @@ ATF_TC_BODY(target, tc)
 		ATF_REQUIRE(options.target_addrinfo->ai_family == AF_INET);
 		ATF_REQUIRE(options.target_type == TARGET_IPV4);
 		cap_close(capdns);
+		options_free(&options);
 	}
 #ifdef INET6
 	{
@@ -129,6 +135,7 @@ ATF_TC_BODY(target, tc)
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == false);
 		cap_close(capdns);
+		options_free(&options);
 	}
 	{
 		ARGC_ARGV("-4", "-e", "localhost");
@@ -136,6 +143,7 @@ ATF_TC_BODY(target, tc)
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == false);
 		cap_close(capdns);
+		options_free(&options);
 	}
 	{
 		ARGC_ARGV("host_ipv6");
@@ -149,6 +157,7 @@ ATF_TC_BODY(target, tc)
 		ATF_REQUIRE(options.target_addrinfo->ai_family == AF_INET6);
 		ATF_REQUIRE(options.target_type == TARGET_IPV6);
 		cap_close(capdns);
+		options_free(&options);
 	}
 	{
 		ARGC_ARGV("::1");
@@ -162,6 +171,7 @@ ATF_TC_BODY(target, tc)
 		ATF_REQUIRE(options.target_addrinfo->ai_family == AF_INET6);
 		ATF_REQUIRE(options.target_type == TARGET_IPV6);
 		cap_close(capdns);
+		options_free(&options);
 	}
 	{
 		ARGC_ARGV("-6", "host_ipv6");
@@ -175,6 +185,7 @@ ATF_TC_BODY(target, tc)
 		ATF_REQUIRE(options.target_addrinfo->ai_family == AF_INET6);
 		ATF_REQUIRE(options.target_type == TARGET_IPV6);
 		cap_close(capdns);
+		options_free(&options);
 	}
 	{
 		ARGC_ARGV("-6", "host_ipv6_with_canonname");
@@ -188,6 +199,7 @@ ATF_TC_BODY(target, tc)
 		ATF_REQUIRE(options.target_addrinfo->ai_family == AF_INET6);
 		ATF_REQUIRE(options.target_type == TARGET_IPV6);
 		cap_close(capdns);
+		options_free(&options);
 	}
 	{
 		ARGC_ARGV("-6", "::1");
@@ -201,6 +213,7 @@ ATF_TC_BODY(target, tc)
 		ATF_REQUIRE(options.target_addrinfo->ai_family == AF_INET6);
 		ATF_REQUIRE(options.target_type == TARGET_IPV6);
 		cap_close(capdns);
+		options_free(&options);
 	}
 	{
 		ARGC_ARGV("-4", "host_ipv6");
@@ -208,6 +221,7 @@ ATF_TC_BODY(target, tc)
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == false);
 		cap_close(capdns);
+		options_free(&options);
 	}
 	{
 		ARGC_ARGV("-6", "host_ipv4");
@@ -215,6 +229,7 @@ ATF_TC_BODY(target, tc)
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == false);
 		cap_close(capdns);
+		options_free(&options);
 	}
 	{
 		ARGC_ARGV("-6", "host_ipv4_ipv6");
@@ -228,6 +243,7 @@ ATF_TC_BODY(target, tc)
 		ATF_REQUIRE(options.target_addrinfo->ai_family == AF_INET6);
 		ATF_REQUIRE(options.target_type == TARGET_IPV6);
 		cap_close(capdns);
+		options_free(&options);
 	}
 		{
 		ARGC_ARGV("-4", "host_ipv6_ipv4");
@@ -241,6 +257,7 @@ ATF_TC_BODY(target, tc)
 		ATF_REQUIRE(options.target_addrinfo->ai_family == AF_INET);
 		ATF_REQUIRE(options.target_type == TARGET_IPV4);
 		cap_close(capdns);
+		options_free(&options);
 	}
 #endif	/* IENT6 */
 }
@@ -254,6 +271,7 @@ ATF_TC_BODY(hops, tc)
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == false);
 		cap_close(capdns);
+		options_free(&options);
 	}
 #ifdef INET6
 	{
@@ -262,6 +280,7 @@ ATF_TC_BODY(hops, tc)
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == false);
 		cap_close(capdns);
+		options_free(&options);
 	}
 	{
 		ARGC_ARGV("host_ipv6", "host_ipv4", "host_ipv6");
@@ -269,6 +288,7 @@ ATF_TC_BODY(hops, tc)
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == false);
 		cap_close(capdns);
+		options_free(&options);
 	}
  	{
 		ARGC_ARGV("host_ipv6", "::1", "host_ipv6");
@@ -291,6 +311,7 @@ ATF_TC_BODY(hops, tc)
 		ATF_REQUIRE(options.hops_addrinfo[1] != NULL);
 		ATF_REQUIRE(options.hops_addrinfo[1]->ai_family == AF_INET6);
 		cap_close(capdns);
+		options_free(&options);
 	}
 #endif	/* INET6 */
 }

@@ -56,6 +56,7 @@ ATF_TC_BODY(option_source, tc)
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == false);
 		cap_close(capdns);
+		options_free(&options);
 	}
 	{
 		ARGC_ARGV("-S", "host_ipv4", "host_ipv4");
@@ -69,6 +70,7 @@ ATF_TC_BODY(option_source, tc)
 		ATF_REQUIRE(options.source_sockaddr.in.sin_family == AF_INET);
 		ATF_REQUIRE(options.source_sockaddr.in.sin_len == sizeof(struct sockaddr_in));
 		cap_close(capdns);
+		options_free(&options);
 	}
 #ifdef INET6
 	{
@@ -83,6 +85,7 @@ ATF_TC_BODY(option_source, tc)
 		ATF_REQUIRE(options.source_sockaddr.in6.sin6_family == AF_INET6);
 		ATF_REQUIRE(options.source_sockaddr.in6.sin6_len == sizeof(struct sockaddr_in6));
 		cap_close(capdns);
+		options_free(&options);
 	}
 #endif	/* INET6 */
 }

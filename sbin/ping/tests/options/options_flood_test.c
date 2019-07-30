@@ -55,6 +55,7 @@ ATF_TC_BODY(option_flood, tc)
 
 	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == false);
 	cap_close(capdns);
+	options_free(&options);
 }
 
 ATF_TC(privileged_option_flood);
@@ -72,6 +73,7 @@ ATF_TC_BODY(privileged_option_flood, tc)
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == true);
 		ATF_REQUIRE(options.f_flood == true);
 		cap_close(capdns);
+		options_free(&options);
 	}
 	{
 		ARGC_ARGV("-f", "multicast_ipv4");
@@ -79,6 +81,7 @@ ATF_TC_BODY(privileged_option_flood, tc)
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == false);
 		cap_close(capdns);
+		options_free(&options);
 	}
 }
 
@@ -96,6 +99,7 @@ ATF_TC_BODY(unprivileged_option_flood, tc)
 	ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == false);
 	ATF_REQUIRE(options.f_flood == true);
 	cap_close(capdns);
+	options_free(&options);
 }
 
 /*

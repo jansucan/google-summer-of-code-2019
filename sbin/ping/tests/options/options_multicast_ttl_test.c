@@ -61,6 +61,7 @@ ATF_TC_BODY(option_multicast_ttl, tc)
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == false);
 		cap_close(capdns);
+		options_free(&options);
 	}
 	{
 		ARGC_ARGV("-T", "-1", "multicast_ipv4");
@@ -68,6 +69,7 @@ ATF_TC_BODY(option_multicast_ttl, tc)
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == false);
 		cap_close(capdns);
+		options_free(&options);
 	}
 	{
 		ARGC_ARGV("-T", "0", "host_ipv4");
@@ -75,6 +77,7 @@ ATF_TC_BODY(option_multicast_ttl, tc)
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == false);
 		cap_close(capdns);
+		options_free(&options);
 	}
 	{
 		ARGC_ARGV("-T", "0", "multicast_ipv4");
@@ -86,6 +89,7 @@ ATF_TC_BODY(option_multicast_ttl, tc)
 		ATF_REQUIRE(options.f_multicast_ttl == true);
 		ATF_REQUIRE(options.n_multicast_ttl == 0);
 		cap_close(capdns);
+		options_free(&options);
 	}
 	{
 		ARGC_ARGV("-T", "replaced_by_MAXTTL/2", "multicast_ipv4");
@@ -98,6 +102,7 @@ ATF_TC_BODY(option_multicast_ttl, tc)
 		ATF_REQUIRE(options.f_multicast_ttl == true);
 		ATF_REQUIRE(options.n_multicast_ttl == (MAXTTL / 2));
 		cap_close(capdns);
+		options_free(&options);
 	}
 	{
 		ARGC_ARGV("-T", DEFINED_NUM_TO_STR(MAXTTL), "multicast_ipv4");
@@ -109,6 +114,7 @@ ATF_TC_BODY(option_multicast_ttl, tc)
 		ATF_REQUIRE(options.f_multicast_ttl == true);
 		ATF_REQUIRE(options.n_multicast_ttl == MAXTTL);
 		cap_close(capdns);
+		options_free(&options);
 	}
 	{
 		ARGC_ARGV("-T", "replaced_by_MAXTTL+1", "multicast_ipv4");
@@ -117,6 +123,7 @@ ATF_TC_BODY(option_multicast_ttl, tc)
 		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) MAXTTL) + 1);
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == false);
 		cap_close(capdns);
+		options_free(&options);
 	}
 	{
 		ARGC_ARGV("-T", "replaced_by_MAXTTL+1000", "multicast_ipv4");
@@ -125,6 +132,7 @@ ATF_TC_BODY(option_multicast_ttl, tc)
 		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) MAXTTL) + 1000);
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == false);
 		cap_close(capdns);
+		options_free(&options);
 	}
 }
 

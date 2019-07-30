@@ -56,6 +56,7 @@ ATF_TC_BODY(option_gateway, tc)
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == false);
 		cap_close(capdns);
+		options_free(&options);
 	}
 	{
 		ARGC_ARGV("-e", "host_ipv6", "host_ipv6");
@@ -69,6 +70,7 @@ ATF_TC_BODY(option_gateway, tc)
 		ATF_REQUIRE(options.gateway_sockaddr_in6.sin6_family == AF_INET6);
 		ATF_REQUIRE(options.gateway_sockaddr_in6.sin6_len == sizeof(struct sockaddr_in6));
 		cap_close(capdns);
+		options_free(&options);
 	}
 }
 

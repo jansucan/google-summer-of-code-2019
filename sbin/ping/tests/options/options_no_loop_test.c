@@ -56,6 +56,7 @@ ATF_TC_BODY(option_no_loop, tc)
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == false);
 		cap_close(capdns);
+		options_free(&options);
 	}
 	{
 		ARGC_ARGV("-L", "multicast_ipv4");
@@ -65,6 +66,7 @@ ATF_TC_BODY(option_no_loop, tc)
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == true);
 		ATF_REQUIRE(options.f_no_loop == true);
 		cap_close(capdns);
+		options_free(&options);
 	}
 }
 
