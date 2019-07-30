@@ -133,7 +133,7 @@ cap_limit_stdio(void)
 
 	cap_rights_init(&r);
 
-	if (caph_rights_limit(STDIN_FILENO, &r) < 0) {
+	if (cap_rights_limit(STDIN_FILENO, &r) < 0) {
 		print_error_strerr("cap_rights_limit stdin");
 		return (false);
 	}
