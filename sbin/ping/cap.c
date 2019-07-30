@@ -87,7 +87,7 @@ capdns_setup(void)
 	}
 	types[0] = "NAME2ADDR";
 	types[1] = "ADDR2NAME";
-	if (cap_dns_type_limit(capdnsloc, types, 2) < 0) {
+	if (cap_dns_type_limit(capdnsloc, types, nitems(types)) < 0) {
 		print_error_strerr("unable to limit access to system.dns service");
 		return (NULL);
 	}
