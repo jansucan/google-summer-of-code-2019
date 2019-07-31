@@ -141,7 +141,7 @@ __FBSDID("$FreeBSD$");
 
 static int       get_pathmtu(const struct msghdr *const , const struct options *const,
     const struct sockaddr_in6 *const, cap_channel_t *const);
-static bool	 is_packet_valid(int, const struct msghdr *, const struct options *const,
+static bool	 is_packet_valid(int, const struct msghdr *const, const struct options *const,
     cap_channel_t *const);
 static void	 mark_packet_as_received(struct shared_variables *const);
 static u_short   get_node_address_flags(const struct options *const);
@@ -781,7 +781,7 @@ pinger6(struct options *const options, struct shared_variables *const vars,
 }
 
 static bool
-is_packet_valid(int cc, const struct msghdr *mhdr, const struct options *const options,
+is_packet_valid(int cc, const struct msghdr *const mhdr, const struct options *const options,
 	cap_channel_t *const capdns)
 {
 	struct sockaddr *from;

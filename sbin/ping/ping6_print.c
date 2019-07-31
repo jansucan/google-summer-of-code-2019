@@ -202,7 +202,7 @@ pingerlen(const struct options *const options, size_t sin6_addr_size)
  * program to be run without having intermingled output (or statistics!).
  */
 void
-pr6_pack(int cc, const struct msghdr *mhdr, const struct options *const options,
+pr6_pack(int cc, const struct msghdr *const mhdr, const struct options *const options,
     const struct shared_variables *const vars, const struct timing *const timing,
     double triptime)
 {

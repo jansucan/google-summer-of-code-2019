@@ -49,7 +49,7 @@ size_t		pingerlen(const struct options *const, size_t);
 const char	*pr6_addr(const struct sockaddr *const, int, bool, cap_channel_t *const);
 void		pr6_heading(const struct sockaddr_in6 *const, const struct sockaddr_in6 *const,
     const struct options *const, cap_channel_t *const);
-void	 	pr6_pack(int, const struct msghdr *, const struct options *const,
+void	 	pr6_pack(int, const struct msghdr *const, const struct options *const,
     const struct shared_variables *const, const struct timing *const, double);
 void	 	pr6_summary(const struct counters *const, const struct timing *const, const char *const);
 
