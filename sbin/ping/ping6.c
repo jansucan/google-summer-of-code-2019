@@ -174,7 +174,7 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		(struct sockaddr_in6 *) options->target_addrinfo->ai_addr;
 
 	if (options->f_ping_filled) {
-		fill((char *)datap,MAXDATALEN - 8 + sizeof(struct tv32) +
+		fill((char *)datap, MAXDATALEN - 8 + sizeof(struct tv32) +
 		    options->ping_filled_size, options);
 		if (!options->f_quiet)
 			print_fill_pattern((char *)datap,
@@ -382,13 +382,13 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 
 #ifdef IPV6_RECVRTHDR
 		if (setsockopt(vars->socket_recv, IPPROTO_IPV6, IPV6_RECVRTHDR,
-			&opton,	sizeof(opton))) {
+			&opton, sizeof(opton))) {
 			print_error_strerr("setsockopt(IPV6_RECVRTHDR)");
 			return (false);
 		}
 #else  /* old adv. API */
 		if (setsockopt(vars->socket_recv, IPPROTO_IPV6, IPV6_RTHDR,
-			&opton,	sizeof(opton))) {
+			&opton, sizeof(opton))) {
 			print_error_strerr("setsockopt(IPV6_RTHDR)");
 			return (false);
 		}

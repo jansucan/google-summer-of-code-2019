@@ -50,7 +50,7 @@ static struct options options;
 ATF_TC_WITHOUT_HEAD(option_flood);
 ATF_TC_BODY(option_flood, tc)
 {
-	ARGC_ARGV("-f", "-i", "1","host_ipv4");
+	ARGC_ARGV("-f", "-i", "1", "host_ipv4");
 	capdns = capdns_setup();
 
 	ATF_REQUIRE(options_parse(test_argc, test_argv, &options,

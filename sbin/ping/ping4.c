@@ -251,7 +251,7 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 		rspace[IPOPT_OFFSET] = IPOPT_MINOFF;
 		rspace[sizeof(rspace) - 1] = IPOPT_EOL;
 		if (setsockopt(vars->socket_send, IPPROTO_IP, IP_OPTIONS,
-			rspace,	sizeof(rspace)) < 0) {
+			rspace, sizeof(rspace)) < 0) {
 			print_error_strerr("setsockopt IP_OPTIONS");
 			return (false);
 		}

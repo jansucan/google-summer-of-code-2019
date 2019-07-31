@@ -467,7 +467,7 @@ ATF_TC_BODY(privileged_option_preload, tc)
 		options_free(&options);
 	}
 	{
-		ARGC_ARGV("-c", "(replaced_by_INT_MAX/2)-1","-l",
+		ARGC_ARGV("-c", "(replaced_by_INT_MAX/2)-1", "-l",
 		    "replaced_by_INT_MAX/2", "localhost");
 		capdns = capdns_setup();
 
@@ -485,7 +485,7 @@ ATF_TC_BODY(privileged_option_preload, tc)
 		options_free(&options);
 	}
 	{
-		ARGC_ARGV("-c", "(replaced_by_INT_MAX/2)+1","-l",
+		ARGC_ARGV("-c", "(replaced_by_INT_MAX/2)+1", "-l",
 		    "replaced_by_INT_MAX/2", "localhost");
 		capdns = capdns_setup();
 
@@ -2338,7 +2338,7 @@ ATF_TC_BODY(option_nigroup, tc)
 		options_free(&options);
 	}
 	{
-		ARGC_ARGV("-N", "-N" ,"localhost");
+		ARGC_ARGV("-N", "-N" , "localhost");
 		capdns = capdns_setup();
 
 		options.f_nigroup = false;
