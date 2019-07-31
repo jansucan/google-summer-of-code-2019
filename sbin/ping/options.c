@@ -114,7 +114,7 @@ options_free(struct options *const options)
 		freeaddrinfo(options->target_addrinfo_root);
 		options->target_addrinfo_root = NULL;
 	}
-
+#ifdef INET6
 	if (options->hops_addrinfo != NULL) {
 		for (unsigned i = 0; i < options->hop_count; ++i) {
 			if (options->hops_addrinfo[i] != NULL)
@@ -129,6 +129,7 @@ options_free(struct options *const options)
 		free(options->hops);
 		options->hops = NULL;
 	}
+#endif
 }
 
 bool
@@ -1007,7 +1008,7 @@ options_parse_hosts(int argc, char **argv, struct options *const options,
 			usage();
 			return (false);
 		}
-
+#ifdef INET6
 		options->hop_count = argc;
 		options->hops = (const char **)malloc(argc * sizeof(char *));
 		if (options->hops == NULL) {
@@ -1041,6 +1042,7 @@ options_parse_hosts(int argc, char **argv, struct options *const options,
 
 			options->hops[i] = argv[i];
 		}
+#endif	/* INET6 */
 	}
 
 	/*
@@ -1305,6 +1307,7 @@ usage(void)
 #endif
 	    "[-p pattern] [-S src_addr] [-s packetsize]\n"
 	    "            [-t timeout] [-W waittime] [IPv6 hops ...] "
-	    "IPv6-host\n");
+	    "IPv6-host"
 #endif	/* INET6 */
+	    "\n");
 }

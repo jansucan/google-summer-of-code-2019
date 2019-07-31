@@ -128,10 +128,18 @@ ping_init(struct options *const options, struct shared_variables *const vars,
 	/*
 	 * Do protocol-specific initialization.
 	 */
+#ifdef INET
+#ifdef INET6
 	if (options->target_type == TARGET_IPV4)
+#endif
 		return (ping4_init(options, vars, counters, timing));
+#endif
+#ifdef INET6
+#ifdef INET
 	else
+#endif
 		return (ping6_init(options, vars, timing));
+#endif
 }
 
 void
@@ -157,13 +165,26 @@ ping_send_initial_packets(struct options *const options,
     struct timing *const timing)
 {
 	while (options->n_preload--) {
+#ifdef INET
+#ifdef INET6
 		if (options->target_type == TARGET_IPV4) {
+#endif
 			if (!pinger(options, vars, counters, timing))
 				return (false);
-		} else {
+#ifdef INET6
+		}
+#endif
+#endif
+#ifdef INET6
+#ifdef INET
+		else {
+#endif
 			if (!pinger6(options, vars, counters, timing))
 				return (false);
+#ifdef INET
 		}
+#endif
+#endif
 	}
 
 	return (true);
@@ -188,12 +209,22 @@ ping_loop(struct options *const options, struct shared_variables *const vars,
 		bool is_ready, is_eintr;
 
 		if (signal_vars->siginfo) {
+#ifdef INET
+#ifdef INET6
 			if (options->target_type == TARGET_IPV4)
+#endif
 				pr_status(counters, timing);
+#endif
+#ifdef INET6
+#ifdef INET
 			else {
+#endif
 				pr6_summary(counters, timing, options->target);
 				continue;
+#ifdef INET
 			}
+#endif
+#endif
 			signal_vars->siginfo = false;
 		}
 
@@ -211,12 +242,18 @@ ping_loop(struct options *const options, struct shared_variables *const vars,
 			continue;
 		if (is_ready) {
 			bool next_iteration;
-
+#ifdef INET
+#ifdef INET6
 			if (options->target_type == TARGET_IPV4)
+#endif
 				next_iteration =
 					!ping4_process_received_packet(options,
 					    vars, counters, timing);
+#endif
+#ifdef INET6
+#ifdef INET
 			else {
+#endif
 				int r;
 
 				r = ping6_process_received_packet(options, vars,
@@ -224,8 +261,10 @@ ping_loop(struct options *const options, struct shared_variables *const vars,
 				if (r < 0)
 					return (false);
 				next_iteration = (r == 1);
+#ifdef INET
 			}
-
+#endif
+#endif
 			if (next_iteration)
 				continue;
 
@@ -239,15 +278,28 @@ ping_loop(struct options *const options, struct shared_variables *const vars,
 				update_sweep(options, vars, counters);
 			if ((options->n_packets == 0) ||
 			    (counters->transmitted < options->n_packets)) {
+#ifdef INET
+#ifdef INET6
 				if (options->target_type == TARGET_IPV4) {
+#endif
 					if (!pinger(options, vars, counters,
 						timing))
 						return (false);
-				} else {
+#ifdef INET6
+				}
+#endif
+#endif
+#ifdef INET6
+#ifdef INET
+				else {
+#endif
 					if (!pinger6(options, vars, counters,
 						timing))
 						return (false);
+#ifdef INET
 				}
+#endif
+#endif
 			} else {
 				if (almost_done)
 					break;
@@ -294,8 +346,16 @@ void
 ping_print_summary(struct options *const options,
     const struct counters *const counters, const struct timing *const timing)
 {
+#ifdef INET
+#ifdef INET6
 	if (options->target_type == TARGET_IPV4)
+#endif
 		pr_summary(counters, timing, options->target);
+#endif
+#ifdef INET6
+#ifdef INET
 	else
+#endif
 		pr6_summary(counters, timing, options->target);
+#endif
 }
