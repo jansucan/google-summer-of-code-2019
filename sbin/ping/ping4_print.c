@@ -40,9 +40,9 @@ __FBSDID("$FreeBSD$");
 
 static char *pr_addr(struct in_addr, cap_channel_t *const, bool);
 static char *pr_ntime(n_time);
-static void pr_icmph(const struct icmp *);
-static void pr_iph(const struct ip *);
-static void pr_retip(const struct ip *);
+static void pr_icmph(const struct icmp *const);
+static void pr_iph(const struct ip *const);
+static void pr_retip(const struct ip *const);
 
 /*
  * pr_pack --
@@ -300,7 +300,7 @@ pr_heading(const struct sockaddr_in *const target_sockaddr,
  *	Print a descriptive string about an ICMP header.
  */
 static void
-pr_icmph(const struct icmp *icp)
+pr_icmph(const struct icmp *const icp)
 {
 
 	switch(icp->icmp_type) {
@@ -447,7 +447,7 @@ pr_icmph(const struct icmp *icp)
  *	Print an IP header with options.
  */
 static void
-pr_iph(const struct ip *ip)
+pr_iph(const struct ip *const ip)
 {
 	struct in_addr ina;
 	const u_char *cp;
@@ -505,7 +505,7 @@ pr_addr(struct in_addr ina, cap_channel_t *const capdns, bool numeric)
  *	Dump some info on a returned (via ICMP) IP packet.
  */
 static void
-pr_retip(const struct ip *ip)
+pr_retip(const struct ip *const ip)
 {
 	const u_char *cp;
 	int hlen;
