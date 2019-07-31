@@ -37,6 +37,7 @@
 
 #include "options.h"
 
-bool ipsec_configure(int socket_send, int socket_recv, const struct options *const options);
+bool ipsec_configure(int socket_send, int socket_recv,
+    const struct options *const options);
 
 #endif

@@ -99,12 +99,16 @@ __FBSDID("$FreeBSD$");
 static u_short in_cksum(const u_short *const, int);
 static void get_triptime(const char *const, size_t, struct timeval *const,
     const struct shared_variables *const, bool);
-static bool is_packet_too_short(const char *const, size_t, const struct sockaddr_in *const, bool);
-static void mark_packet_as_received(const char *const, struct shared_variables *const);
+static bool is_packet_too_short(const char *const, size_t,
+    const struct sockaddr_in *const, bool);
+static void mark_packet_as_received(const char *const,
+    struct shared_variables *const);
 static void update_counters(const char *const, const struct timeval *const,
-    const struct options *const, const struct shared_variables *const, struct counters *const);
-static void update_timing(const char *const, size_t, const struct timeval *const,
-    const struct shared_variables *const, struct timing *const);
+    const struct options *const, const struct shared_variables *const,
+    struct counters *const);
+static void update_timing(const char *const, size_t,
+    const struct timeval *const, const struct shared_variables *const,
+    struct timing *const);
 
 bool
 ping4_init(struct options *const options, struct shared_variables *const vars,
@@ -116,7 +120,8 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	vars->icmp_type = ICMP_ECHO;
 	vars->icmp_type_rsp = ICMP_ECHOREPLY;
 
-	vars->target_sockaddr = (struct sockaddr_in *) options->target_addrinfo->ai_addr;
+	vars->target_sockaddr =
+		(struct sockaddr_in *) options->target_addrinfo->ai_addr;
 	vars->outpack = vars->outpackhdr + sizeof(struct ip);
 
 	if (options->f_mask) {
@@ -141,33 +146,38 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	const int maxpayload = IP_MAXPACKET - vars->icmp_len;
 
 	if (options->n_packet_size > maxpayload) {
-		print_error("packet size too large: %ld > %d", options->n_packet_size,
-		    maxpayload);
+		print_error("packet size too large: %ld > %d",
+		    options->n_packet_size, maxpayload);
 		return (false);
 	}
 	vars->send_len = vars->icmp_len + options->n_packet_size;
-	vars->datap = &vars->outpack[ICMP_MINLEN + vars->phdr_len + TIMEVAL_LEN];
+	vars->datap = &vars->outpack[ICMP_MINLEN + vars->phdr_len +
+	    TIMEVAL_LEN];
 	if (options->f_ping_filled) {
-		fill((char *)vars->datap, maxpayload - (TIMEVAL_LEN + options->ping_filled_size),
-		    options);
+		fill((char *)vars->datap, maxpayload -
+		    (TIMEVAL_LEN + options->ping_filled_size), options);
 		if (!options->f_quiet)
-			print_fill_pattern((char *)vars->datap, options->ping_filled_size);
+			print_fill_pattern((char *)vars->datap,
+			    options->ping_filled_size);
 	}
 
 	if ((options->f_source) &&
-	    (bind(vars->socket_send, (struct sockaddr *)&options->source_sockaddr.in,
+	    (bind(vars->socket_send,
+		(struct sockaddr *)&options->source_sockaddr.in,
 		sizeof(options->source_sockaddr.in)) == -1)) {
 		print_error_strerr("bind");
 		return (false);
 	}
 
-	if (connect(vars->socket_send, (const struct sockaddr *) vars->target_sockaddr,
+	if (connect(vars->socket_send,
+		(const struct sockaddr *) vars->target_sockaddr,
 		sizeof(*vars->target_sockaddr)) != 0) {
 		print_error_strerr("connect");
 		return (false);
 	}
 
-	if (options->n_packet_size >= TIMEVAL_LEN)	/* can we time transfer */
+	if (options->n_packet_size >= TIMEVAL_LEN)
+		/* can we time transfer */
 		timing->enabled = true;
 
 	if (!options->f_ping_filled)
@@ -176,8 +186,8 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 
 	hold = 1;
 	if (options->f_so_dontroute) {
-		if (setsockopt(vars->socket_send, SOL_SOCKET, SO_DONTROUTE, (char *)&hold,
-			sizeof(hold)) != 0) {
+		if (setsockopt(vars->socket_send, SOL_SOCKET, SO_DONTROUTE,
+			(char *)&hold, sizeof(hold)) != 0) {
 			print_error_strerr("setsockopt() SO_DONTROUTE");
 			return (false);
 		}
@@ -194,12 +204,14 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 			mib[2] = IPPROTO_IP;
 			mib[3] = IPCTL_DEFTTL;
 			sz = sizeof(options->n_ttl);
-			if (sysctl(mib, 4, &options->n_ttl, &sz, NULL, 0) == -1) {
+			if (sysctl(mib, 4, &options->n_ttl, &sz, NULL,
+				0) == -1) {
 				print_error_strerr("sysctl(net.inet.ip.ttl)");
 				return (false);
 			}
 		}
-		if (setsockopt(vars->socket_send, IPPROTO_IP, IP_HDRINCL, &hold, sizeof(hold)) != 0) {
+		if (setsockopt(vars->socket_send, IPPROTO_IP, IP_HDRINCL, &hold,
+			sizeof(hold)) != 0) {
 			print_error_strerr("setsockopt() IP_HDRINCL");
 			return (false);
 		}
@@ -210,7 +222,9 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 		ip->ip_off = htons(options->f_dont_fragment ? IP_DF : 0);
 		ip->ip_ttl = options->n_ttl;
 		ip->ip_p = IPPROTO_ICMP;
-		ip->ip_src.s_addr = options->f_source ? options->source_sockaddr.in.sin_addr.s_addr : INADDR_ANY;
+		ip->ip_src.s_addr = options->f_source ?
+			options->source_sockaddr.in.sin_addr.s_addr :
+			INADDR_ANY;
 		ip->ip_dst = vars->target_sockaddr->sin_addr;
         }
 
@@ -220,7 +234,8 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	 * We must connect(2) our socket before this point.
 	 */
 	if (!cap_enter_capability_mode() ||
-	    !cap_limit_socket(vars->socket_recv, RIGHTS_RECV_EVENT_SETSOCKOPT) ||
+	    !cap_limit_socket(vars->socket_recv,
+		RIGHTS_RECV_EVENT_SETSOCKOPT) ||
 	    !cap_limit_socket(vars->socket_send, RIGHTS_SEND_SETSOCKOPT) ||
 	    !cap_limit_stdio())
 		return (false);
@@ -235,8 +250,8 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 		rspace[IPOPT_OLEN] = sizeof(rspace) - 1;
 		rspace[IPOPT_OFFSET] = IPOPT_MINOFF;
 		rspace[sizeof(rspace) - 1] = IPOPT_EOL;
-		if (setsockopt(vars->socket_send, IPPROTO_IP, IP_OPTIONS, rspace,
-			sizeof(rspace)) < 0) {
+		if (setsockopt(vars->socket_send, IPPROTO_IP, IP_OPTIONS,
+			rspace,	sizeof(rspace)) < 0) {
 			print_error_strerr("setsockopt IP_OPTIONS");
 			return (false);
 		}
@@ -244,8 +259,8 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 #endif /* IP_OPTIONS */
 
 	if (options->f_ttl) {
-		if (setsockopt(vars->socket_send, IPPROTO_IP, IP_TTL, &options->n_ttl,
-		    sizeof(options->n_ttl)) < 0) {
+		if (setsockopt(vars->socket_send, IPPROTO_IP, IP_TTL,
+			&options->n_ttl, sizeof(options->n_ttl)) < 0) {
 			print_error_strerr("setsockopt IP_TTL");
 			return (false);
 		}
@@ -253,21 +268,23 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	if (options->f_no_loop) {
 		const unsigned char loop = 0;
 
-		if (setsockopt(vars->socket_send, IPPROTO_IP, IP_MULTICAST_LOOP, &loop,
-		    sizeof(loop)) < 0) {
+		if (setsockopt(vars->socket_send, IPPROTO_IP, IP_MULTICAST_LOOP,
+			&loop, sizeof(loop)) < 0) {
 			print_error_strerr("setsockopt IP_MULTICAST_LOOP");
 			return (false);
 		}
 	}
 	if (options->f_multicast_ttl) {
-		if (setsockopt(vars->socket_send, IPPROTO_IP, IP_MULTICAST_TTL, &options->n_multicast_ttl,
-		    sizeof(options->n_multicast_ttl)) < 0) {
+		if (setsockopt(vars->socket_send, IPPROTO_IP, IP_MULTICAST_TTL,
+			&options->n_multicast_ttl,
+			sizeof(options->n_multicast_ttl)) < 0) {
 			print_error_strerr("setsockopt IP_MULTICAST_TTL");
 			return (false);
 		}
 	}
 	if (options->f_interface) {
-		if (setsockopt(vars->socket_send, IPPROTO_IP, IP_MULTICAST_IF, &options->interface.ifaddr,
+		if (setsockopt(vars->socket_send, IPPROTO_IP, IP_MULTICAST_IF,
+			&options->interface.ifaddr,
 		    sizeof(options->interface.ifaddr)) < 0) {
 			print_error_strerr("setsockopt IP_MULTICAST_IF");
 			return (false);
@@ -275,7 +292,8 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	}
 #ifdef SO_TIMESTAMP
 	{ int on = 1;
-		if (setsockopt(vars->socket_recv, SOL_SOCKET, SO_TIMESTAMP, &on, sizeof(on)) < 0) {
+		if (setsockopt(vars->socket_recv, SOL_SOCKET, SO_TIMESTAMP, &on,
+			sizeof(on)) < 0) {
 			print_error_strerr("setsockopt SO_TIMESTAMP");
 			return (false);
 		}
@@ -313,8 +331,8 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	if (!cap_limit_socket(vars->socket_recv, RIGHTS_RECV_EVENT))
 		return (false);
 	if (getuid() == 0) {
-		if (setsockopt(vars->socket_send, SOL_SOCKET, SO_SNDBUF, (char *)&hold,
-			sizeof(hold)) != 0) {
+		if (setsockopt(vars->socket_send, SOL_SOCKET, SO_SNDBUF,
+			(char *)&hold, sizeof(hold)) != 0) {
 			print_error_strerr("setsockopt() SO_SNDBUF");
 			return (false);
 		}
@@ -339,8 +357,9 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 }
 
 bool
-ping4_process_received_packet(const struct options *const options, struct shared_variables *const vars,
-    struct counters *const counters, struct timing *const timing)
+ping4_process_received_packet(const struct options *const options,
+    struct shared_variables *const vars, struct counters *const counters,
+    struct timing *const timing)
 {
 	int cc;
 	struct timeval now;
@@ -373,11 +392,15 @@ ping4_process_received_packet(const struct options *const options, struct shared
 		}
 		tv = &now;
 	}
-	if (!is_packet_too_short((char *)vars->packet, cc, &vars->from, options->f_verbose)) {
-		get_triptime((char *)vars->packet, cc, tv, vars, timing->enabled);
+	if (!is_packet_too_short((char *)vars->packet, cc, &vars->from,
+		options->f_verbose)) {
+		get_triptime((char *)vars->packet, cc, tv, vars,
+		    timing->enabled);
 		update_timing((char *)vars->packet, cc, tv, vars, timing);
-		update_counters((char *)vars->packet, tv, options, vars, counters);
-		pr_pack((char *)vars->packet, cc, &vars->from, tv, options, vars, timing->enabled);
+		update_counters((char *)vars->packet, tv, options, vars,
+		    counters);
+		pr_pack((char *)vars->packet, cc, &vars->from, tv, options,
+		    vars, timing->enabled);
 		mark_packet_as_received((char *)vars->packet, vars);
 	}
 
@@ -443,7 +466,8 @@ pinger(const struct options *const options, struct shared_variables *const vars,
 				* 1000 + now.tv_usec / 1000);
 		if (timing->enabled)
 			bcopy((void *)&tv32,
-			    (void *)&vars->outpack[ICMP_MINLEN + vars->phdr_len],
+			    (void *)&vars->outpack[ICMP_MINLEN +
+				vars->phdr_len],
 			    sizeof(tv32));
 	}
 
@@ -500,8 +524,9 @@ is_packet_too_short(const char *const buf, size_t bufsize,
 }
 
 static void
-get_triptime(const char *const buf, size_t bufsize, struct timeval *const triptime,
-    const struct shared_variables *const vars, bool timing_enabled)
+get_triptime(const char *const buf, size_t bufsize,
+    struct timeval *const triptime, const struct shared_variables *const vars,
+    bool timing_enabled)
 {
 	const struct icmp *icp;
 	const struct ip *ip;
@@ -537,7 +562,8 @@ get_triptime(const char *const buf, size_t bufsize, struct timeval *const tripti
 }
 
 static void
-update_timing(const char *const buf, size_t bufsize, const struct timeval *const triptime,
+update_timing(const char *const buf, size_t bufsize,
+    const struct timeval *const triptime,
     const struct shared_variables *const vars, struct timing *const timing)
 {
 	const struct icmp *icp;
@@ -580,8 +606,8 @@ update_timing(const char *const buf, size_t bufsize, const struct timeval *const
 
 static void
 update_counters(const char *const buf, const struct timeval *const triptime,
-    const struct options *const options, const struct shared_variables *const vars,
-    struct counters *const counters)
+    const struct options *const options,
+    const struct shared_variables *const vars, struct counters *const counters)
 {
 	const struct icmp *icp;
 	const struct ip *ip;
@@ -604,13 +630,15 @@ update_counters(const char *const buf, const struct timeval *const triptime,
 			((double)triptime->tv_usec) / 1000.0;
 
 		if (!options->f_quiet &&
-		    (options->f_wait_time && triptime_sec > options->n_wait_time))
+		    (options->f_wait_time &&
+			triptime_sec > options->n_wait_time))
 			++(counters->rcvtimeout);
 	}
 }
 
 static void
-mark_packet_as_received(const char *const buf, struct shared_variables *const vars)
+mark_packet_as_received(const char *const buf,
+    struct shared_variables *const vars)
 {
 	const struct icmp *icp;
 	const struct ip *ip;

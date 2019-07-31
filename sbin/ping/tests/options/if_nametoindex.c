@@ -41,7 +41,8 @@ if_nametoindex(const char *ifname)
 	else if (strcmp(ifname, "interface_unknown") == 0)
 		errno = ENXIO;
 	else
-		atf_tc_fail("mock if_nametoindex: Invalid interface name: %s", ifname);
+		atf_tc_fail("mock if_nametoindex: Invalid interface name: %s",
+		    ifname);
 
 	return (0);
 }

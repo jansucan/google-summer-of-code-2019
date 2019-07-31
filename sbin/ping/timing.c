@@ -52,8 +52,8 @@ tvsub(struct timeval *const out, const struct timeval *const in)
 }
 
 struct timeval
-timeout_get(const struct timeval *const last, const struct timeval *const interval,
-    const struct timeval *const now)
+timeout_get(const struct timeval *const last,
+    const struct timeval *const interval, const struct timeval *const now)
 {
 	struct timeval timeout;
 

@@ -43,7 +43,8 @@ __FBSDID("$FreeBSD$");
 
 static struct signal_variables signal_vars;
 
-static bool signals_setup(struct options *const options,  struct shared_variables *const vars);
+static bool signals_setup(struct options *const options,
+    struct shared_variables *const vars);
 static bool signals_cleanup(void);
 static void signal_handler_siginfo(int sig __unused);
 static void signal_handler_sigint_sigalrm(int sig __unused);
@@ -72,7 +73,8 @@ main(int argc, char *argv[])
 }
 
 static bool
-signals_setup(struct options *const options, struct shared_variables *const vars)
+signals_setup(struct options *const options,
+    struct shared_variables *const vars)
 {
 	struct sigaction si_sa;
 

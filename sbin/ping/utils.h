@@ -41,9 +41,12 @@
  */
 #define	BIT_ARRAY_BYTE(array, bit)	array[(bit)>>3]
 #define	BIT_ARRAY_BIT_MASK(bit)		(1 << ((bit) & 0x07))
-#define	BIT_ARRAY_SET(array, bit)	(BIT_ARRAY_BYTE(array, bit) |= BIT_ARRAY_BIT_MASK(bit))
-#define	BIT_ARRAY_CLR(array, bit)	(BIT_ARRAY_BYTE(array, bit) &= (~BIT_ARRAY_BIT_MASK(bit)))
-#define	BIT_ARRAY_IS_SET(array, bit)	(BIT_ARRAY_BYTE(array, bit) & BIT_ARRAY_BIT_MASK(bit))
+#define	BIT_ARRAY_SET(array, bit)	\
+	(BIT_ARRAY_BYTE(array, bit) |= BIT_ARRAY_BIT_MASK(bit))
+#define	BIT_ARRAY_CLR(array, bit)	\
+	(BIT_ARRAY_BYTE(array, bit) &= (~BIT_ARRAY_BIT_MASK(bit)))
+#define	BIT_ARRAY_IS_SET(array, bit)	\
+	(BIT_ARRAY_BYTE(array, bit) & BIT_ARRAY_BIT_MASK(bit))
 
 #define CHAR_BBELL   '\a'  /* characters written for MISSED and AUDIBLE */
 #define CHAR_BSPACE  '\b'  /* characters written for flood */

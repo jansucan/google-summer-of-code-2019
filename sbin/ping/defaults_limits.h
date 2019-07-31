@@ -45,7 +45,8 @@
  */
 #define	MAXPACKETLEN		131072
 #define	IP6LEN			40
-#define	ICMP6ECHOLEN		8	/* icmp echo header len excluding time */
+/* icmp echo header len excluding time */
+#define	ICMP6ECHOLEN		8
 #define	ICMP6ECHOTMLEN		sizeof(struct tv32)
 #define	MAXDATALEN		(MAXPACKETLEN - IP6LEN - ICMP6ECHOLEN)
 #define	DEFAULT_DATALEN_IPV6	ICMP6ECHOTMLEN

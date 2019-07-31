@@ -52,8 +52,8 @@ struct tv32 {
 #define	TIMEVAL_LEN	((int)sizeof(struct tv32))
 
 void 		tvsub(struct timeval *const, const struct timeval *const);
-struct timeval	timeout_get(const struct timeval *const last, const struct timeval *const interval,
-    const struct timeval *const now);
+struct timeval	timeout_get(const struct timeval *const last,
+    const struct timeval *const interval, const struct timeval *const now);
 void		timing_init(struct timing *const timing);
 
 #endif

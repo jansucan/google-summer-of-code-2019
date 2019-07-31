@@ -54,7 +54,8 @@ ATF_TC_BODY(option_source, tc)
 		ARGC_ARGV("-S", "host_unknown", "host_ipv4");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == false);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options,
+			capdns) == false);
 		cap_close(capdns);
 		options_free(&options);
 	}
@@ -65,10 +66,12 @@ ATF_TC_BODY(option_source, tc)
 		options.source_sockaddr.in6.sin6_len = 0;
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == true);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options,
+			capdns) == true);
 		ATF_REQUIRE_STREQ("host_ipv4", options.s_source);
 		ATF_REQUIRE(options.source_sockaddr.in.sin_family == AF_INET);
-		ATF_REQUIRE(options.source_sockaddr.in.sin_len == sizeof(struct sockaddr_in));
+		ATF_REQUIRE(options.source_sockaddr.in.sin_len ==
+		    sizeof(struct sockaddr_in));
 		cap_close(capdns);
 		options_free(&options);
 	}
@@ -80,10 +83,13 @@ ATF_TC_BODY(option_source, tc)
 		options.source_sockaddr.in6.sin6_len = 0;
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == true);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options,
+			capdns) == true);
 		ATF_REQUIRE_STREQ("host_ipv6", options.s_source);
-		ATF_REQUIRE(options.source_sockaddr.in6.sin6_family == AF_INET6);
-		ATF_REQUIRE(options.source_sockaddr.in6.sin6_len == sizeof(struct sockaddr_in6));
+		ATF_REQUIRE(options.source_sockaddr.in6.sin6_family ==
+		    AF_INET6);
+		ATF_REQUIRE(options.source_sockaddr.in6.sin6_len ==
+		    sizeof(struct sockaddr_in6));
 		cap_close(capdns);
 		options_free(&options);
 	}

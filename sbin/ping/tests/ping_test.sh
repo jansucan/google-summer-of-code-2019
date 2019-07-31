@@ -16,6 +16,7 @@ atf_init_test_cases() {
 }
 
 check_ping_statistics() {
-    sed -e 's/0.[0-9]\{3\}//g' -e 's/[1-9][0-9]*.[0-9]\{3\}//g' "$1" >"$1".no_times
+    sed -e 's/0.[0-9]\{3\}//g' \
+	-e 's/[1-9][0-9]*.[0-9]\{3\}//g' "$1" >"$1".no_times
     atf_check -s exit:0 diff "$1".no_times "$2"
 }

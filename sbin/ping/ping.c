@@ -108,12 +108,14 @@ ping_init(struct options *const options, struct shared_variables *const vars,
 	if (options->f_so_debug) {
 		int optval = 1;
 
-		if (setsockopt(vars->socket_send, SOL_SOCKET, SO_DEBUG, (char *)&optval,
+		if (setsockopt(vars->socket_send, SOL_SOCKET, SO_DEBUG,
+			(char *)&optval,
 			sizeof(optval)) != 0) {
 			print_error_strerr("setsockopt() socket_send");
 			return (false);
 		}
-		if (setsockopt(vars->socket_recv, SOL_SOCKET, SO_DEBUG, (char *)&optval,
+		if (setsockopt(vars->socket_recv, SOL_SOCKET, SO_DEBUG,
+			(char *)&optval,
 			sizeof(optval)) != 0) {
 			print_error_strerr("setsockopt() socket_recv");
 			return (false);
@@ -150,8 +152,9 @@ ping_free(struct options *const options, struct shared_variables *const vars)
 }
 
 bool
-ping_send_initial_packets(struct options *const options, struct shared_variables *const vars,
-    struct counters *const counters, struct timing *const timing)
+ping_send_initial_packets(struct options *const options,
+    struct shared_variables *const vars, struct counters *const counters,
+    struct timing *const timing)
 {
 	while (options->n_preload--) {
 		if (options->target_type == TARGET_IPV4) {
@@ -210,11 +213,14 @@ ping_loop(struct options *const options, struct shared_variables *const vars,
 			bool next_iteration;
 
 			if (options->target_type == TARGET_IPV4)
-				next_iteration = !ping4_process_received_packet(options, vars, counters, timing);
+				next_iteration =
+					!ping4_process_received_packet(options,
+					    vars, counters, timing);
 			else {
 				int r;
 
-				r = ping6_process_received_packet(options, vars, counters, timing);
+				r = ping6_process_received_packet(options, vars,
+				    counters, timing);
 				if (r < 0)
 					return (false);
 				next_iteration = (r == 1);
@@ -224,18 +230,22 @@ ping_loop(struct options *const options, struct shared_variables *const vars,
 				continue;
 
 			if ((options->f_once && (counters->received > 0)) ||
-			    ((options->n_packets > 0) && (counters->received >= options->n_packets)))
+			    ((options->n_packets > 0) &&
+				(counters->received >= options->n_packets)))
 				break;
 		}
 		if (!is_ready || options->f_flood) {
 			if (options->target_type == TARGET_IPV4)
 				update_sweep(options, vars, counters);
-			if ((options->n_packets == 0) || (counters->transmitted < options->n_packets)) {
+			if ((options->n_packets == 0) ||
+			    (counters->transmitted < options->n_packets)) {
 				if (options->target_type == TARGET_IPV4) {
-					if (!pinger(options, vars, counters, timing))
+					if (!pinger(options, vars, counters,
+						timing))
 						return (false);
 				} else {
-					if (!pinger6(options, vars, counters, timing))
+					if (!pinger6(options, vars, counters,
+						timing))
 						return (false);
 				}
 			} else {
@@ -245,25 +255,32 @@ ping_loop(struct options *const options, struct shared_variables *const vars,
 				/*
 				 * If we're not transmitting any more packets,
 				 * change the timer to wait two round-trip times
-				 * if we've received any packets or (options->n_wait_time)
-				 * milliseconds if we haven't.
+				 * if we've received any packets or
+				 * (options->n_wait_time) milliseconds if we
+				 * haven't.
 				 */
 				options->n_interval.tv_usec = 0;
 				if (counters->received) {
-					options->n_interval.tv_sec = 2 * timing->max / 1000;
+					options->n_interval.tv_sec =
+						2 * timing->max / 1000;
 					if (options->n_interval.tv_sec == 0)
 						options->n_interval.tv_sec = 1;
 				} else {
-					options->n_interval.tv_sec = options->n_wait_time / 1000;
-					options->n_interval.tv_usec = options->n_wait_time % 1000 * 1000;
+					options->n_interval.tv_sec =
+						options->n_wait_time / 1000;
+					options->n_interval.tv_usec =
+						options->n_wait_time % 1000 *
+						1000;
 				}
 			}
 			if (gettimeofday(&last, NULL) != 0) {
 				print_error_strerr("gettimeofday()");
 				return (false);
 			}
-			if ((counters->transmitted - counters->received - 1) > counters->missedmax) {
-				counters->missedmax = counters->transmitted - counters->received - 1;
+			if ((counters->transmitted - counters->received - 1) >
+			    counters->missedmax) {
+				counters->missedmax = counters->transmitted -
+					counters->received - 1;
 				if (options->f_missed)
 					write_char(STDOUT_FILENO, CHAR_BBELL);
 			}
@@ -274,8 +291,8 @@ ping_loop(struct options *const options, struct shared_variables *const vars,
 }
 
 void
-ping_print_summary(struct options *const options, const struct counters *const counters,
-    const struct timing *const timing)
+ping_print_summary(struct options *const options,
+    const struct counters *const counters, const struct timing *const timing)
 {
 	if (options->target_type == TARGET_IPV4)
 		pr_summary(counters, timing, options->target);

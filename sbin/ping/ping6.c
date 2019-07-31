@@ -139,17 +139,19 @@ __FBSDID("$FreeBSD$");
 
 #define DUMMY_PORT	10101
 
-static int       get_pathmtu(const struct msghdr *const , const struct options *const,
-    const struct sockaddr_in6 *const, cap_channel_t *const);
-static bool	 is_packet_valid(int, const struct msghdr *const, const struct options *const,
+static int       get_pathmtu(const struct msghdr *const ,
+    const struct options *const, const struct sockaddr_in6 *const,
+    cap_channel_t *const);
+static bool	 is_packet_valid(int, const struct msghdr *const,
+    const struct options *const,
     cap_channel_t *const);
 static void	 mark_packet_as_received(struct shared_variables *const);
 static u_short   get_node_address_flags(const struct options *const);
 static void	 update_counters(const struct options *const,
     const struct shared_variables *const,
     struct counters *const, double);
-static bool      update_timing(const struct shared_variables *const, struct timing *const,
-    double *const);
+static bool      update_timing(const struct shared_variables *const,
+    struct timing *const, double *const);
 
 bool
 ping6_init(struct options *const options, struct shared_variables *const vars,
@@ -168,13 +170,15 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 
 	datap = &vars->outpack6[ICMP6ECHOLEN + ICMP6ECHOTMLEN];
 
-	vars->target_sockaddr_in6 = (struct sockaddr_in6 *) options->target_addrinfo->ai_addr;
+	vars->target_sockaddr_in6 =
+		(struct sockaddr_in6 *) options->target_addrinfo->ai_addr;
 
 	if (options->f_ping_filled) {
-		fill((char *)datap, MAXDATALEN - 8 + sizeof(struct tv32) + options->ping_filled_size,
-		    options);
+		fill((char *)datap,MAXDATALEN - 8 + sizeof(struct tv32) +
+		    options->ping_filled_size, options);
 		if (!options->f_quiet)
-			print_fill_pattern((char *)datap, options->ping_filled_size);
+			print_fill_pattern((char *)datap,
+			    options->ping_filled_size);
 	}
 
 	if (options->hop_count != 0) {
@@ -182,14 +186,16 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 #ifdef IPV6_RECVRTHDR	/* 2292bis */
 		socklen_t rth_space;
 
-		rth_space = inet6_rth_space(IPV6_RTHDR_TYPE_0, options->hop_count);
+		rth_space = inet6_rth_space(IPV6_RTHDR_TYPE_0,
+		    options->hop_count);
 		if (rth_space == 0) {
 			print_error("inet6_rth_space() hop_count");
 			return (false);
 		}
 		rthlen = CMSG_SPACE(rth_space);
 #else  /* RFC2292 */
-		rthlen = inet6_rthdr_space(IPV6_RTHDR_TYPE_0, options->hop_count);
+		rthlen = inet6_rthdr_space(IPV6_RTHDR_TYPE_0,
+		    options->hop_count);
 #endif
 		if (rthlen == 0) {
 			print_error("too many intermediate hops");
@@ -201,23 +207,31 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 	/* set the source address if specified. */
 	if (options->f_source) {
 		/* properly fill sin6_scope_id */
-		if (IN6_IS_ADDR_LINKLOCAL(&options->source_sockaddr.in6.sin6_addr) && (
-		    IN6_IS_ADDR_LINKLOCAL(&vars->target_sockaddr_in6->sin6_addr) ||
-		    IN6_IS_ADDR_MC_LINKLOCAL(&vars->target_sockaddr_in6->sin6_addr) ||
-		    IN6_IS_ADDR_MC_NODELOCAL(&vars->target_sockaddr_in6->sin6_addr))) {
+		if (IN6_IS_ADDR_LINKLOCAL(
+			    &options->source_sockaddr.in6.sin6_addr) && (
+		    IN6_IS_ADDR_LINKLOCAL(
+			    &vars->target_sockaddr_in6->sin6_addr) ||
+		    IN6_IS_ADDR_MC_LINKLOCAL(
+			    &vars->target_sockaddr_in6->sin6_addr) ||
+		    IN6_IS_ADDR_MC_NODELOCAL(
+			    &vars->target_sockaddr_in6->sin6_addr))) {
 			if (options->source_sockaddr.in6.sin6_scope_id == 0)
-				options->source_sockaddr.in6.sin6_scope_id = vars->target_sockaddr_in6->sin6_scope_id;
+				options->source_sockaddr.in6.sin6_scope_id =
+					vars->target_sockaddr_in6->sin6_scope_id;
 			if (vars->target_sockaddr_in6->sin6_scope_id == 0)
-				vars->target_sockaddr_in6->sin6_scope_id = options->source_sockaddr.in6.sin6_scope_id;
+				vars->target_sockaddr_in6->sin6_scope_id =
+					options->source_sockaddr.in6.sin6_scope_id;
 		}
-		if (bind(vars->socket_send, (struct sockaddr *)&options->source_sockaddr.in6,
+		if (bind(vars->socket_send,
+			(struct sockaddr *)&options->source_sockaddr.in6,
 			sizeof(options->source_sockaddr.in6)) != 0) {
 			print_error_strerr("bind");
 			return (false);
 		}
 	}
 
-	if (connect(vars->socket_send, (struct sockaddr *) vars->target_sockaddr_in6,
+	if (connect(vars->socket_send,
+		(struct sockaddr *) vars->target_sockaddr_in6,
 		sizeof(*vars->target_sockaddr_in6)) != 0) {
 		print_error_strerr("connect");
 		return (false);
@@ -241,21 +255,21 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		const int opton = 1;
 
 #ifdef IPV6_RECVHOPOPTS
-		if (setsockopt(vars->socket_recv, IPPROTO_IPV6, IPV6_RECVHOPOPTS, &opton,
-			sizeof(opton))) {
+		if (setsockopt(vars->socket_recv, IPPROTO_IPV6, IPV6_RECVHOPOPTS,
+			&opton, sizeof(opton))) {
 			print_error_strerr("setsockopt(IPV6_RECVHOPOPTS)");
 			return (false);
 		}
 #else  /* old adv. API */
-		if (setsockopt(vars->socket_recv, IPPROTO_IPV6, IPV6_HOPOPTS, &opton,
-			sizeof(opton))) {
+		if (setsockopt(vars->socket_recv, IPPROTO_IPV6, IPV6_HOPOPTS,
+			&opton, sizeof(opton))) {
 			print_error_strerr("setsockopt(IPV6_HOPOPTS)");
 			return (false);
 		}
 #endif
 #ifdef IPV6_RECVDSTOPTS
-		if (setsockopt(vars->socket_recv, IPPROTO_IPV6, IPV6_RECVDSTOPTS, &opton,
-			sizeof(opton))) {
+		if (setsockopt(vars->socket_recv, IPPROTO_IPV6,
+			IPV6_RECVDSTOPTS, &opton, sizeof(opton))) {
 			print_error_strerr("setsockopt(IPV6_RECVDSTOPTS)");
 			return (false);
 		}
@@ -267,15 +281,16 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		}
 #endif
 #ifdef IPV6_RECVRTHDRDSTOPTS
-		if (setsockopt(vars->srec, IPPROTO_IPV6, IPV6_RECVRTHDRDSTOPTS, &opton,
-			sizeof(opton))) {
+		if (setsockopt(vars->srec, IPPROTO_IPV6, IPV6_RECVRTHDRDSTOPTS,
+			&opton, sizeof(opton))) {
 			print_error_strerr("setsockopt(IPV6_RECVRTHDRDSTOPTS)");
 			return (false);
 		}
 #endif
 	}
 
-	if (!options->f_nodeaddr && !options->f_fqdn && !options->f_fqdn_old && !options->f_subtypes) {
+	if (!options->f_nodeaddr && !options->f_fqdn && !options->f_fqdn_old &&
+	    !options->f_subtypes) {
 		if (options->n_packet_size >= (long)sizeof(struct tv32)) {
 			/* we can time transfer */
 			timing->enabled = true;
@@ -285,7 +300,8 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		if (options->f_verbose)
 			vars->packlen = 2048 + IP6LEN + ICMP6ECHOLEN + EXTRA;
 		else
-			vars->packlen = options->n_packet_size + IP6LEN + ICMP6ECHOLEN + EXTRA;
+			vars->packlen = options->n_packet_size + IP6LEN +
+				ICMP6ECHOLEN + EXTRA;
 	} else {
 		/* suppress timing for node information query */
 		timing->enabled = false;
@@ -312,8 +328,8 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 
 	optval = IPV6_DEFHLIM;
 	if (IN6_IS_ADDR_MULTICAST(&vars->target_sockaddr_in6->sin6_addr))
-		if (setsockopt(vars->socket_send, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
-			&optval, sizeof(optval)) == -1) {
+		if (setsockopt(vars->socket_send, IPPROTO_IPV6,
+			IPV6_MULTICAST_HOPS, &optval, sizeof(optval)) == -1) {
 			print_error_strerr("IPV6_MULTICAST_HOPS");
 			return (false);
 		}
@@ -321,8 +337,8 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 	if (options->c_use_min_mtu != 1) {
 		optval = (options->c_use_min_mtu > 1) ? 0 : 1;
 
-		if (setsockopt(vars->socket_send, IPPROTO_IPV6, IPV6_USE_MIN_MTU,
-			&optval, sizeof(optval)) == -1) {
+		if (setsockopt(vars->socket_send, IPPROTO_IPV6,
+			IPV6_USE_MIN_MTU, &optval, sizeof(optval)) == -1) {
 			print_error_strerr("setsockopt(IPV6_USE_MIN_MTU)");
 			return (false);
 		}
@@ -330,8 +346,8 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 #ifdef IPV6_RECVPATHMTU
 	else {
 		optval = 1;
-		if (setsockopt(vars->socket_recv, IPPROTO_IPV6, IPV6_RECVPATHMTU,
-			&optval, sizeof(optval)) == -1) {
+		if (setsockopt(vars->socket_recv, IPPROTO_IPV6,
+			IPV6_RECVPATHMTU, &optval, sizeof(optval)) == -1) {
 			print_error_strerr("setsockopt(IPV6_RECVPATHMTU)");
 			return (false);
 		}
@@ -365,14 +381,14 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		int opton = 1;
 
 #ifdef IPV6_RECVRTHDR
-		if (setsockopt(vars->socket_recv, IPPROTO_IPV6, IPV6_RECVRTHDR, &opton,
-			sizeof(opton))) {
+		if (setsockopt(vars->socket_recv, IPPROTO_IPV6, IPV6_RECVRTHDR,
+			&opton,	sizeof(opton))) {
 			print_error_strerr("setsockopt(IPV6_RECVRTHDR)");
 			return (false);
 		}
 #else  /* old adv. API */
-		if (setsockopt(vars->socket_recv, IPPROTO_IPV6, IPV6_RTHDR, &opton,
-			sizeof(opton))) {
+		if (setsockopt(vars->socket_recv, IPPROTO_IPV6, IPV6_RTHDR,
+			&opton,	sizeof(opton))) {
 			print_error_strerr("setsockopt(IPV6_RTHDR)");
 			return (false);
 		}
@@ -423,11 +439,13 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		scmsgp = CMSG_NXTHDR(&vars->smsghdr, scmsgp);
 	}
 
-	if (options->hop_count != 0) {	/* some intermediate addrs are specified */
+	if (options->hop_count != 0) {
+		/* some intermediate addrs are specified */
 		unsigned hops;
 		int rthdrlen;
 
-		rthdrlen = inet6_rth_space(IPV6_RTHDR_TYPE_0, options->hop_count);
+		rthdrlen = inet6_rth_space(IPV6_RTHDR_TYPE_0,
+		    options->hop_count);
 		if (rthdrlen == 0) {
 			print_error("inet6_rth_space() hop_count");
 			return (false);
@@ -444,7 +462,9 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		}
 
 		for (hops = 0; hops < options->hop_count; hops++) {
-			sin6 = (struct sockaddr_in6 *)(void *)options->hops_addrinfo[hops]->ai_addr;
+			/* TODO: Remove (void *) */
+			sin6 = (struct sockaddr_in6 *)
+				(void *)options->hops_addrinfo[hops]->ai_addr;
 			if (inet6_rth_add(rthdr, &sin6->sin6_addr)) {
 				print_error("can't add an intermediate node");
 				return (false);
@@ -470,9 +490,11 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		}
 
 		options->source_sockaddr.in6.sin6_family = AF_INET6;
-		options->source_sockaddr.in6.sin6_addr = vars->target_sockaddr_in6->sin6_addr;
+		options->source_sockaddr.in6.sin6_addr =
+			vars->target_sockaddr_in6->sin6_addr;
 		options->source_sockaddr.in6.sin6_port = ntohs(DUMMY_PORT);
-		options->source_sockaddr.in6.sin6_scope_id = vars->target_sockaddr_in6->sin6_scope_id;
+		options->source_sockaddr.in6.sin6_scope_id =
+			vars->target_sockaddr_in6->sin6_scope_id;
 
 		if (pktinfo &&
 		    setsockopt(dummy, IPPROTO_IPV6, IPV6_PKTINFO,
@@ -483,15 +505,18 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 
 		if (options->f_hoplimit &&
 		    setsockopt(dummy, IPPROTO_IPV6, IPV6_UNICAST_HOPS,
-			(void *)&(options->n_hoplimit), sizeof(options->n_hoplimit))) {
+			(void *)&(options->n_hoplimit),
+			sizeof(options->n_hoplimit))) {
 			print_error_strerr("UDP setsockopt(IPV6_UNICAST_HOPS)");
 			return (false);
 		}
 
 		if (options->f_hoplimit &&
 		    setsockopt(dummy, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
-			(void *)&(options->n_hoplimit), sizeof(options->n_hoplimit))) {
-			print_error_strerr("UDP setsockopt(IPV6_MULTICAST_HOPS)");
+			(void *)&(options->n_hoplimit),
+			sizeof(options->n_hoplimit))) {
+			print_error_strerr("UDP "
+			    "setsockopt(IPV6_MULTICAST_HOPS)");
 			return (false);
 		}
 
@@ -502,12 +527,16 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 			return (false);
 		}
 
-		if (connect(dummy, (struct sockaddr *)&options->source_sockaddr.in6, len) < 0) {
+		if (connect(dummy,
+			(struct sockaddr *)&options->source_sockaddr.in6,
+			len) < 0) {
 			print_error_strerr("UDP connect");
 			return (false);
 		}
 
-		if (getsockname(dummy, (struct sockaddr *)&options->source_sockaddr.in6, &len) < 0) {
+		if (getsockname(dummy,
+			(struct sockaddr *)&options->source_sockaddr.in6,
+			&len) < 0) {
 			print_error_strerr("getsockname");
 			return (false);
 		}
@@ -521,7 +550,8 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 	 * We must connect(2) our socket before this point.
 	 */
 	if (!cap_enter_capability_mode() ||
-	    !cap_limit_socket(vars->socket_recv, RIGHTS_RECV_EVENT_SETSOCKOPT) ||
+	    !cap_limit_socket(vars->socket_recv,
+		RIGHTS_RECV_EVENT_SETSOCKOPT) ||
 	    !cap_limit_socket(vars->socket_send, RIGHTS_SEND_SETSOCKOPT) ||
 	    !cap_limit_stdio())
 		return (false);
@@ -530,12 +560,14 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 	if (options->f_sock_buff_size) {
 		if (options->n_packet_size > (long)options->n_sock_buff_size)
 			warnx("you need -b to increase socket buffer size");
-		if (setsockopt(vars->socket_send, SOL_SOCKET, SO_SNDBUF, &(options->n_sock_buff_size),
+		if (setsockopt(vars->socket_send, SOL_SOCKET, SO_SNDBUF,
+			&(options->n_sock_buff_size),
 			sizeof(options->n_sock_buff_size)) < 0) {
 			print_error_strerr("setsockopt(SO_SNDBUF)");
 			return (false);
 		}
-		if (setsockopt(vars->socket_recv, SOL_SOCKET, SO_RCVBUF, &(options->n_sock_buff_size),
+		if (setsockopt(vars->socket_recv, SOL_SOCKET, SO_RCVBUF,
+			&(options->n_sock_buff_size),
 			sizeof(options->n_sock_buff_size)) < 0) {
 			print_error_strerr("setsockopt(SO_RCVBUF)");
 			return (false);
@@ -551,8 +583,8 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		 * to get some stuff for /etc/ethers.
 		 */
 		hold = 48 * 1024;
-		if (setsockopt(vars->socket_recv, SOL_SOCKET, SO_RCVBUF, (char *)&hold,
-			sizeof(hold)) != 0) {
+		if (setsockopt(vars->socket_recv, SOL_SOCKET, SO_RCVBUF,
+			(char *)&hold, sizeof(hold)) != 0) {
 			print_error_strerr("setsockopt() SO_RCVBUF");
 			return (false);
 		}
@@ -562,8 +594,8 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 	optval = 1;
 #ifndef USE_SIN6_SCOPE_ID
 #ifdef IPV6_RECVPKTINFO
-	if (setsockopt(vars->socket_recv, IPPROTO_IPV6, IPV6_RECVPKTINFO, &optval,
-	    sizeof(optval)) < 0)
+	if (setsockopt(vars->socket_recv, IPPROTO_IPV6, IPV6_RECVPKTINFO,
+		&optval, sizeof(optval)) < 0)
 		warn("setsockopt(IPV6_RECVPKTINFO)"); /* XXX err? */
 #else  /* old adv. API */
 	if (setsockopt(vars->socket_recv, IPPROTO_IPV6, IPV6_PKTINFO, &optval,
@@ -572,8 +604,8 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 #endif
 #endif /* USE_SIN6_SCOPE_ID */
 #ifdef IPV6_RECVHOPLIMIT
-	if (setsockopt(vars->socket_recv, IPPROTO_IPV6, IPV6_RECVHOPLIMIT, &optval,
-	    sizeof(optval)) < 0)
+	if (setsockopt(vars->socket_recv, IPPROTO_IPV6, IPV6_RECVHOPLIMIT,
+		&optval, sizeof(optval)) < 0)
 		warn("setsockopt(IPV6_RECVHOPLIMIT)"); /* XXX err? */
 #else  /* old adv. API */
 	if (setsockopt(vars->socket_recv, IPPROTO_IPV6, IPV6_HOPLIMIT, &optval,
@@ -587,14 +619,16 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		return (false);
 
 	/* TODO: Remove duplicit arguments */
-	pr6_heading(&options->source_sockaddr.in6, vars->target_sockaddr_in6, options, vars->capdns);
+	pr6_heading(&options->source_sockaddr.in6, vars->target_sockaddr_in6,
+	    options, vars->capdns);
 
 	return (true);
 }
 
 int
-ping6_process_received_packet(const struct options *const options, struct shared_variables *const vars,
-	struct counters *const counters, struct timing *const timing)
+ping6_process_received_packet(const struct options *const options,
+    struct shared_variables *const vars, struct counters *const counters,
+    struct timing *const timing)
 {
 	struct sockaddr_in6 from;
 	/* For control (ancillary) data received from recvmsg() */
@@ -629,7 +663,8 @@ ping6_process_received_packet(const struct options *const options, struct shared
 		 * exceptions (currently the only possibility is
 		 * a path MTU notification.)
 		 */
-		if ((mtu = get_pathmtu(&m, options, vars->target_sockaddr_in6, vars->capdns)) > 0) {
+		if ((mtu = get_pathmtu(&m, options, vars->target_sockaddr_in6,
+			    vars->capdns)) > 0) {
 			if (options->f_verbose) {
 				printf("new path MTU (%d) is "
 				    "notified\n", mtu);
@@ -691,9 +726,11 @@ pinger6(struct options *const options, struct shared_variables *const vars,
 		    sizeof(nip->icmp6_ni_nonce));
 		*(uint16_t *)nip->icmp6_ni_nonce = ntohs(seq);
 
-		memcpy(&vars->outpack6[ICMP6_NIQLEN], &vars->target_sockaddr_in6->sin6_addr,
+		memcpy(&vars->outpack6[ICMP6_NIQLEN],
+		    &vars->target_sockaddr_in6->sin6_addr,
 		    sizeof(vars->target_sockaddr_in6->sin6_addr));
-		cc = ICMP6_NIQLEN + sizeof(vars->target_sockaddr_in6->sin6_addr);
+		cc = ICMP6_NIQLEN +
+			sizeof(vars->target_sockaddr_in6->sin6_addr);
 		options->n_packet_size = 0;
 	} else if (options->f_fqdn_old) {
 		/* packet format in 03 draft - no Subject data on queries */
@@ -718,9 +755,11 @@ pinger6(struct options *const options, struct shared_variables *const vars,
 		    sizeof(nip->icmp6_ni_nonce));
 		*(uint16_t *)nip->icmp6_ni_nonce = ntohs(seq);
 
-		memcpy(&vars->outpack6[ICMP6_NIQLEN], &vars->target_sockaddr_in6->sin6_addr,
+		memcpy(&vars->outpack6[ICMP6_NIQLEN],
+		    &vars->target_sockaddr_in6->sin6_addr,
 		    sizeof(vars->target_sockaddr_in6->sin6_addr));
-		cc = ICMP6_NIQLEN + sizeof(vars->target_sockaddr_in6->sin6_addr);
+		cc = ICMP6_NIQLEN +
+			sizeof(vars->target_sockaddr_in6->sin6_addr);
 		options->n_packet_size = 0;
 	} else if (options->f_subtypes) {
 		icp->icmp6_type = ICMP6_NI_QUERY;
@@ -781,8 +820,8 @@ pinger6(struct options *const options, struct shared_variables *const vars,
 }
 
 static bool
-is_packet_valid(int cc, const struct msghdr *const mhdr, const struct options *const options,
-	cap_channel_t *const capdns)
+is_packet_valid(int cc, const struct msghdr *const mhdr,
+    const struct options *const options, cap_channel_t *const capdns)
 {
 	struct sockaddr *from;
 	struct in6_pktinfo *pktinfo = NULL;
@@ -802,7 +841,8 @@ is_packet_valid(int cc, const struct msghdr *const mhdr, const struct options *c
 	if (cc < (int)sizeof(struct icmp6_hdr)) {
 		if (options->f_verbose)
 			warnx("packet too short (%d bytes) from %s", cc,
-			    pr6_addr(from, fromlen, options->f_numeric, capdns));
+			    pr6_addr(from, fromlen, options->f_numeric,
+				capdns));
 		return (false);
 	}
 
@@ -829,10 +869,12 @@ mark_packet_as_received(struct shared_variables *const vars)
 	icp = (struct icmp6_hdr *)vars->packet6;
 	ni = (struct icmp6_nodeinfo *)vars->packet6;
 
-	if (icp->icmp6_type == ICMP6_ECHO_REPLY && myechoreply(icp, vars->ident)) {
+	if (icp->icmp6_type == ICMP6_ECHO_REPLY &&
+	    myechoreply(icp, vars->ident)) {
 		seq = ntohs(icp->icmp6_seq);
 		BIT_ARRAY_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK);
-	} else if (icp->icmp6_type == ICMP6_NI_REPLY && mynireply(ni, vars->nonce)) {
+	} else if (icp->icmp6_type == ICMP6_NI_REPLY &&
+	    mynireply(ni, vars->nonce)) {
 		seq = ntohs(*(uint16_t *)ni->icmp6_ni_nonce);
 		BIT_ARRAY_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK);
 	}
@@ -850,7 +892,8 @@ update_counters(const struct options *const options,
 	icp = (struct icmp6_hdr *)vars->packet6;
 	ni = (struct icmp6_nodeinfo *)vars->packet6;
 
-	if (icp->icmp6_type == ICMP6_ECHO_REPLY && myechoreply(icp, vars->ident)) {
+	if (icp->icmp6_type == ICMP6_ECHO_REPLY &&
+	    myechoreply(icp, vars->ident)) {
 		seq = ntohs(icp->icmp6_seq);
 
 		if (BIT_ARRAY_IS_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK))
@@ -863,7 +906,8 @@ update_counters(const struct options *const options,
 
 		if (options->f_wait_time && triptime > options->n_wait_time)
 			++(counters->rcvtimeout);
-	} else if (icp->icmp6_type == ICMP6_NI_REPLY && mynireply(ni, vars->nonce)) {
+	} else if (icp->icmp6_type == ICMP6_NI_REPLY &&
+	    mynireply(ni, vars->nonce)) {
 		seq = ntohs(*(uint16_t *)ni->icmp6_ni_nonce);
 
 		if (BIT_ARRAY_IS_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK))
@@ -874,8 +918,8 @@ update_counters(const struct options *const options,
 }
 
 static bool
-update_timing(const struct shared_variables *const vars, struct timing *const timing,
-    double *const triptime)
+update_timing(const struct shared_variables *const vars,
+    struct timing *const timing, double *const triptime)
 {
 	struct icmp6_hdr *icp;
 	struct timeval tv, tp;
@@ -890,7 +934,8 @@ update_timing(const struct shared_variables *const vars, struct timing *const ti
 
 	icp = (struct icmp6_hdr *)vars->packet6;
 
-	if (icp->icmp6_type == ICMP6_ECHO_REPLY && myechoreply(icp, vars->ident)) {
+	if (icp->icmp6_type == ICMP6_ECHO_REPLY &&
+	    myechoreply(icp, vars->ident)) {
 		if (timing->enabled) {
 			tpp = (struct tv32 *)(icp + 1);
 			tp.tv_sec = ntohl(tpp->tv32_sec);
@@ -911,8 +956,9 @@ update_timing(const struct shared_variables *const vars, struct timing *const ti
 }
 
 static int
-get_pathmtu(const struct msghdr *const mhdr, const struct options *const options,
-    const struct sockaddr_in6 *const dst, cap_channel_t *const capdns)
+get_pathmtu(const struct msghdr *const mhdr,
+    const struct options *const options, const struct sockaddr_in6 *const dst,
+    cap_channel_t *const capdns)
 {
 #ifdef IPV6_RECVPATHMTU
 	struct cmsghdr *cm;
@@ -945,8 +991,10 @@ get_pathmtu(const struct msghdr *const mhdr, const struct options *const options
 				if (options->f_verbose) {
 					printf("path MTU for %s is notified. "
 					       "(ignored)\n",
-					   pr6_addr((struct sockaddr *)&mtuctl->ip6m_addr,
-					       sizeof(mtuctl->ip6m_addr), options->f_numeric, capdns));
+					   pr6_addr((struct sockaddr *)
+					       &mtuctl->ip6m_addr,
+					       sizeof(mtuctl->ip6m_addr),
+					       options->f_numeric, capdns));
 				}
 				return (0);
 			}

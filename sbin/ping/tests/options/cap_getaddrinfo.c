@@ -140,7 +140,8 @@ cap_getaddrinfo(cap_channel_t *chan, const char *hostname,
 	else if (strcmp(hostname, "host_unknown") == 0) {
 		return (EAI_NONAME);
 	} else {
-		atf_tc_fail("mock cap_getaddrinfo: Invalid hostname: %s", hostname);
+		atf_tc_fail("mock cap_getaddrinfo: Invalid hostname: %s",
+		    hostname);
 	}
 
 	*res = &ai;

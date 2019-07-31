@@ -54,7 +54,8 @@ cap_limit_socket(int socket, enum ping_socket_rights rights)
 		cap_rights_init(&r, CAP_SEND);
 		break;
 	default:
-		print_error("cap_limit_socket: invalid specification of rights");
+		print_error("cap_limit_socket: invalid specification of "
+		    "rights");
 		return (false);
 		/* NOTREACHED */
 	}
@@ -88,7 +89,8 @@ capdns_setup(void)
 	types[0] = "NAME2ADDR";
 	types[1] = "ADDR2NAME";
 	if (cap_dns_type_limit(capdnsloc, types, nitems(types)) < 0) {
-		print_error_strerr("unable to limit access to system.dns service");
+		print_error_strerr("unable to limit access to system.dns "
+		    "service");
 		return (NULL);
 	}
 
@@ -99,7 +101,8 @@ bool
 capdns_limit_family(cap_channel_t *const capdns, int family)
 {
 	if (cap_dns_family_limit(capdns, &family, 1) < 0) {
-		print_error_strerr("unable to limit access to system.dns service");
+		print_error_strerr("unable to limit access to system.dns "
+		    "service");
 		return (false);
 	}
 	return (true);
@@ -109,7 +112,8 @@ bool
 capdns_limit_type(cap_channel_t *const capdns, const char *const type)
 {
 	if (cap_dns_type_limit(capdns, &type, 1) < 0) {
-		print_error_strerr("unable to limit access to system.dns service");
+		print_error_strerr("unable to limit access to system.dns "
+		    "service");
 		return (false);
 	}
 	return (true);

@@ -93,8 +93,8 @@ pr_pack(const char *const buf, int cc, const struct sockaddr_in *const from,
 			write_char(STDOUT_FILENO, CHAR_BSPACE);
 		else {
 			(void)printf("%d bytes from %s: icmp_seq=%u", cc,
-			   inet_ntoa(*(const struct in_addr *)&from->sin_addr.s_addr),
-			   seq);
+			   inet_ntoa(*(const struct in_addr *)
+			       &from->sin_addr.s_addr), seq);
 			(void)printf(" ttl=%d", ip->ip_ttl);
 			if (timing_enabled)
 				(void)printf(" time=%.3f ms", triptime_sec);
@@ -105,12 +105,16 @@ pr_pack(const char *const buf, int cc, const struct sockaddr_in *const from,
 			if (options->f_mask) {
 				/* Just prentend this cast isn't ugly */
 				(void)printf(" mask=%s",
-					inet_ntoa(*(const struct in_addr *)&(icp->icmp_mask)));
+					inet_ntoa(*(const struct in_addr *)
+					    &(icp->icmp_mask)));
 			}
 			if (options->f_time) {
-				(void)printf(" tso=%s", pr_ntime(icp->icmp_otime));
-				(void)printf(" tsr=%s", pr_ntime(icp->icmp_rtime));
-				(void)printf(" tst=%s", pr_ntime(icp->icmp_ttime));
+				(void)printf(" tso=%s",
+				    pr_ntime(icp->icmp_otime));
+				(void)printf(" tsr=%s",
+				    pr_ntime(icp->icmp_rtime));
+				(void)printf(" tst=%s",
+				    pr_ntime(icp->icmp_ttime));
 			}
 			if (recv_len != vars->send_len) {
                         	(void)printf(
@@ -122,26 +126,31 @@ pr_pack(const char *const buf, int cc, const struct sockaddr_in *const from,
 			dp = &vars->outpack[ICMP_MINLEN + vars->phdr_len];
 			cc -= ICMP_MINLEN + vars->phdr_len;
 			i = 0;
-			if (timing_enabled) {   /* don't check variable timestamp */
+			/* don't check variable timestamp */
+			if (timing_enabled) {
 				cp += TIMEVAL_LEN;
 				dp += TIMEVAL_LEN;
 				cc -= TIMEVAL_LEN;
 				i += TIMEVAL_LEN;
 			}
-			for (; i < options->n_packet_size && cc > 0; ++i, ++cp, ++dp, --cc) {
+			for (; i < options->n_packet_size && cc > 0;
+			     ++i, ++cp, ++dp, --cc) {
 				if (*cp != *dp) {
-	(void)printf("\nwrong data byte #%d should be 0x%x but was 0x%x",
-	    i, *dp, *cp);
+					(void)printf("\nwrong data byte #%d "
+					    "should be 0x%x but was 0x%x", i,
+					    *dp, *cp);
 					(void)printf("\ncp:");
 					cp = (const u_char*)&icp->icmp_data[0];
-					for (i = 0; i < options->n_packet_size; ++i, ++cp) {
+					for (i = 0; i < options->n_packet_size;
+					     ++i, ++cp) {
 						if ((i % 16) == 8)
 							(void)printf("\n\t");
 						(void)printf("%2x ", *cp);
 					}
 					(void)printf("\ndp:");
 					cp = &vars->outpack[ICMP_MINLEN];
-					for (i = 0; i < options->n_packet_size; ++i, ++cp) {
+					for (i = 0; i < options->n_packet_size;
+					     ++i, ++cp) {
 						if ((i % 16) == 8)
 							(void)printf("\n\t");
 						(void)printf("%2x ", *cp);
@@ -170,12 +179,14 @@ pr_pack(const char *const buf, int cc, const struct sockaddr_in *const from,
 
 		if (((options->f_verbose) && getuid() == 0) ||
 		    (!(options->f_somewhat_quiet) &&
-		     (oip->ip_dst.s_addr == vars->target_sockaddr->sin_addr.s_addr) &&
+		     (oip->ip_dst.s_addr ==
+			 vars->target_sockaddr->sin_addr.s_addr) &&
 		     (oip->ip_p == IPPROTO_ICMP) &&
 		     (oicmp->icmp_type == ICMP_ECHO) &&
 		     (oicmp->icmp_id == vars->ident))) {
 		    (void)printf("%d bytes from %s: ", cc,
-			pr_addr(from->sin_addr, vars->capdns, options->f_numeric));
+			pr_addr(from->sin_addr, vars->capdns,
+			    options->f_numeric));
 		    pr_icmph(icp);
 		} else
 		    return;
@@ -204,7 +215,8 @@ pr_pack(const char *const buf, int cc, const struct sockaddr_in *const from,
 						(void)printf("\t0.0.0.0");
 					else
 						(void)printf("\t%s",
-						     pr_addr(ina, vars->capdns, options->f_numeric));
+						     pr_addr(ina, vars->capdns,
+							 options->f_numeric));
 					hlen -= INADDR_LEN;
 					cp += INADDR_LEN - 1;
 					j -= INADDR_LEN;
@@ -246,7 +258,8 @@ pr_pack(const char *const buf, int cc, const struct sockaddr_in *const from,
 						(void)printf("\t0.0.0.0");
 					else
 						(void)printf("\t%s",
-						     pr_addr(ina, vars->capdns, options->f_numeric));
+						     pr_addr(ina, vars->capdns,
+							 options->f_numeric));
 					hlen -= INADDR_LEN;
 					cp += INADDR_LEN - 1;
 					i -= INADDR_LEN;
@@ -283,14 +296,17 @@ pr_heading(const struct sockaddr_in *const target_sockaddr,
 			(void)printf(": (%d ... %d) data bytes\n",
 			    options->n_sweep_min, options->n_sweep_max);
 		else
-			(void)printf(": %ld data bytes\n", options->n_packet_size);
+			(void)printf(": %ld data bytes\n",
+			    options->n_packet_size);
 
 	} else {
 		if (options->n_sweep_max)
 			(void)printf("PING %s: (%d ... %d) data bytes\n",
-			    options->target, options->n_sweep_min, options->n_sweep_max);
+			    options->target, options->n_sweep_min,
+			    options->n_sweep_max);
 		else
-			(void)printf("PING %s: %ld data bytes\n", options->target, options->n_packet_size);
+			(void)printf("PING %s: %ld data bytes\n",
+			    options->target, options->n_packet_size);
 	}
 }
 
@@ -456,7 +472,8 @@ pr_iph(const struct ip *const ip)
 	hlen = ip->ip_hl << 2;
 	cp = (const u_char *)ip + 20;		/* point to options */
 
-	(void)printf("Vr HL TOS  Len   ID Flg  off TTL Pro  cks      Src      Dst\n");
+	(void)printf("Vr HL TOS  Len   ID Flg  off TTL "
+	    "Pro  cks      Src      Dst\n");
 	(void)printf(" %1x  %1x  %02x %04x %04x",
 	    ip->ip_v, ip->ip_hl, ip->ip_tos, ntohs(ip->ip_len),
 	    ntohs(ip->ip_id));
@@ -558,11 +575,12 @@ pr_summary(const struct counters *const counters,
 			(void)printf("-- somebody's printing up packets!");
 		else
 			(void)printf("%.1f%% packet loss",
-			    ((counters->transmitted - counters->received) * 100.0) /
-			    counters->transmitted);
+			    ((counters->transmitted - counters->received)
+				* 100.0) / counters->transmitted);
 	}
 	if (counters->rcvtimeout)
-		(void)printf(", %ld packets out of wait time", counters->rcvtimeout);
+		(void)printf(", %ld packets out of wait time",
+		    counters->rcvtimeout);
 	(void)printf("\n");
 	if (counters->received && timing->enabled) {
 		double n = counters->received + counters->repeats;
@@ -575,14 +593,17 @@ pr_summary(const struct counters *const counters,
 }
 
 void
-pr_status(const struct counters *const counters, const struct timing *const timing)
+pr_status(const struct counters *const counters,
+    const struct timing *const timing)
 {
 	(void)printf("\r%ld/%ld packets received (%.1f%%)",
 	    counters->received, counters->transmitted,
-	    counters->transmitted ? counters->received * 100.0 / counters->transmitted : 0.0);
+	    counters->transmitted ?
+	    counters->received * 100.0 / counters->transmitted :
+	    0.0);
 	if (counters->received && timing->enabled)
 		(void)printf(" %.3f min / %.3f avg / %.3f max",
-		    timing->min, timing->sum / (counters->received + counters->repeats),
-		    timing->max);
+		    timing->min, timing->sum /
+		    (counters->received + counters->repeats), timing->max);
 	(void)printf("\n");
 }

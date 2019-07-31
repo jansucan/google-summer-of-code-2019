@@ -51,12 +51,15 @@ __FBSDID("$FreeBSD$");
 /* FQDN case, 64 bits of nonce + 32 bits ttl */
 #define ICMP6_NIRLEN	(ICMP6ECHOLEN + 12)
 
-static char	*dnsdecode(const u_char *, const u_char *const, const u_char *const,
-    char *const, size_t);
-static void	 pr6_icmph(const struct icmp6_hdr *const, const u_char *const, bool);
+static char	*dnsdecode(const u_char *, const u_char *const,
+    const u_char *const, char *const, size_t);
+static void	 pr6_icmph(const struct icmp6_hdr *const, const u_char *const,
+    bool);
 static void	 pr6_iph(const struct ip6_hdr *const);
-static void	 pr6_suptypes(const struct icmp6_nodeinfo *const, size_t, bool verbose);
-static void	 pr6_nodeaddr(const struct icmp6_nodeinfo *const, int, bool verbose);
+static void	 pr6_suptypes(const struct icmp6_nodeinfo *const, size_t,
+    bool verbose);
+static void	 pr6_nodeaddr(const struct icmp6_nodeinfo *const, int,
+    bool verbose);
 static void	 pr6_exthdrs(const struct msghdr *const);
 static void	 pr6_ip6opt(void *const, size_t);
 static void	 pr6_rthdr(const void *const, size_t);
@@ -64,8 +67,8 @@ static int	 pr6_bitrange(uint32_t, int, int);
 static void	 pr6_retip(const struct ip6_hdr *const, const u_char *const);
 
 static char *
-dnsdecode(const u_char *sp, const u_char *const ep, const u_char *const base, char *const buf,
-    size_t bufsiz)
+dnsdecode(const u_char *sp, const u_char *const ep, const u_char *const base,
+    char *const buf, size_t bufsiz)
 	/*base for compressed name*/
 {
 	int i;
@@ -202,8 +205,10 @@ pingerlen(const struct options *const options, size_t sin6_addr_size)
  * program to be run without having intermingled output (or statistics!).
  */
 void
-pr6_pack(int cc, const struct msghdr *const mhdr, const struct options *const options,
-    const struct shared_variables *const vars, const struct timing *const timing,
+pr6_pack(int cc, const struct msghdr *const mhdr,
+    const struct options *const options,
+    const struct shared_variables *const vars,
+    const struct timing *const timing,
     double triptime)
 {
 	struct icmp6_hdr *icp;
@@ -236,7 +241,8 @@ pr6_pack(int cc, const struct msghdr *const mhdr, const struct options *const op
 	hoplim = get_hoplim(mhdr);
 	pktinfo = get_rcvpktinfo(mhdr);
 
-	if (icp->icmp6_type == ICMP6_ECHO_REPLY && myechoreply(icp, vars->ident)) {
+	if (icp->icmp6_type == ICMP6_ECHO_REPLY &&
+	    myechoreply(icp, vars->ident)) {
 		seq = ntohs(icp->icmp6_seq);
 
 		if (options->f_quiet)
@@ -251,7 +257,8 @@ pr6_pack(int cc, const struct msghdr *const mhdr, const struct options *const op
 			if (options->f_audible)
 				write_char(STDOUT_FILENO, CHAR_BBELL);
 			(void)printf("%d bytes from %s, icmp_seq=%u", cc,
-			    pr6_addr(from, fromlen, options->f_numeric, vars->capdns), seq);
+			    pr6_addr(from, fromlen, options->f_numeric,
+				vars->capdns), seq);
 			(void)printf(" hlim=%d", hoplim);
 			if (options->f_verbose) {
 				struct sockaddr_in6 dstsa;
@@ -263,29 +270,35 @@ pr6_pack(int cc, const struct msghdr *const mhdr, const struct options *const op
 				dstsa.sin6_addr = pktinfo->ipi6_addr;
 				(void)printf(" dst=%s",
 				    pr6_addr((struct sockaddr *)&dstsa,
-					sizeof(dstsa), options->f_numeric, vars->capdns));
+					sizeof(dstsa), options->f_numeric,
+					vars->capdns));
 			}
 			if (timing->enabled)
 				(void)printf(" time=%.3f ms", triptime);
 			if (BIT_ARRAY_IS_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK))
 				(void)printf("(DUP!)");
 			/* check the data */
-			cp = vars->packet6 + off + ICMP6ECHOLEN + ICMP6ECHOTMLEN;
+			cp = vars->packet6 + off + ICMP6ECHOLEN +
+				ICMP6ECHOTMLEN;
 			dp = vars->outpack6 + ICMP6ECHOLEN + ICMP6ECHOTMLEN;
 			for (i = 8; cp < end; ++i, ++cp, ++dp) {
 				if (*cp != *dp) {
-					(void)printf("\nwrong data byte #%d should be 0x%x but was 0x%x", i, *dp, *cp);
+					(void)printf("\nwrong data byte #%d "
+					    "should be 0x%x but was 0x%x", i,
+					    *dp, *cp);
 					break;
 				}
 			}
 		}
-	} else if (icp->icmp6_type == ICMP6_NI_REPLY && mynireply(ni, vars->nonce)) {
+	} else if (icp->icmp6_type == ICMP6_NI_REPLY &&
+	    mynireply(ni, vars->nonce)) {
 		seq = ntohs(*(uint16_t *)ni->icmp6_ni_nonce);
 
 		if (options->f_quiet)
 			return;
 
-		(void)printf("%d bytes from %s: ", cc, pr6_addr(from, fromlen, options->f_numeric, vars->capdns));
+		(void)printf("%d bytes from %s: ", cc, pr6_addr(from, fromlen,
+			options->f_numeric, vars->capdns));
 
 		switch (ntohs(ni->ni_code)) {
 		case ICMP6_NI_SUCCESS:
@@ -307,10 +320,12 @@ pr6_pack(int cc, const struct msghdr *const mhdr, const struct options *const op
 			printf("NodeInfo NOOP");
 			break;
 		case NI_QTYPE_SUPTYPES:
-			pr6_suptypes(ni, end - (u_char *)ni, options->f_verbose);
+			pr6_suptypes(ni, end - (u_char *)ni,
+			    options->f_verbose);
 			break;
 		case NI_QTYPE_NODEADDR:
-			pr6_nodeaddr(ni, end - (u_char *)ni, options->f_verbose);
+			pr6_nodeaddr(ni, end - (u_char *)ni,
+			    options->f_verbose);
 			break;
 		case NI_QTYPE_FQDN:
 		default:	/* XXX: for backward compatibility */
@@ -324,7 +339,8 @@ pr6_pack(int cc, const struct msghdr *const mhdr, const struct options *const op
 				cp++;	/* skip length */
 				while (cp < end) {
 					const int c = *cp & 0xff;
-					printf((isprint(c) ? "%c" : "\\%03o"), c);
+					printf((isprint(c) ? "%c" : "\\%03o"),
+					    c);
 					cp++;
 				}
 			} else {
@@ -342,7 +358,8 @@ pr6_pack(int cc, const struct msghdr *const mhdr, const struct options *const op
 					 */
 					if (cp + 1 <= end && !*cp &&
 					    strlen(dnsname) > 0) {
-						dnsname[strlen(dnsname) - 1] = '\0';
+						dnsname[strlen(dnsname) - 1] =
+							'\0';
 						cp++;
 					}
 					printf("%s%s", i > 0 ? "," : "",
@@ -372,7 +389,8 @@ pr6_pack(int cc, const struct msghdr *const mhdr, const struct options *const op
 					printf(")");
 					goto fqdnend;
 				}
-				ttl = (int32_t)ntohl(*(u_long *)&vars->packet6[off+ICMP6ECHOLEN+8]);
+				ttl = (int32_t)ntohl(*(u_long *)
+				    &vars->packet6[off+ICMP6ECHOLEN+8]);
 				if (comma)
 					printf(",");
 				if (!(ni->ni_flags & NI_FQDN_FLAG_VALIDTTL)) {
@@ -408,7 +426,8 @@ pr6_pack(int cc, const struct msghdr *const mhdr, const struct options *const op
 						printf(",");
 					(void)printf("invalid namelen:%d/%lu",
 					    vars->packet6[off + ICMP6_NIRLEN],
-					    (u_long)cc - off - ICMP6_NIRLEN - 1);
+					    (u_long)cc - off -
+					    ICMP6_NIRLEN - 1);
 					comma++;
 				}
 				/*(*/
@@ -421,7 +440,8 @@ pr6_pack(int cc, const struct msghdr *const mhdr, const struct options *const op
 		/* We've got something other than an ECHOREPLY */
 		if (!options->f_verbose)
 			return;
-		(void)printf("%d bytes from %s: ", cc, pr6_addr(from, fromlen, options->f_numeric, vars->capdns));
+		(void)printf("%d bytes from %s: ", cc, pr6_addr(from, fromlen,
+			options->f_numeric, vars->capdns));
 		pr6_icmph(icp, end, options->f_verbose);
 	}
 
@@ -471,13 +491,17 @@ pr6_exthdrs(const struct msghdr *const mhdr)
 }
 
 void
-pr6_heading(const struct sockaddr_in6 *const src, const struct sockaddr_in6 *const dst,
-    const struct options *const options, cap_channel_t *const capdns)
+pr6_heading(const struct sockaddr_in6 *const src,
+    const struct sockaddr_in6 *const dst, const struct options *const options,
+    cap_channel_t *const capdns)
 {
-	printf("PING6(%lu=40+8+%lu bytes) ", (unsigned long)(40 + pingerlen(options, sizeof(dst->sin6_addr))),
+	printf("PING6(%lu=40+8+%lu bytes) ", (unsigned long)
+	    (40 + pingerlen(options, sizeof(dst->sin6_addr))),
 	    (unsigned long)(pingerlen(options, sizeof(dst->sin6_addr)) - 8));
-	printf("%s --> ", pr6_addr((const struct sockaddr *)src, sizeof(*src), options->f_numeric, capdns));
-	printf("%s\n", pr6_addr((const struct sockaddr *)dst, sizeof(*dst), options->f_numeric, capdns));
+	printf("%s --> ", pr6_addr((const struct sockaddr *)src, sizeof(*src),
+		options->f_numeric, capdns));
+	printf("%s\n", pr6_addr((const struct sockaddr *)dst, sizeof(*dst),
+		options->f_numeric, capdns));
 }
 
 static void
@@ -782,7 +806,8 @@ pr6_nodeaddr(const struct icmp6_nodeinfo *const ni, int nilen, bool verbose)
  *	Print out statistics.
  */
 void
-pr6_summary(const struct counters *const counters, const struct timing *const timing, const char *const hostname)
+pr6_summary(const struct counters *const counters,
+    const struct timing *const timing, const char *const hostname)
 {
 
 	(void)printf("\n--- %s ping6 statistics ---\n", hostname);
@@ -795,7 +820,8 @@ pr6_summary(const struct counters *const counters, const struct timing *const ti
 			(void)printf("-- somebody's duplicating packets!");
 		else
 			(void)printf("%.1f%% packet loss",
-			    ((((double)counters->transmitted - counters->received) * 100.0) /
+			    ((((double)counters->transmitted -
+				    counters->received) * 100.0) /
 			    counters->transmitted));
 	}
 	if (counters->rcvtimeout)
@@ -819,7 +845,8 @@ pr6_summary(const struct counters *const counters, const struct timing *const ti
  *	Print a descriptive string about an ICMP header.
  */
 static void
-pr6_icmph(const struct icmp6_hdr *const icp, const u_char *const end, bool verbose)
+pr6_icmph(const struct icmp6_hdr *const icp, const u_char *const end,
+    bool verbose)
 {
 	/* subject type */
 	const char *niqcode[] = {
@@ -1098,7 +1125,8 @@ pr6_addr(const struct sockaddr *const addr, int addrlen, bool numeric,
 	if (numeric)
 		flag |= NI_NUMERICHOST;
 
-	if (cap_getnameinfo(capdns, addr, addrlen, buf, sizeof(buf), NULL, 0, flag) == 0)
+	if (cap_getnameinfo(capdns, addr, addrlen, buf, sizeof(buf), NULL, 0,
+		flag) == 0)
 		return (buf);
 	else
 		return ("?");

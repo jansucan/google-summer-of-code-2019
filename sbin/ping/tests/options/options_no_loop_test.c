@@ -54,7 +54,8 @@ ATF_TC_BODY(option_no_loop, tc)
 		ARGC_ARGV("-L", "host_ipv4");
 		capdns = capdns_setup();
 
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == false);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options,
+			capdns) == false);
 		cap_close(capdns);
 		options_free(&options);
 	}
@@ -63,7 +64,8 @@ ATF_TC_BODY(option_no_loop, tc)
 		capdns = capdns_setup();
 
 		options.f_no_loop = false;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options, capdns) == true);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options,
+			capdns) == true);
 		ATF_REQUIRE(options.f_no_loop == true);
 		cap_close(capdns);
 		options_free(&options);

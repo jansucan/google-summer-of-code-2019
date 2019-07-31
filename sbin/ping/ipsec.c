@@ -41,33 +41,37 @@ __FBSDID("$FreeBSD$");
 
 #ifdef IPSEC
 #ifdef IPSEC_POLICY_IPSEC
-static bool ipsec_setpolicy(int socket, char *const policy, enum target_type target_type);
+static bool ipsec_setpolicy(int socket, char *const policy,
+    enum target_type target_type);
 #endif
 #endif
 
 bool
-ipsec_configure(int socket_send, int socket_recv, const struct options *const options)
+ipsec_configure(int socket_send, int socket_recv,
+    const struct options *const options)
 {
 #ifdef IPSEC
 #ifdef IPSEC_POLICY_IPSEC
 	if (options->f_policy) {
-		if (!ipsec_setpolicy(socket_send, options->s_policy_out, options->target_type))
+		if (!ipsec_setpolicy(socket_send, options->s_policy_out,
+			options->target_type))
 			return (false);
-		if (!ipsec_setpolicy(socket_recv, options->s_policy_in, options->target_type))
+		if (!ipsec_setpolicy(socket_recv, options->s_policy_in,
+			options->target_type))
 			return (false);
 	}
 #else  /* !IPSEC_POLICY_IPSEC */
 	if (options->f_authhdr) {
 		const int optval = IPSEC_LEVEL_REQUIRE;
 #ifdef IPV6_AUTH_TRANS_LEVEL
-		if (setsockopt(vars.socket_send, IPPROTO_IPV6, IPV6_AUTH_TRANS_LEVEL,
-			&optval, sizeof(optval)) == -1) {
+		if (setsockopt(vars.socket_send, IPPROTO_IPV6,
+			IPV6_AUTH_TRANS_LEVEL, &optval, sizeof(optval)) == -1) {
 			print_error_strerr("setsockopt(IPV6_AUTH_TRANS_LEVEL)");
 			return (false);
 		}
 
-		if (setsockopt(vars.socket_recv, IPPROTO_IPV6, IPV6_AUTH_TRANS_LEVEL,
-			&optval, sizeof(optval)) == -1) {
+		if (setsockopt(vars.socket_recv, IPPROTO_IPV6,
+			IPV6_AUTH_TRANS_LEVEL, &optval, sizeof(optval)) == -1) {
 			print_error_strerr("setsockopt(IPV6_AUTH_TRANS_LEVEL)");
 			return (false);
 		}
@@ -86,13 +90,13 @@ ipsec_configure(int socket_send, int socket_recv, const struct options *const op
 	}
 	if (options->f_encrypt) {
 		optval = IPSEC_LEVEL_REQUIRE;
-		if (setsockopt(vars.socket_send, IPPROTO_IPV6, IPV6_ESP_TRANS_LEVEL,
-			&optval, sizeof(optval)) == -1) {
+		if (setsockopt(vars.socket_send, IPPROTO_IPV6,
+			IPV6_ESP_TRANS_LEVEL, &optval, sizeof(optval)) == -1) {
 			print_error_strerr("setsockopt(IPV6_ESP_TRANS_LEVEL)");
 			return (false);
 		}
-		if (setsockopt(vars.socket_recv, IPPROTO_IPV6, IPV6_ESP_TRANS_LEVEL,
-			&optval, sizeof(optval)) == -1) {
+		if (setsockopt(vars.socket_recv, IPPROTO_IPV6,
+			IPV6_ESP_TRANS_LEVEL, &optval, sizeof(optval)) == -1) {
 			print_error_strerr("setsockopt(IPV6_ESP_TRANS_LEVEL)");
 			return (false);
 		}
