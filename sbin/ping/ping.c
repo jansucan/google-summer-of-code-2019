@@ -79,18 +79,21 @@ ping_init(struct options *const options, struct shared_variables *const vars,
 	 * connect(2)'ed to, and send socket do not receive those
 	 * packets.
 	 */
+	switch (options->target_type) {
 #ifdef INET
-#ifdef INET6
-	if (options->target_type == TARGET_IPV4)
-#endif
+	case TARGET_IPV4:
 		protocol = IPPROTO_ICMP;
+		break;
 #endif
 #ifdef INET6
-#ifdef INET
-	else
-#endif
+	case TARGET_IPV6:
 		protocol = IPPROTO_ICMPV6;
+		break;
 #endif
+	default:
+		print_error("program error: unknown target type");
+		return (false);
+	}
 
 	if ((vars->socket_send = socket(options->target_addrinfo->ai_family,
 		    options->target_addrinfo->ai_socktype, protocol)) < 0) {
@@ -136,18 +139,19 @@ ping_init(struct options *const options, struct shared_variables *const vars,
 	/*
 	 * Do protocol-specific initialization.
 	 */
+	switch (options->target_type) {
 #ifdef INET
-#ifdef INET6
-	if (options->target_type == TARGET_IPV4)
-#endif
+	case TARGET_IPV4:
 		return (ping4_init(options, vars, counters, timing));
 #endif
 #ifdef INET6
-#ifdef INET
-	else
-#endif
+	case TARGET_IPV6:
 		return (ping6_init(options, vars, timing));
 #endif
+	default:
+		print_error("program error: unknown target type");
+		return (false);
+	}
 }
 
 void
@@ -173,26 +177,23 @@ ping_send_initial_packets(struct options *const options,
     struct timing *const timing)
 {
 	while (options->n_preload--) {
+		switch (options->target_type) {
 #ifdef INET
-#ifdef INET6
-		if (options->target_type == TARGET_IPV4) {
-#endif
+		case TARGET_IPV4:
 			if (!pinger(options, vars, counters, timing))
 				return (false);
-#ifdef INET6
-		}
-#endif
+			break;
 #endif
 #ifdef INET6
-#ifdef INET
-		else {
-#endif
+		case TARGET_IPV6:
 			if (!pinger6(options, vars, counters, timing))
 				return (false);
-#ifdef INET
+			break;
+#endif
+		default:
+			print_error("program error: unknown target type");
+			return (false);
 		}
-#endif
-#endif
 	}
 
 	return (true);
@@ -217,22 +218,22 @@ ping_loop(struct options *const options, struct shared_variables *const vars,
 		bool is_ready, is_eintr;
 
 		if (signal_vars->siginfo) {
+			switch (options->target_type) {
 #ifdef INET
-#ifdef INET6
-			if (options->target_type == TARGET_IPV4)
-#endif
+			case TARGET_IPV4:
 				pr_status(counters, timing);
+				break;
 #endif
 #ifdef INET6
-#ifdef INET
-			else {
-#endif
+			case TARGET_IPV6:
 				pr6_summary(counters, timing, options->target);
 				continue;
-#ifdef INET
+#endif
+			default:
+				print_error("program error: unknown target "
+				    "type");
+				return (false);
 			}
-#endif
-#endif
 			signal_vars->siginfo = false;
 		}
 
@@ -250,29 +251,32 @@ ping_loop(struct options *const options, struct shared_variables *const vars,
 			continue;
 		if (is_ready) {
 			bool next_iteration;
-#ifdef INET
 #ifdef INET6
-			if (options->target_type == TARGET_IPV4)
+			int r;
 #endif
+			switch (options->target_type) {
+#ifdef INET
+			case TARGET_IPV4:
 				next_iteration =
 					!ping4_process_received_packet(options,
 					    vars, counters, timing);
+				break;
 #endif
 #ifdef INET6
-#ifdef INET
-			else {
-#endif
-				int r;
-
+			case TARGET_IPV6:
 				r = ping6_process_received_packet(options, vars,
 				    counters, timing);
 				if (r < 0)
 					return (false);
 				next_iteration = (r == 1);
-#ifdef INET
+				break;
+#endif
+			default:
+				print_error("program error: unknown target "
+				    "type");
+				return (false);
 			}
-#endif
-#endif
+
 			if (next_iteration)
 				continue;
 
@@ -290,28 +294,26 @@ ping_loop(struct options *const options, struct shared_variables *const vars,
 #endif
 			if ((options->n_packets == 0) ||
 			    (counters->transmitted < options->n_packets)) {
+				switch (options->target_type) {
 #ifdef INET
-#ifdef INET6
-				if (options->target_type == TARGET_IPV4) {
-#endif
+				case TARGET_IPV4:
 					if (!pinger(options, vars, counters,
 						timing))
 						return (false);
-#ifdef INET6
-				}
-#endif
+					break;
 #endif
 #ifdef INET6
-#ifdef INET
-				else {
-#endif
+				case TARGET_IPV6:
 					if (!pinger6(options, vars, counters,
 						timing))
 						return (false);
-#ifdef INET
+					break;
+#endif
+				default:
+					print_error("program error: unknown "
+					    "target type");
+					return (false);
 				}
-#endif
-#endif
 			} else {
 				if (almost_done)
 					break;
@@ -358,16 +360,18 @@ void
 ping_print_summary(struct options *const options,
     const struct counters *const counters, const struct timing *const timing)
 {
+	switch (options->target_type) {
 #ifdef INET
-#ifdef INET6
-	if (options->target_type == TARGET_IPV4)
-#endif
+	case TARGET_IPV4:
 		pr_summary(counters, timing, options->target);
+		break;
 #endif
 #ifdef INET6
-#ifdef INET
-	else
-#endif
+	case TARGET_IPV6:
 		pr6_summary(counters, timing, options->target);
+		break;
 #endif
+	default:
+		break;
+	}
 }
