@@ -316,9 +316,8 @@ ATF_TC_BODY(option_interval, tc)
 	}
 	{
 		if (LDBL_MAX <= DBL_MAX)
-			/* TODO: Fix typo */
 			atf_tc_skip("This test requires 'long double' to be "
-			    "wider then 'double' so it can store DBL_MAX * 2.");
+			    "wider than 'double' so it can store DBL_MAX * 2.");
 
 		ARGC_ARGV("-i", "replaced_by_DBL_MAX*2", "localhost");
 		capdns = capdns_setup();
