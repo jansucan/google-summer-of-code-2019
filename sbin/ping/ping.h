@@ -44,14 +44,15 @@ struct shared_variables {
 	char rcvd_tbl[MAX_DUP_CHK / 8];
 	int socket_send;		/* send socket file descriptor */
 	int socket_recv;		/* receive socket file descriptor */
-	u_char outpackhdr[IP_MAXPACKET], *outpack;
 	int ident;		/* process id to identify our packets */
+	cap_channel_t *capdns;
+#ifdef INET
+	u_char outpackhdr[IP_MAXPACKET], *outpack;
 	u_char icmp_type;
 	u_char icmp_type_rsp;
 	int phdr_len;
 	int send_len;
 	const struct sockaddr_in *target_sockaddr;
-	cap_channel_t *capdns;
 	char ctrl[CMSG_SPACE(sizeof(struct timeval))];
 	struct msghdr msg;	/* V6: smsghdr */
 	struct sockaddr_in from;
@@ -59,13 +60,15 @@ struct shared_variables {
 	u_char *datap;
 	int icmp_len;
 	struct iovec iov;
-
+#endif	/* INET */
+#ifdef INET6
 	struct sockaddr_in6 *target_sockaddr_in6;	/* who to ping6 */
 	u_char outpack6[MAXPACKETLEN];			/* V6: outpack */
 	uint8_t nonce[8];	/* nonce field for node information */
 	int packlen;
 	struct msghdr smsghdr;
 	u_char *packet6;
+#endif	/* INET6 */
 };
 
 struct counters {
@@ -73,9 +76,11 @@ struct counters {
 	long received;		/* # of packets we got back */
 	long repeats;		/* number of duplicates */
 	long transmitted;	/* sequence # for outbound packets = #sent */
+	long rcvtimeout;	/* # of packets we got back after waittime */
+#ifdef INET
 	long sweep_max_packets;	/* max packets to transmit in one sweep */
 	long sweep_transmitted;	/* # of packets we sent in this sweep */
-	long rcvtimeout;	/* # of packets we got back after waittime */
+#endif
 };
 
 struct signal_variables {

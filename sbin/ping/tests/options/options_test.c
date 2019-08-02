@@ -644,6 +644,43 @@ ATF_TC_BODY(option_quiet, tc)
 ATF_TC_WITHOUT_HEAD(option_packet_size);
 ATF_TC_BODY(option_packet_size, tc)
 {
+#ifdef INET
+	{
+		ARGC_ARGV("-4", "localhost");
+		capdns = capdns_setup();
+
+		options.f_packet_size = true;
+		options.n_packet_size = DEFAULT_DATALEN_IPV4 + 123;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options,
+			capdns) == true);
+		ATF_REQUIRE(options.f_packet_size == false);
+		ATF_REQUIRE(options.n_packet_size == DEFAULT_DATALEN_IPV4);
+		cap_close(capdns);
+		options_free(&options);
+	}
+	{
+		ARGC_ARGV("-4", "-s", "replaced_by_LONG_MAX+1", "localhost");
+		capdns = capdns_setup();
+
+		ARGV_SET_FROM_EXPR(test_argv, 3,
+		    ((unsigned long) LONG_MAX) + 1);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options,
+			capdns) == false);
+		cap_close(capdns);
+		options_free(&options);
+	}
+	{
+		ARGC_ARGV("-4", "-s", "replaced_by_LONG_MAX+1000", "localhost");
+		capdns = capdns_setup();
+
+		ARGV_SET_FROM_EXPR(test_argv, 3,
+		    ((unsigned long) LONG_MAX) + 1000);
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options,
+			capdns) == false);
+		cap_close(capdns);
+		options_free(&options);
+	}
+#endif
 #ifdef INET6
 	{
 		ARGC_ARGV("-6", "localhost");
@@ -659,19 +696,6 @@ ATF_TC_BODY(option_packet_size, tc)
 		options_free(&options);
 	}
 #endif
-	{
-		ARGC_ARGV("-4", "localhost");
-		capdns = capdns_setup();
-
-		options.f_packet_size = true;
-		options.n_packet_size = DEFAULT_DATALEN_IPV4 + 123;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options,
-			capdns) == true);
-		ATF_REQUIRE(options.f_packet_size == false);
-		ATF_REQUIRE(options.n_packet_size == DEFAULT_DATALEN_IPV4);
-		cap_close(capdns);
-		options_free(&options);
-	}
 	{
 		ARGC_ARGV("-s", "-1000", "localhost");
 		capdns = capdns_setup();
@@ -757,30 +781,9 @@ ATF_TC_BODY(option_packet_size, tc)
 		options_free(&options);
 	}
 #endif /* !INET6 */
-	{
-		ARGC_ARGV("-4", "-s", "replaced_by_LONG_MAX+1", "localhost");
-		capdns = capdns_setup();
-
-		ARGV_SET_FROM_EXPR(test_argv, 3,
-		    ((unsigned long) LONG_MAX) + 1);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options,
-			capdns) == false);
-		cap_close(capdns);
-		options_free(&options);
-	}
-	{
-		ARGC_ARGV("-4", "-s", "replaced_by_LONG_MAX+1000", "localhost");
-		capdns = capdns_setup();
-
-		ARGV_SET_FROM_EXPR(test_argv, 3,
-		    ((unsigned long) LONG_MAX) + 1000);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options,
-			capdns) == false);
-		cap_close(capdns);
-		options_free(&options);
-	}
 }
 
+#ifdef INET
 ATF_TC(privileged_option_packet_size);
 ATF_TC_HEAD(privileged_option_packet_size, tc)
 {
@@ -884,6 +887,7 @@ ATF_TC_BODY(unprivileged_option_packet_size, tc)
 		options_free(&options);
 	}
 }
+#endif	/* INET */
 
 ATF_TC_WITHOUT_HEAD(option_timeout);
 ATF_TC_BODY(option_timeout, tc)
@@ -1083,6 +1087,7 @@ ATF_TC_BODY(option_wait_time, tc)
 	}
 }
 
+#ifdef INET
 ATF_TC_WITHOUT_HEAD(option_protocol_ipv4);
 ATF_TC_BODY(option_protocol_ipv4, tc)
 {
@@ -1752,90 +1757,6 @@ ATF_TC_BODY(option_so_dontroute, tc)
 	options_free(&options);
 }
 
-ATF_TC_WITHOUT_HEAD(option_multicast_ttl);
-ATF_TC_BODY(option_multicast_ttl, tc)
-{
-	{
-		ARGC_ARGV("-T", "-1000", "localhost");
-		capdns = capdns_setup();
-
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options,
-			capdns) == false);
-		cap_close(capdns);
-		options_free(&options);
-	}
-	{
-		ARGC_ARGV("-T", "-1", "localhost");
-		capdns = capdns_setup();
-
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options,
-			capdns) == false);
-		cap_close(capdns);
-		options_free(&options);
-	}
-	{
-		ARGC_ARGV("-T", "0", "localhost");
-		capdns = capdns_setup();
-
-		options.f_multicast_ttl = false;
-		options.n_multicast_ttl = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options,
-			capdns) == true);
-		ATF_REQUIRE(options.f_multicast_ttl == true);
-		ATF_REQUIRE(options.n_multicast_ttl == 0);
-		cap_close(capdns);
-		options_free(&options);
-	}
-	{
-		ARGC_ARGV("-T", "replaced_by_MAXTTL/2", "localhost");
-		capdns = capdns_setup();
-
-		ARGV_SET_FROM_EXPR(test_argv, 2, (unsigned long) (MAXTTL / 2));
-		options.f_multicast_ttl = false;
-		options.n_multicast_ttl = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options,
-			capdns) == true);
-		ATF_REQUIRE(options.f_multicast_ttl == true);
-		ATF_REQUIRE(options.n_multicast_ttl == (MAXTTL / 2));
-		cap_close(capdns);
-		options_free(&options);
-	}
-	{
-		ARGC_ARGV("-T", DEFINED_NUM_TO_STR(MAXTTL), "localhost");
-		capdns = capdns_setup();
-
-		options.f_multicast_ttl = false;
-		options.n_multicast_ttl = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options,
-			capdns) == true);
-		ATF_REQUIRE(options.f_multicast_ttl == true);
-		ATF_REQUIRE(options.n_multicast_ttl == MAXTTL);
-		cap_close(capdns);
-		options_free(&options);
-	}
-	{
-		ARGC_ARGV("-T", "replaced_by_MAXTTL+1", "localhost");
-		capdns = capdns_setup();
-
-		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) MAXTTL) + 1);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options,
-			capdns) == false);
-		cap_close(capdns);
-		options_free(&options);
-	}
-	{
-		ARGC_ARGV("-T", "replaced_by_MAXTTL+1000", "localhost");
-		capdns = capdns_setup();
-
-		ARGV_SET_FROM_EXPR(test_argv, 2,
-		    ((unsigned long) MAXTTL) + 1000);
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options,
-			capdns) == false);
-		cap_close(capdns);
-		options_free(&options);
-	}
-}
-
 ATF_TC_WITHOUT_HEAD(option_tos);
 ATF_TC_BODY(option_tos, tc)
 {
@@ -1919,6 +1840,7 @@ ATF_TC_BODY(option_tos, tc)
 		options_free(&options);
 	}
 }
+#endif	/* INET */
 
 #ifdef INET6
 ATF_TC_WITHOUT_HEAD(option_protocol_ipv6);
@@ -2605,11 +2527,12 @@ ATF_TP_ADD_TCS(tp)
 	ATF_TP_ADD_TC(tp, option_ping_filled);
 	ATF_TP_ADD_TC(tp, option_quiet);
 	ATF_TP_ADD_TC(tp, option_packet_size);
-	ATF_TP_ADD_TC(tp, privileged_option_packet_size);
-	ATF_TP_ADD_TC(tp, unprivileged_option_packet_size);
 	ATF_TP_ADD_TC(tp, option_timeout);
 	ATF_TP_ADD_TC(tp, option_verbose);
 	ATF_TP_ADD_TC(tp, option_wait_time);
+#ifdef INET
+	ATF_TP_ADD_TC(tp, privileged_option_packet_size);
+	ATF_TP_ADD_TC(tp, unprivileged_option_packet_size);
 	ATF_TP_ADD_TC(tp, option_protocol_ipv4);
 	ATF_TP_ADD_TC(tp, option_sweep_max);
 	ATF_TP_ADD_TC(tp, privileged_option_sweep_max);
@@ -2626,7 +2549,7 @@ ATF_TP_ADD_TCS(tp)
 	ATF_TP_ADD_TC(tp, option_rroute);
 	ATF_TP_ADD_TC(tp, option_so_dontroute);
 	ATF_TP_ADD_TC(tp, option_tos);
-
+#endif	/* INET */
 #ifdef INET6
 	ATF_TP_ADD_TC(tp, option_protocol_ipv6);
 	ATF_TP_ADD_TC(tp, option_sock_buf_size);

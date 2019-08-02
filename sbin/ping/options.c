@@ -74,8 +74,6 @@ __FBSDID("$FreeBSD$");
 #define OPSTR  OPSTR_COMMON OPSTR_IPV4 OPSTR_IPSEC
 #endif	/* INET6 */
 
-static bool  options_check_post_hosts(struct options *const options,
-    cap_channel_t *const capdns);
 static bool  options_check_pre_hosts(struct options *const options,
     cap_channel_t *const capdns);
 static bool  options_check_packet_size(long, long);
@@ -84,11 +82,6 @@ static bool  options_get_target_type(struct options *const options,
 static bool  options_getaddrinfo(const char *const hostname,
     const struct addrinfo *const hints, struct addrinfo **const res,
     cap_channel_t *const capdns);
-static bool options_ipv6_target_nigroup(char *const, int);
-static bool options_has_ipv4_only(const struct options *const options);
-#ifdef INET6
-static bool options_has_ipv6_only(const struct options *const options);
-#endif
 static bool  options_parse_hosts(int argc, char **argv,
     struct options *const options, cap_channel_t *const capdns);
 static void options_set_defaults_post_hosts(struct options *const options);
@@ -96,6 +89,19 @@ static void options_set_defaults_pre_hosts(struct options *const options);
 static bool options_strtod(const char *const str, double *const val);
 static long long options_strtonum(const char *const str, long long minval,
     long long maxval, char **const errstr);
+
+static bool options_ipv4_check_post_hosts(struct options *const options,
+    cap_channel_t *const capdns);
+static bool options_ipv6_check_post_hosts(struct options *const options,
+    cap_channel_t *const capdns);
+
+#ifdef INET
+static bool options_has_ipv4_only(const struct options *const options);
+#endif
+#ifdef INET6
+static bool options_has_ipv6_only(const struct options *const options);
+static bool options_ipv6_target_nigroup(char *const, int);
+#endif
 
 void
 options_free(struct options *const options)
@@ -285,6 +291,7 @@ options_parse(int argc, char **argv, struct options *const options,
 			options->f_wait_time = true;
 			break;
 			/* IPV4 options */
+#ifdef INET
 		case '4':
 			options->f_protocol_ipv4 = true;
 			break;
@@ -381,6 +388,7 @@ options_parse(int argc, char **argv, struct options *const options,
 			}
 			options->f_tos = true;
 			break;
+#endif	/* INET */
 			/* IPv6 options */
 #ifdef INET6
 		case '6':
@@ -553,126 +561,10 @@ options_parse(int argc, char **argv, struct options *const options,
 		return (false);
 
 	options_set_defaults_post_hosts(options);
-	return (options_check_post_hosts(options, capdns));
-}
 
-/*
- * Checks of the options that need to have information about a
- * protocol version of the target.
- */
-static bool
-options_check_post_hosts(struct options *const options,
-    cap_channel_t *const capdns)
-{
-	const struct sockaddr_in * target_sockaddr;
-	bool is_ipv4_unicast_addr;
-
-	target_sockaddr =
-		(struct sockaddr_in *) options->target_addrinfo->ai_addr;
-	is_ipv4_unicast_addr =
-		!IN_MULTICAST(ntohl(target_sockaddr->sin_addr.s_addr));
-
-	/*
-	 * Check options common to both IPv4 and IPv6 targets.
-	 */
-	if (options->f_interface) {
-		if (options->target_type == TARGET_IPV4) {
-			if (inet_aton(options->s_interface,
-				&options->interface.ifaddr) == 0) {
-				print_error("IPv4 target: invalid multicast "
-				    "interface address: `%s'",
-				    options->s_interface);
-				return (false);
-			}
-			if (options->f_interface && is_ipv4_unicast_addr) {
-				print_error("IPv4 target: -I flag cannot be "
-				    "used with unicast destination");
-				return (false);
-			}
-		}
-#ifdef INET6
-		else {
-			if ((options->interface.index =
-				if_nametoindex(options->s_interface)) == 0) {
-				print_error("IPv6 target: invalid interface "
-				    "name: `%s'", options->s_interface);
-				return (false);
-			}
-		}
-#endif
-	}
-
-	if (options->f_source) {
-		struct addrinfo hints, *res;
-
-		memset(&hints, 0, sizeof(struct addrinfo));
-		hints.ai_socktype = SOCK_RAW;
-
-		if (options->target_type == TARGET_IPV4) {
-			hints.ai_family = AF_INET;
-			hints.ai_protocol = IPPROTO_ICMP;
-		}
-#ifdef INET6
-		else {
-			hints.ai_flags = AI_NUMERICHOST; /* allow hostname? */
-			hints.ai_family = AF_INET6;
-			hints.ai_protocol = IPPROTO_ICMPV6;
-		}
-#endif
-		if (!options_getaddrinfo(options->s_source, &hints, &res,
-			capdns))
-			return (false);
-
-		/*
-		 * res->ai_family must be AF_INET or AF_INET6, and
-		 * res->ai_addrlen must be
-		 * sizeof(options->source_sockaddr_in) or
-		 * sizeof(options->source_sockaddr_in6), respectively.
-		 */
-		if (options->target_type == TARGET_IPV4)
-			memcpy(&options->source_sockaddr.in, res->ai_addr,
-			    res->ai_addrlen);
-#ifdef INET6
-		else
-			memcpy(&options->source_sockaddr.in6, res->ai_addr,
-			    res->ai_addrlen);
-#endif	/* INET6 */
-		freeaddrinfo(res);
-	}
-
-	if (options->f_packet_size) {
-		if (options->target_type == TARGET_IPV4) {
-			if (!options_check_packet_size(options->n_packet_size,
-				DEFAULT_DATALEN_IPV4))
-				return (false);
-		}
-#ifdef INET6
-		else if (options->n_packet_size > MAXDATALEN) {
-			print_error("datalen value too large, maximum is %d",
-			    MAXDATALEN);
-			return (false);
-		}
-#endif
-	}
-
-	/*
-	 * Check options only for IPv4 target.
-	 */
-	if (options->f_flood && !is_ipv4_unicast_addr) {
-		print_error("-f flag cannot be used with multicast "
-		    "destination");
+	if (!options_ipv4_check_post_hosts(options, capdns) ||
+	    !options_ipv6_check_post_hosts(options, capdns))
 		return (false);
-	}
-
-	if (options->f_no_loop && is_ipv4_unicast_addr) {
-		print_error("-L flag cannot be used with unicast destination");
-		return (false);
-	}
-
-	if (options->f_multicast_ttl && is_ipv4_unicast_addr) {
-		print_error("-T flag cannot be used with unicast destination");
-		return (false);
-	}
 
 	return (true);
 }
@@ -690,7 +582,7 @@ options_check_pre_hosts(struct options *const options,
 		warnx("-N implies IPv6 target, setting -6 option");
 		options->f_protocol_ipv6 = true;
 	}
-
+#ifdef INET
 	if (options->f_protocol_ipv6 && options_has_ipv4_only(options)) {
 		print_error("IPv6 requested but IPv4 option provided");
 		return (false);
@@ -698,7 +590,7 @@ options_check_pre_hosts(struct options *const options,
 		print_error("IPv4 requested but IPv6 option provided");
 		return (false);
 	}
-
+#endif	/* INET */
 	/*
 	 * Check options only for IPv6 target.
 	 */
@@ -721,7 +613,7 @@ options_check_pre_hosts(struct options *const options,
 		    res->ai_addrlen);
 		freeaddrinfo(res);
 	}
-#endif
+#endif	/* INET6 */
 	/*
 	 * Check options common to both IPv4 and IPv6 targets.
 	 */
@@ -748,10 +640,19 @@ options_check_pre_hosts(struct options *const options,
 		options->n_interval.tv_sec = 0;
 		options->n_interval.tv_usec = 10000;
 	}
-
+	if (options->f_preload) {
+		if (getuid() != 0) {
+			print_error("Must be superuser to preload");
+			return (false);
+		}
+		if (options->f_packets &&
+		    (options->n_packets < options->n_preload))
+			options->n_preload = options->n_packets;
+	}
 	/*
 	 * Check options only for IPv4 target.
 	 */
+#ifdef INET
 	if (options->f_mask && options->f_time) {
 		print_error("ICMP_TSTAMP and ICMP_MASKREQ are exclusive");
 		return (false);
@@ -786,17 +687,7 @@ options_check_pre_hosts(struct options *const options,
 			DEFAULT_DATALEN_IPV4))
 			return (false);
 	}
-
-	if (options->f_preload) {
-		if (getuid() != 0) {
-			print_error("Must be superuser to preload");
-			return (false);
-		}
-		if (options->f_packets &&
-		    (options->n_packets < options->n_preload))
-			options->n_preload = options->n_packets;
-	}
-
+#endif	/* INET */
 	return (true);
 }
 
@@ -815,50 +706,53 @@ static bool
 options_get_target_type(struct options *const options, bool *const is_hostname,
     cap_channel_t *const capdns)
 {
+	struct addrinfo *ai_first = NULL;
+	struct addrinfo hints;
+#ifdef INET
+	struct addrinfo *ai_ipv4 = NULL;
 	struct in_addr a;
 	int r_pton;
+#endif
 #ifdef INET6
+	struct addrinfo *ai_ipv6 = NULL;
 	struct in6_addr a6;
 	int r6_pton = 0;
 #endif
-	if ((r_pton = inet_pton(AF_INET, options->target, &a)) == -1) {
-		print_error_strerr("inet_pton");
-		return (false);
-	}
-#ifdef INET6
-	else if (r_pton == 0) {
-		if ((r6_pton = inet_pton(AF_INET6, options->target,
-			    &a6)) ==-1) {
-			print_error_strerr("inet_pton");
-			return (false);
-		}
-	}
-	*is_hostname = ((r_pton != 1) && (r6_pton != 1));
-#else
-	*is_hostname = (r_pton != 1);
-#endif
-
-	struct addrinfo hints;
 
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_flags = AI_CANONNAME;
 	hints.ai_socktype = SOCK_RAW;
+	hints.ai_family = AF_UNSPEC;
 
-	if ((options->f_protocol_ipv4) || (r_pton == 1))
-		hints.ai_family = AF_INET;
+	*is_hostname = true;
+
+	/* Check whether the target was specified as an address. */
+	for (;;) {
+#ifdef INET
+		if ((r_pton = inet_pton(AF_INET, options->target, &a)) == -1) {
+			print_error_strerr("inet_pton");
+			return (false);
+		} else if (r_pton == 1) {
+			*is_hostname = false;
+			if (options->f_protocol_ipv4)
+				hints.ai_family = AF_INET;
+			break;
+		}
+#endif
 #ifdef INET6
-	else if ((options->f_protocol_ipv6) || (r6_pton == 1)) {
-		hints.ai_family = AF_INET6;
+		/* The target was not specified as an IPv4 address. */
+		if ((r6_pton = inet_pton(AF_INET6, options->target,
+			    &a6)) == -1) {
+			print_error_strerr("inet_pton");
+			return (false);
+		} else if (r6_pton == 1) {
+			*is_hostname = false;
+			if (options->f_protocol_ipv6)
+				hints.ai_family = AF_INET6;
+		}
+#endif
+		break;
 	}
-#endif
-	else
-		hints.ai_family = AF_UNSPEC;
-
-	struct addrinfo *ai_first = NULL;
-	struct addrinfo *ai_ipv4 = NULL;
-#ifdef INET6
-	struct addrinfo *ai_ipv6 = NULL;
-#endif
 
 	const int r_ai = cap_getaddrinfo(capdns, options->target, NULL, &hints,
 	    &options->target_addrinfo_root);
@@ -871,30 +765,34 @@ options_get_target_type(struct options *const options, bool *const is_hostname,
 		 */
 		for (struct addrinfo *ai = options->target_addrinfo_root;
 		     ai != NULL; ai = ai->ai_next) {
-			if ((ai->ai_family == AF_INET) ||
-			    (ai->ai_family == AF_INET6)) {
+#ifdef INET
+			if (ai->ai_family == AF_INET) {
 				if (ai_first == NULL)
 					ai_first = ai;
-				if ((ai_ipv4 == NULL) &&
-				    (ai->ai_family == AF_INET))
-					ai_ipv4 = ai;
-#ifdef INET6
-				else if ((ai_ipv6 == NULL) &&
-				    (ai->ai_family == AF_INET6))
-					ai_ipv6 = ai;
-#endif
+				if (ai_ipv4 == NULL)
+				    ai_ipv4 = ai;
 			}
+#endif
+#ifdef INET6
+			if (ai->ai_family == AF_INET6) {
+				if (ai_first == NULL)
+					ai_first = ai;
+				if (ai_ipv6 == NULL)
+					ai_ipv6 = ai;
+			}
+#endif
 		}
 	}
 
 	/* Check for errors. */
+#ifdef INET
 	if (options->f_protocol_ipv4) {
 #ifdef INET6
 		if (r6_pton == 1) {
 			print_error("IPv4 requested but IPv6 target address "
 			    "provided");
 			return (false);
-		} else
+		}
 #endif
 		if (ai_ipv4 == NULL) {
 			print_error("IPv4 requested but no IPv4 address "
@@ -902,41 +800,56 @@ options_get_target_type(struct options *const options, bool *const is_hostname,
 			return (false);
 		}
 	}
+#endif	/* INET */
 #ifdef INET6
-	else if (options->f_protocol_ipv6) {
+	if (options->f_protocol_ipv6) {
+#ifdef INET
 		if (r_pton == 1) {
 			print_error("IPv6 requested but IPv4 target address "
 			    "provided");
 			return (false);
-		} else if (ai_ipv6 == NULL) {
+		}
+#endif
+		if (ai_ipv6 == NULL) {
 			print_error("IPv6 requested but no IPv6 address "
 			    "associated with that hostname");
 			return (false);
 		}
 	}
-#endif
+#endif	/* INET6 */
 	else if (ai_first == NULL) {
-		print_error("no IPv4 or IPv6 address was resolved");
+		print_error("no address was resolved");
 		return (false);
 	}
 
 	/* Determine the target type. */
-	if (options->f_protocol_ipv4) {
-		options->target_addrinfo = ai_ipv4;
-		options->target_type = TARGET_IPV4;
-	}
-#ifdef INET6
-	else if (options->f_protocol_ipv6) {
-		options->target_addrinfo = ai_ipv6;
-		options->target_type = TARGET_IPV6;
-	} else if (ai_first->ai_family == AF_INET6) {
-		options->target_addrinfo = ai_first;
-		options->target_type = TARGET_IPV6;
-	}
+	for (;;) {
+#ifdef INET
+		if (options->f_protocol_ipv4) {
+			options->target_addrinfo = ai_ipv4;
+			options->target_type = TARGET_IPV4;
+			break;
+		}
 #endif
-	else {
-		options->target_addrinfo = ai_first;
-		options->target_type = TARGET_IPV4;
+#ifdef INET6
+		if (options->f_protocol_ipv6) {
+			options->target_addrinfo = ai_ipv6;
+			options->target_type = TARGET_IPV6;
+			break;
+		}
+		if (ai_first->ai_family == AF_INET6) {
+			options->target_addrinfo = ai_first;
+			options->target_type = TARGET_IPV6;
+			break;
+		}
+#endif
+#ifdef INET
+		else {
+			options->target_addrinfo = ai_first;
+			options->target_type = TARGET_IPV4;
+		}
+#endif
+		break;
 	}
 
 	return (true);
@@ -1003,11 +916,13 @@ options_parse_hosts(int argc, char **argv, struct options *const options,
 	--argc;
 
 	if (argc != 0) {
+#ifdef INET
 		/* Ping to IPv4 host cannot have any hops specified. */
 		if (options->target_type == TARGET_IPV4) {
 			usage();
 			return (false);
 		}
+#endif	/* INET */
 #ifdef INET6
 		options->hop_count = argc;
 		options->hops = (const char **)malloc(argc * sizeof(char *));
@@ -1051,7 +966,13 @@ options_parse_hosts(int argc, char **argv, struct options *const options,
 	 * hostname.
 	 */
 	if ((options->target_addrinfo->ai_canonname != NULL)  &&
+#ifdef INET
+#ifdef INET6
 	    ((options->target_type != TARGET_IPV4) || is_hostname) &&
+#else
+	    is_hostname &&
+#endif
+#endif
 	    (strlcpy(options->target, options->target_addrinfo->ai_canonname,
 		MAXHOSTNAMELEN) >= MAXHOSTNAMELEN)) {
 		print_error("canonical name for target is longer than %d chars",
@@ -1070,10 +991,18 @@ static void
 options_set_defaults_post_hosts(struct options *const options)
 {
 	if (!options->f_packet_size) {
+#ifdef INET
+#ifdef INET6
 		if (options->target_type == TARGET_IPV4)
+#endif
 			options->n_packet_size = DEFAULT_DATALEN_IPV4;
+#endif
+#ifdef INET6
+#ifdef INET
 		else
+#endif
 			options->n_packet_size = DEFAULT_DATALEN_IPV6;
+#endif
 	}
 }
 
@@ -1086,14 +1015,17 @@ options_set_defaults_pre_hosts(struct options *const options)
 {
 	if (!options->f_preload)
 		options->n_preload = 1;
+#ifdef INET
 	if (!options->f_sweep_incr)
 		options->n_sweep_incr = DEFAULT_SWEEP_INCR;
+#endif
 	if (!options->f_interval) {
 		options->n_interval.tv_sec = DEFAULT_INTERVAL_TV_SEC;
 		options->n_interval.tv_usec = DEFAULT_INTERVAL_TV_USEC;
 	}
 	if (!options->f_wait_time)
 		options->n_wait_time = DEFAULT_WAIT_TIME;
+#ifdef INET6
 	/*
 	 * Default value is -1. By the memset(options, ...) it is
 	 * initialized to 0 and every -N option increments it. Thus,
@@ -1101,6 +1033,7 @@ options_set_defaults_pre_hosts(struct options *const options)
 	 * (default and non-default).
 	 */
 	options->c_nigroup -= 1;
+#endif
 }
 
 static bool
@@ -1155,7 +1088,191 @@ options_strtonum(const char *const str, long long minval,
 	return (val);
 }
 
+static bool
+options_ipv4_check_post_hosts(struct options *const options,
+    cap_channel_t *const capdns)
+{
+#ifdef INET
+	const struct sockaddr_in * target_sockaddr;
+	bool is_ipv4_unicast_addr;
+
+	if (options->target_type != TARGET_IPV4)
+		return (true);
+
+	target_sockaddr =
+		(struct sockaddr_in *) options->target_addrinfo->ai_addr;
+	is_ipv4_unicast_addr =
+		!IN_MULTICAST(ntohl(target_sockaddr->sin_addr.s_addr));
+
+	/*
+	 * Check options common to both IPv4 and IPv6 targets.
+	 */
+	if (options->f_interface) {
+		if (inet_aton(options->s_interface,
+			&options->interface.ifaddr) == 0) {
+			print_error("IPv4 target: invalid multicast "
+			    "interface address: `%s'",
+			    options->s_interface);
+			return (false);
+		}
+		if (options->f_interface && is_ipv4_unicast_addr) {
+			print_error("IPv4 target: -I flag cannot be "
+			    "used with unicast destination");
+			return (false);
+		}
+	}
+
+	if (options->f_source) {
+		struct addrinfo hints, *res;
+
+		memset(&hints, 0, sizeof(struct addrinfo));
+		hints.ai_socktype = SOCK_RAW;
+		hints.ai_family = AF_INET;
+		hints.ai_protocol = IPPROTO_ICMP;
+
+		if (!options_getaddrinfo(options->s_source, &hints, &res,
+			capdns))
+			return (false);
+
+		/*
+		 * res->ai_family must be AF_INET or AF_INET6, and
+		 * res->ai_addrlen must be
+		 * sizeof(options->source_sockaddr_in) or
+		 * sizeof(options->source_sockaddr_in6), respectively.
+		 */
+		memcpy(&options->source_sockaddr.in, res->ai_addr,
+		    res->ai_addrlen);
+	}
+
+	if (options->f_packet_size) {
+		if (!options_check_packet_size(options->n_packet_size,
+			DEFAULT_DATALEN_IPV4))
+			return (false);
+	}
+
+	/*
+	 * Check options only for IPv4 target.
+	 */
+	if (options->f_flood && !is_ipv4_unicast_addr) {
+		print_error("-f flag cannot be used with multicast "
+		    "destination");
+		return (false);
+	}
+
+	if (options->f_no_loop && is_ipv4_unicast_addr) {
+		print_error("-L flag cannot be used with unicast destination");
+		return (false);
+	}
+
+	if (options->f_multicast_ttl && is_ipv4_unicast_addr) {
+		print_error("-T flag cannot be used with unicast destination");
+		return (false);
+	}
+#endif	/* INET */
+	return (true);
+}
+
+static bool
+options_ipv6_check_post_hosts(struct options *const options,
+    cap_channel_t *const capdns)
+{
 #ifdef INET6
+	if (options->target_type != TARGET_IPV6)
+		return (true);
+	/*
+	 * Check options common to both IPv4 and IPv6 targets.
+	 */
+	if (options->f_interface) {
+		if ((options->interface.index =
+			if_nametoindex(options->s_interface)) == 0) {
+			print_error("IPv6 target: invalid interface "
+			    "name: `%s'", options->s_interface);
+			return (false);
+		}
+	}
+
+	if (options->f_source) {
+		struct addrinfo hints, *res;
+
+		memset(&hints, 0, sizeof(struct addrinfo));
+		hints.ai_socktype = SOCK_RAW;
+		hints.ai_flags = AI_NUMERICHOST; /* allow hostname? */
+		hints.ai_family = AF_INET6;
+		hints.ai_protocol = IPPROTO_ICMPV6;
+
+		if (!options_getaddrinfo(options->s_source, &hints, &res,
+			capdns))
+			return (false);
+
+		/*
+		 * res->ai_family must be AF_INET or AF_INET6, and
+		 * res->ai_addrlen must be
+		 * sizeof(options->source_sockaddr_in) or
+		 * sizeof(options->source_sockaddr_in6), respectively.
+		 */
+		memcpy(&options->source_sockaddr.in6, res->ai_addr,
+		    res->ai_addrlen);
+		freeaddrinfo(res);
+	}
+
+	if (options->f_packet_size) {
+		if (options->n_packet_size > MAXDATALEN) {
+			print_error("datalen value too large, maximum is %d",
+			    MAXDATALEN);
+			return (false);
+		}
+	}
+#endif	/* INET6 */
+	return (true);
+}
+
+#ifdef INET
+static bool
+options_has_ipv4_only(const struct options *const options)
+{
+	return (options->f_protocol_ipv4 ||
+	    options->f_sweep_max ||
+	    options->f_sweep_min ||
+	    options->f_sweep_incr ||
+	    options->f_no_loop ||
+	    options->f_mask ||
+	    options->f_time ||
+	    options->f_ttl ||
+	    options->f_quiet ||
+	    options->f_rroute ||
+	    options->f_so_dontroute ||
+	    options->f_multicast_ttl ||
+#if defined(IPSEC) && !defined(IPSEC_POLICY_IPSEC)
+	    options->f_policy ||
+#endif
+	    options->f_tos);
+}
+#endif	/* INET */
+
+#ifdef INET6
+static bool
+options_has_ipv6_only(const struct options *const options)
+{
+	return (options->f_protocol_ipv6 ||
+#if defined(SO_SNDBUF) && defined(SO_RCVBUF)
+	    options->f_sock_buff_size ||
+#endif
+	    options->s_gateway != NULL ||
+	    options->f_hoplimit ||
+	    options->f_nodeaddr ||
+	    options->f_nigroup ||
+#ifdef IPV6_USE_MIN_MTU
+	    options->c_use_min_mtu > 0 ||
+#endif
+	    options->f_fqdn ||
+	    options->f_fqdn_old ||
+#if defined(IPSEC) && !defined(IPSEC_POLICY_IPSEC)
+	    options->f_authhdr ||
+	    options->f_encrypt ||
+#endif /* IPSEC && !IPSEC_POLICY_IPSEC */
+	    options->f_subtypes);
+}
+
 static bool
 options_ipv6_target_nigroup(char *const name, int nig_oldmcprefix)
 {
@@ -1217,56 +1334,13 @@ options_ipv6_target_nigroup(char *const name, int nig_oldmcprefix)
 
 	return (true);
 }
-
-static bool
-options_has_ipv4_only(const struct options *const options)
-{
-	return (options->f_protocol_ipv4 ||
-	    options->f_sweep_max ||
-	    options->f_sweep_min ||
-	    options->f_sweep_incr ||
-	    options->f_no_loop ||
-	    options->f_mask ||
-	    options->f_time ||
-	    options->f_ttl ||
-	    options->f_quiet ||
-	    options->f_rroute ||
-	    options->f_so_dontroute ||
-	    options->f_multicast_ttl ||
-#if defined(IPSEC) && !defined(IPSEC_POLICY_IPSEC)
-	    options->f_policy ||
-#endif
-	    options->f_tos);
-}
-
-static bool
-options_has_ipv6_only(const struct options *const options)
-{
-	return (options->f_protocol_ipv6 ||
-#if defined(SO_SNDBUF) && defined(SO_RCVBUF)
-	    options->f_sock_buff_size ||
-#endif
-	    options->s_gateway != NULL ||
-	    options->f_hoplimit ||
-	    options->f_nodeaddr ||
-	    options->f_nigroup ||
-#ifdef IPV6_USE_MIN_MTU
-	    options->c_use_min_mtu > 0 ||
-#endif
-	    options->f_fqdn ||
-	    options->f_fqdn_old ||
-#if defined(IPSEC) && !defined(IPSEC_POLICY_IPSEC)
-	    options->f_authhdr ||
-	    options->f_encrypt ||
-#endif /* IPSEC && !IPSEC_POLICY_IPSEC */
-	    options->f_subtypes);
-}
 #endif /* INET6 */
 
 void
 usage(void)
 {
 	(void)fprintf(stderr,
+#ifdef INET
 	    "usage: ping [-4AaDdfnoQqRrv] [-c count] [-G sweepmaxsize] "
 	    "[-g sweepminsize]\n"
 	    "            [-h sweepincrsize] [-i wait] [-l preload] "
@@ -1286,8 +1360,14 @@ usage(void)
 	    "[-p pattern] [-S src_addr]\n"
 	    "            [-s packetsize] [-T ttl] [-t timeout] [-W waittime]\n"
 	    "            [-z tos] IPv4-mcast-group\n"
+#endif  /* INET */
 #ifdef INET6
-	    "       ping [-6AaDd"
+#ifdef INET
+	    "       "
+#else
+	    "usage: "
+#endif
+	    "ping [-6AaDd"
 #if defined(IPSEC) && !defined(IPSEC_POLICY_IPSEC)
 	    "E"
 #endif
@@ -1300,14 +1380,14 @@ usage(void)
 	    "Z"
 #endif
 	    "] [-b bufsiz ] [-c count] [-e gateway]\n"
-	    "            [-I iface] [-i wait] [-j hoplimit] [-k addrtype]\n"
-	    "            [-l preload] "
+	    "            [-I iface] [-i wait] [-j hoplimit] [-k addrtype] "
+	    "[-l preload]\n"
 #if defined(IPSEC) && defined(IPSEC_POLICY_IPSEC)
-	    "[-P policy] "
+	    "            [-P policy] "
 #endif
-	    "[-p pattern] [-S src_addr] [-s packetsize]\n"
-	    "            [-t timeout] [-W waittime] [IPv6 hops ...] "
-	    "IPv6-host"
+	    "[-p pattern] [-S src_addr] [-s packetsize] "
+	    "[-t timeout]\n"
+	    "            [-W waittime] [IPv6 hops ...] IPv6-host\n"
 #endif	/* INET6 */
-	    "\n");
+	    );
 }

@@ -59,6 +59,7 @@ ATF_TC_BODY(target, tc)
 		cap_close(capdns);
 		options_free(&options);
 	}
+#ifdef INET
 	{
 		ARGC_ARGV("host_ipv4");
 		options.target[0] = '\0';
@@ -134,6 +135,7 @@ ATF_TC_BODY(target, tc)
 		cap_close(capdns);
 		options_free(&options);
 	}
+#endif	/* INET */
 #ifdef INET6
 	{
 		ARGC_ARGV("-6", "-G", "localhost");
@@ -228,6 +230,8 @@ ATF_TC_BODY(target, tc)
 		cap_close(capdns);
 		options_free(&options);
 	}
+#endif	/* IENT6 */
+#if defined(INET) && defined(INET6)
 	{
 		ARGC_ARGV("-4", "host_ipv6");
 		capdns = capdns_setup();
@@ -276,7 +280,7 @@ ATF_TC_BODY(target, tc)
 		cap_close(capdns);
 		options_free(&options);
 	}
-#endif	/* IENT6 */
+#endif	/* INET && INET6 */
 }
 
 ATF_TC_WITHOUT_HEAD(hops);

@@ -5,8 +5,7 @@
 
 PACKAGE=runtime
 PROG=	ping
-SRCS=	cap.c ipsec.c main.c options.c ping.c ping4.c ping4_print.c timing.c
-SRCS+=	utils.c
+SRCS=	cap.c ipsec.c main.c options.c ping.c timing.c utils.c
 MAN=	ping.8
 BINOWN=	root
 BINMODE=4555
@@ -15,6 +14,7 @@ LIBADD=	m
 
 .if ${MK_INET_SUPPORT} != "no"
 CFLAGS+= -DINET
+SRCS+= ping4.c ping4_print.c
 .endif
 
 .if ${MK_INET6_SUPPORT} != "no"

@@ -4,8 +4,10 @@
 
 PACKAGE=tests
 
+.if ${MK_INET_SUPPORT} != "no"
 ATF_TESTS_SH+=		ping_test
 ${PACKAGE}FILES+=	ping_c3.out
+.endif
 
 .if ${MK_INET6_SUPPORT} != "no"
 ATF_TESTS_SH+=		ping6_test

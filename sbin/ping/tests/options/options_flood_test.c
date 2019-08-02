@@ -67,7 +67,8 @@ ATF_TC_HEAD(privileged_option_flood, tc)
 ATF_TC_BODY(privileged_option_flood, tc)
 {
 	{
-		ARGC_ARGV("-f", "host_ipv4");
+		ARGC_ARGV("-f", "host_ipv4_ipv6");
+
 		capdns = capdns_setup();
 
 		options.f_flood = false;
@@ -77,6 +78,7 @@ ATF_TC_BODY(privileged_option_flood, tc)
 		cap_close(capdns);
 		options_free(&options);
 	}
+#ifdef INET
 	{
 		ARGC_ARGV("-f", "multicast_ipv4");
 		capdns = capdns_setup();
@@ -86,6 +88,7 @@ ATF_TC_BODY(privileged_option_flood, tc)
 		cap_close(capdns);
 		options_free(&options);
 	}
+#endif
 }
 
 ATF_TC(unprivileged_option_flood);

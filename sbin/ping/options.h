@@ -51,8 +51,12 @@
 
 enum target_type {
 	TARGET_UNKNOWN,
+#ifdef INET
 	TARGET_IPV4,
+#endif
+#ifdef INET6
 	TARGET_IPV6
+#endif
 };
 
 struct options {
@@ -65,148 +69,64 @@ struct options {
 	 *   a_ - array argument
 	 */
 
-	/* TODO: ordering of the variables vs. number of #ifdef directives */
+	/* TODO: ordering of the variables */
 	/* TODO: rationalize the data types */
-	bool f_protocol_ipv4;
-	bool f_protocol_ipv6;
+
 	bool f_missed;
 	bool f_audible;
-
 	/* Max packets to transmit */
 	bool f_packets;
 	long n_packets;
-
+	bool f_dont_fragment;
 	bool f_so_debug;
+	bool f_flood;
+	bool        f_interface;
+	const char *s_interface;
+	union {
+#ifdef INET
+		struct in_addr ifaddr;
+#endif
+#ifdef INET6
+		unsigned int index;
+#endif
+	} interface;
+	/* Wait between sending packets */
+	bool    f_interval;
+	struct timeval n_interval;
+	bool f_preload;
+	int  n_preload;
 	bool f_numeric;
 	bool f_once;
-
 	/* Fill buffer with user pattern  */
 	bool f_ping_filled;
 	int  a_ping_filled[16];
 	/* Number of bytes of the pattern */
 	size_t ping_filled_size;
-
-	bool f_somewhat_quiet;
 	bool f_quiet;
-	bool f_rroute;
-	bool f_so_dontroute;
-
 	bool f_source;
 	char s_source[MAXHOSTNAMELEN];
 	union {
+#ifdef INET
 		struct sockaddr_in	in;
+#endif
+#ifdef INET6
 		struct sockaddr_in6	in6;
+#endif
 	} source_sockaddr;
-
-	bool f_verbose;
-	bool f_no_loop;
-	bool f_dont_fragment;
-	bool f_flood;
-
-	bool f_preload;
-	int  n_preload;
-
-	/* Max value of payload in sweep */
-	bool f_sweep_max;
-	int  n_sweep_max;
-        /* Start value of payload in sweep */
-	bool f_sweep_min;
-	int  n_sweep_min;
-        /* Payload increment in sweep */
-	bool f_sweep_incr;
-	int  n_sweep_incr;
-
-	bool f_ttl;
-	int  n_ttl;
-
-	bool f_multicast_ttl;
-	int  n_multicast_ttl;
-
+	/* Size of packet to send */
+	bool f_packet_size;
+	long n_packet_size;
 	bool             f_timeout;
 	struct itimerval n_timeout;
-
+	bool f_verbose;
 	/* Timeout for each packet */
 	bool f_wait_time;
 	int  n_wait_time;
-
-	bool f_tos;
-	int  n_tos;
-
 #ifdef IPSEC
 	bool f_policy;
 	char *s_policy_in;
 	char *s_policy_out;
-#if defined(INET6) && !defined(IPSEC_POLICY_IPSEC)
-	bool f_authhdr;
-	bool f_encrypt;
-#endif /* INET6 && IPSEC_POLICY_IPSEC */
 #endif /* IPSEC */
-
-	/* -I */
-	bool        f_interface;
-	const char *s_interface;
-	union {
-		/* Used only by IPv4 ping. */
-		struct in_addr ifaddr;
-		/* Used only by IPv6 ping. */
-		unsigned int index;
-	} interface;
-#if defined(INET6) && !defined(USE_SIN6_SCOPE_ID)
-	bool f_interface_use_pktinfo;
-#endif
-
-	/* Wait between sending packets */
-	bool    f_interval;
-	struct timeval n_interval;
-
-	/* Size of packet to send */
-	bool f_packet_size;
-	long n_packet_size;
-
-	/* IPv4 -M */
-	bool f_mask;
-	bool f_time;
-
-#if defined(INET6) && defined(SO_SNDBUF) && defined(SO_RCVBUF)
-	bool          f_sock_buff_size;
-	unsigned long n_sock_buff_size;
-#endif
-
-#ifdef INET6
-	const char *s_gateway;
-	struct  sockaddr_in6 gateway_sockaddr_in6;
-#endif
-
-	bool f_nigroup;
-	int  c_nigroup;
-
-#if defined(INET6) && defined(IPV6_USE_MIN_MTU)
-	int  c_use_min_mtu;
-#endif
-
-	bool f_hoplimit;
-	int  n_hoplimit;
-
-	bool f_nodeaddr;
-	bool f_fqdn;
-	bool f_fqdn_old;
-	bool f_subtypes;
-
-	bool f_nodeaddr_flag_all;
-	bool f_nodeaddr_flag_compat;
-	bool f_nodeaddr_flag_linklocal;
-	bool f_nodeaddr_flag_sitelocal;
-	bool f_nodeaddr_flag_global;
-#if defined(INET6) && defined(NI_NODEADDR_FLAG_ANYCAST)
-	bool f_nodeaddr_flag_anycast;
-#endif
-
-	/* TODO: restrict numbre of IPv6 hops? */
-#ifdef INET6
-	const char **hops;
-	struct addrinfo **hops_addrinfo;
-	unsigned hop_count;
-#endif
 	char target[MAXHOSTNAMELEN];
 	/*
 	 * The target can be resolved to multiple protocols by
@@ -223,6 +143,71 @@ struct options {
 	 */
 	struct addrinfo *target_addrinfo;
 	enum target_type target_type;
+
+#ifdef INET
+	bool f_protocol_ipv4;
+	/* Max value of payload in sweep */
+	bool f_sweep_max;
+	int  n_sweep_max;
+        /* Start value of payload in sweep */
+	bool f_sweep_min;
+	int  n_sweep_min;
+        /* Payload increment in sweep */
+	bool f_sweep_incr;
+	int  n_sweep_incr;
+	bool f_no_loop;
+	bool f_mask;
+	bool f_time;
+	bool f_ttl;
+	int  n_ttl;
+	bool f_somewhat_quiet;
+	bool f_rroute;
+	bool f_so_dontroute;
+   	bool f_multicast_ttl;
+	int  n_multicast_ttl;
+	bool f_tos;
+	int  n_tos;
+#endif	/* INET */
+
+#ifdef INET6
+#ifndef USE_SIN6_SCOPE_ID
+	bool f_interface_use_pktinfo;
+#endif
+	bool f_protocol_ipv6;
+#if defined(SO_SNDBUF) && defined(SO_RCVBUF)
+	bool          f_sock_buff_size;
+	unsigned long n_sock_buff_size;
+#endif
+	const char *s_gateway;
+	struct  sockaddr_in6 gateway_sockaddr_in6;
+	bool f_hoplimit;
+	int  n_hoplimit;
+	bool f_nodeaddr;
+	bool f_fqdn;
+	bool f_fqdn_old;
+	bool f_subtypes;
+	bool f_nodeaddr_flag_all;
+	bool f_nodeaddr_flag_compat;
+	bool f_nodeaddr_flag_linklocal;
+	bool f_nodeaddr_flag_sitelocal;
+	bool f_nodeaddr_flag_global;
+#ifdef NI_NODEADDR_FLAG_ANYCAST
+	bool f_nodeaddr_flag_anycast;
+#endif
+	bool f_nigroup;
+	int  c_nigroup;
+#ifdef IPV6_USE_MIN_MTU
+	int  c_use_min_mtu;
+#endif
+#if defined(IPSEC) && !defined(IPSEC_POLICY_IPSEC)
+	bool f_authhdr;
+	bool f_encrypt;
+#endif
+	/* TODO: restrict numbre of IPv6 hops? */
+	const char **hops;
+	struct addrinfo **hops_addrinfo;
+	unsigned hop_count;
+#endif	/* INET6 */
 };
 
 void options_free(struct options *const options);

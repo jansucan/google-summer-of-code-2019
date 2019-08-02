@@ -79,10 +79,18 @@ ping_init(struct options *const options, struct shared_variables *const vars,
 	 * connect(2)'ed to, and send socket do not receive those
 	 * packets.
 	 */
+#ifdef INET
+#ifdef INET6
 	if (options->target_type == TARGET_IPV4)
+#endif
 		protocol = IPPROTO_ICMP;
+#endif
+#ifdef INET6
+#ifdef INET
 	else
+#endif
 		protocol = IPPROTO_ICMPV6;
+#endif
 
 	if ((vars->socket_send = socket(options->target_addrinfo->ai_family,
 		    options->target_addrinfo->ai_socktype, protocol)) < 0) {
@@ -274,8 +282,12 @@ ping_loop(struct options *const options, struct shared_variables *const vars,
 				break;
 		}
 		if (!is_ready || options->f_flood) {
+#ifdef INET
+#ifdef INET6
 			if (options->target_type == TARGET_IPV4)
+#endif
 				update_sweep(options, vars, counters);
+#endif
 			if ((options->n_packets == 0) ||
 			    (counters->transmitted < options->n_packets)) {
 #ifdef INET

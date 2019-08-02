@@ -57,12 +57,10 @@ cap_getaddrinfo(cap_channel_t *chan, const char *hostname,
                         .s_addr = 0x01020304
                 }
         };
-#ifdef INET6
 	const static struct sockaddr_in6 sin6 = {
                 .sin6_len = sizeof(struct sockaddr_in6),
                 .sin6_family = AF_INET6
         };
-#endif
         static struct addrinfo ai = {
                 0, AF_INET, SOCK_STREAM, IPPROTO_TCP,
                 sizeof(struct sockaddr_in),
@@ -96,9 +94,7 @@ cap_getaddrinfo(cap_channel_t *chan, const char *hostname,
 		ai.ai_canonname = NULL;
 		ai.ai_next = NULL;
 		sin.sin_addr.s_addr = inet_addr(IP_ADDR_MULTICAST);
-	}
-#ifdef INET6
-	else if ((strcmp(hostname, "host_ipv6") == 0) ||
+	} else if ((strcmp(hostname, "host_ipv6") == 0) ||
 	    (strcmp(hostname, "::1") == 0)) {
 		ai.ai_family = AF_INET6;
 		ai.ai_addrlen = sizeof(struct sockaddr_in6);
@@ -135,9 +131,7 @@ cap_getaddrinfo(cap_channel_t *chan, const char *hostname,
 		ai2.ai_addr = (struct sockaddr*)&sin6;
 		ai2.ai_canonname = NULL;
 		ai2.ai_next = NULL;
-	}
-#endif
-	else if (strcmp(hostname, "host_unknown") == 0) {
+	} else if (strcmp(hostname, "host_unknown") == 0) {
 		return (EAI_NONAME);
 	} else {
 		atf_tc_fail("mock cap_getaddrinfo: Invalid hostname: %s",

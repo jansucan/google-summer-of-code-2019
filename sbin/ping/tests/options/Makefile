@@ -6,8 +6,7 @@
 TESTSDIR=	${TESTSBASE}/sbin/ping/options
 
 ATF_TESTS_C+=	options_test options_flood_test options_hops_target_test
-ATF_TESTS_C+=	options_interface_test options_multicast_ttl_test
-ATF_TESTS_C+=	options_no_loop_test options_source_test
+ATF_TESTS_C+=	options_interface_test options_source_test
 
 SRCS.options_test=	options_test.c ../../cap.c ../../options.c ../../utils.c
 SRCS.options_flood_test=	options_flood_test.c cap_getaddrinfo.c
@@ -16,13 +15,18 @@ SRCS.options_hops_target_test=	options_hops_target_test.c cap_getaddrinfo.c
 SRCS.options_hops_target_test+=	../../cap.c ../../options.c ../../utils.c
 SRCS.options_interface_test=	options_interface_test.c cap_getaddrinfo.c
 SRCS.options_interface_test+=	../../cap.c ../../options.c ../../utils.c
+SRCS.options_source_test=	options_source_test.c cap_getaddrinfo.c
+SRCS.options_source_test+=	../../cap.c ../../options.c ../../utils.c
+
+.if ${MK_INET_SUPPORT} != "no"
+CFLAGS+= -DINET
+ATF_TESTS_C+=	options_multicast_ttl_test options_no_loop_test
 SRCS.options_multicast_ttl_test=	options_multicast_ttl_test.c
 SRCS.options_multicast_ttl_test+=	cap_getaddrinfo.c ../../cap.c
 SRCS.options_multicast_ttl_test+=	../../options.c ../../utils.c
 SRCS.options_no_loop_test=	options_no_loop_test.c cap_getaddrinfo.c
 SRCS.options_no_loop_test+=	../../cap.c ../../options.c ../../utils.c
-SRCS.options_source_test=	options_source_test.c cap_getaddrinfo.c
-SRCS.options_source_test+=	../../cap.c ../../options.c ../../utils.c
+.endif
 
 .if ${MK_INET6_SUPPORT} != "no"
 CFLAGS+= -DINET6

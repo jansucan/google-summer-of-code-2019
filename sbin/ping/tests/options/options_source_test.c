@@ -50,6 +50,7 @@ static struct options options;
 ATF_TC_WITHOUT_HEAD(option_source);
 ATF_TC_BODY(option_source, tc)
 {
+#ifdef INET
 	{
 		ARGC_ARGV("-S", "host_unknown", "host_ipv4");
 		capdns = capdns_setup();
@@ -63,7 +64,7 @@ ATF_TC_BODY(option_source, tc)
 		ARGC_ARGV("-S", "host_ipv4", "host_ipv4");
 		options.s_source[0] = '\0';
 		options.source_sockaddr.in.sin_family = 0;
-		options.source_sockaddr.in6.sin6_len = 0;
+		options.source_sockaddr.in.sin_len = 0;
 		capdns = capdns_setup();
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options,
@@ -75,6 +76,7 @@ ATF_TC_BODY(option_source, tc)
 		cap_close(capdns);
 		options_free(&options);
 	}
+#endif	/* INET */
 #ifdef INET6
 	{
 		ARGC_ARGV("-S", "host_ipv6", "host_ipv6");
