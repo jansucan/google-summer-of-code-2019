@@ -724,6 +724,7 @@ options_get_target_type(struct options *const options, bool *const is_hostname,
 	hints.ai_socktype = SOCK_RAW;
 	hints.ai_family = AF_UNSPEC;
 
+	options->target_type = TARGET_UNKNOWN;
 	*is_hostname = true;
 
 	/* Check whether the target was specified as an address. */
