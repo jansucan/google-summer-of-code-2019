@@ -863,7 +863,7 @@ options_get_target_type(struct options *const options, bool *const is_hostname,
 	const int r_ai = cap_getaddrinfo(capdns, options->target, NULL, &hints,
 	    &options->target_addrinfo_root);
 	if ((r_ai != 0) && (r_ai != EAI_NONAME))
-		return (r_ai);
+		return (false);
 	else if (r_ai == 0) {
 		/*
 		 * Find AF_INET and AF_INET6 addrinfo structures in
