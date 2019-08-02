@@ -901,11 +901,19 @@ options_parse_hosts(int argc, char **argv, struct options *const options,
 	if (!options_get_target_type(options, &is_hostname, capdns))
 		return (false);
 
-	if (options->target_type == TARGET_UNKNOWN) {
-		print_error("invalid ping target: `%s'", options->target);
-		return (false);
-	}
-
+	/*
+	 * If the target was successfully parsed, its type cannot be
+	 * unknown and the type must be one of the types supported by
+	 * the build configuration (IPv4-only, IPv6-only, IPv4-IPv6).
+	 */
+#if defined(INET) && defined(INET6)
+	assert((options->target_type == TARGET_IPV4) ||
+	    (options->target_type == TARGET_IPV6));
+#elif defined(INET)
+	assert(options->target_type == TARGET_IPV4);
+#else
+	assert(options->target_type == TARGET_IPV6);
+#endif
 	/*
 	 * Now, when the target protocol family is known, the casper
 	 * DNS service can be limited.
