@@ -65,24 +65,24 @@ ipsec_configure(int socket_send, int socket_recv,
 		const int optval = IPSEC_LEVEL_REQUIRE;
 #ifdef IPV6_AUTH_TRANS_LEVEL
 		if (setsockopt(vars.socket_send, IPPROTO_IPV6,
-			IPV6_AUTH_TRANS_LEVEL, &optval, sizeof(optval)) == -1) {
+			IPV6_AUTH_TRANS_LEVEL, &optval, sizeof(optval)) != 0) {
 			print_error_strerr("setsockopt(IPV6_AUTH_TRANS_LEVEL)");
 			return (false);
 		}
 
 		if (setsockopt(vars.socket_recv, IPPROTO_IPV6,
-			IPV6_AUTH_TRANS_LEVEL, &optval, sizeof(optval)) == -1) {
+			IPV6_AUTH_TRANS_LEVEL, &optval, sizeof(optval)) != 0) {
 			print_error_strerr("setsockopt(IPV6_AUTH_TRANS_LEVEL)");
 			return (false);
 		}
 #else /* old def */
 		if (setsockopt(vars.socket_send, IPPROTO_IPV6, IPV6_AUTH_LEVEL,
-			&optval, sizeof(optval)) == -1) {
+			&optval, sizeof(optval)) != 0) {
 			print_error_strerr("setsockopt(IPV6_AUTH_LEVEL)");
 			return (false);
 		}
 		if (setsockopt(vars.socket_recv, IPPROTO_IPV6, IPV6_AUTH_LEVEL,
-			&optval, sizeof(optval)) == -1) {
+			&optval, sizeof(optval)) != 0) {
 			print_error_strerr("setsockopt(IPV6_AUTH_LEVEL)");
 			return (false);
 		}
@@ -91,12 +91,12 @@ ipsec_configure(int socket_send, int socket_recv,
 	if (options->f_encrypt) {
 		optval = IPSEC_LEVEL_REQUIRE;
 		if (setsockopt(vars.socket_send, IPPROTO_IPV6,
-			IPV6_ESP_TRANS_LEVEL, &optval, sizeof(optval)) == -1) {
+			IPV6_ESP_TRANS_LEVEL, &optval, sizeof(optval)) != 0) {
 			print_error_strerr("setsockopt(IPV6_ESP_TRANS_LEVEL)");
 			return (false);
 		}
 		if (setsockopt(vars.socket_recv, IPPROTO_IPV6,
-			IPV6_ESP_TRANS_LEVEL, &optval, sizeof(optval)) == -1) {
+			IPV6_ESP_TRANS_LEVEL, &optval, sizeof(optval)) != 0) {
 			print_error_strerr("setsockopt(IPV6_ESP_TRANS_LEVEL)");
 			return (false);
 		}
@@ -143,7 +143,7 @@ ipsec_setpolicy(int socket, char *const policy, enum target_type target_type)
 #endif
 #endif
 	if (setsockopt(socket, level, optname, buf,
-		ipsec_get_policylen(buf)) < 0) {
+		ipsec_get_policylen(buf)) != 0) {
 		print_error_strerr("setsockopt: Unable to set IPsec policy");
 		return (false);
 	}

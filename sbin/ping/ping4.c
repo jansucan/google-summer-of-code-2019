@@ -251,7 +251,7 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 		rspace[IPOPT_OFFSET] = IPOPT_MINOFF;
 		rspace[sizeof(rspace) - 1] = IPOPT_EOL;
 		if (setsockopt(vars->socket_send, IPPROTO_IP, IP_OPTIONS,
-			rspace, sizeof(rspace)) < 0) {
+			rspace, sizeof(rspace)) != 0) {
 			print_error_strerr("setsockopt IP_OPTIONS");
 			return (false);
 		}
@@ -260,7 +260,7 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 
 	if (options->f_ttl) {
 		if (setsockopt(vars->socket_send, IPPROTO_IP, IP_TTL,
-			&options->n_ttl, sizeof(options->n_ttl)) < 0) {
+			&options->n_ttl, sizeof(options->n_ttl)) != 0) {
 			print_error_strerr("setsockopt IP_TTL");
 			return (false);
 		}
@@ -269,7 +269,7 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 		const unsigned char loop = 0;
 
 		if (setsockopt(vars->socket_send, IPPROTO_IP, IP_MULTICAST_LOOP,
-			&loop, sizeof(loop)) < 0) {
+			&loop, sizeof(loop)) != 0) {
 			print_error_strerr("setsockopt IP_MULTICAST_LOOP");
 			return (false);
 		}
@@ -277,7 +277,7 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	if (options->f_multicast_ttl) {
 		if (setsockopt(vars->socket_send, IPPROTO_IP, IP_MULTICAST_TTL,
 			&options->n_multicast_ttl,
-			sizeof(options->n_multicast_ttl)) < 0) {
+			sizeof(options->n_multicast_ttl)) != 0) {
 			print_error_strerr("setsockopt IP_MULTICAST_TTL");
 			return (false);
 		}
@@ -285,7 +285,7 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	if (options->f_interface) {
 		if (setsockopt(vars->socket_send, IPPROTO_IP, IP_MULTICAST_IF,
 			&options->interface.ifaddr,
-		    sizeof(options->interface.ifaddr)) < 0) {
+		    sizeof(options->interface.ifaddr)) != 0) {
 			print_error_strerr("setsockopt IP_MULTICAST_IF");
 			return (false);
 		}
@@ -293,7 +293,7 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 #ifdef SO_TIMESTAMP
 	{ int on = 1;
 		if (setsockopt(vars->socket_recv, SOL_SOCKET, SO_TIMESTAMP, &on,
-			sizeof(on)) < 0) {
+			sizeof(on)) != 0) {
 			print_error_strerr("setsockopt SO_TIMESTAMP");
 			return (false);
 		}
