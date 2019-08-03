@@ -268,7 +268,7 @@ ping_loop(struct options *const options, struct shared_variables *const vars,
 				    counters, timing);
 				if (r < 0)
 					return (false);
-				next_iteration = (r == 1);
+				next_iteration = (r == 0);
 				break;
 #endif
 			default:
