@@ -644,6 +644,37 @@ ATF_TC_BODY(option_quiet, tc)
 ATF_TC_WITHOUT_HEAD(option_packet_size);
 ATF_TC_BODY(option_packet_size, tc)
 {
+	{
+		ARGC_ARGV("-s", "-1000", "localhost");
+		capdns = capdns_setup();
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options,
+			capdns) == false);
+		cap_close(capdns);
+		options_free(&options);
+	}
+	{
+		ARGC_ARGV("-s", "0", "localhost");
+		capdns = capdns_setup();
+
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options,
+			capdns) == false);
+		cap_close(capdns);
+		options_free(&options);
+	}
+	{
+		ARGC_ARGV("-s", "1", "localhost");
+		capdns = capdns_setup();
+
+		options.f_packet_size = false;
+		options.n_packet_size = -1;
+		ATF_REQUIRE(options_parse(test_argc, test_argv, &options,
+			capdns) == true);
+		ATF_REQUIRE(options.f_packet_size == true);
+		ATF_REQUIRE(options.n_packet_size == 1);
+		cap_close(capdns);
+		options_free(&options);
+	}
 #ifdef INET
 	{
 		ARGC_ARGV("-4", "localhost");
@@ -695,39 +726,6 @@ ATF_TC_BODY(option_packet_size, tc)
 		cap_close(capdns);
 		options_free(&options);
 	}
-#endif
-	{
-		ARGC_ARGV("-s", "-1000", "localhost");
-		capdns = capdns_setup();
-
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options,
-			capdns) == false);
-		cap_close(capdns);
-		options_free(&options);
-	}
-	{
-		ARGC_ARGV("-s", "0", "localhost");
-		capdns = capdns_setup();
-
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options,
-			capdns) == false);
-		cap_close(capdns);
-		options_free(&options);
-	}
-	{
-		ARGC_ARGV("-s", "1", "localhost");
-		capdns = capdns_setup();
-
-		options.f_packet_size = false;
-		options.n_packet_size = -1;
-		ATF_REQUIRE(options_parse(test_argc, test_argv, &options,
-			capdns) == true);
-		ATF_REQUIRE(options.f_packet_size == true);
-		ATF_REQUIRE(options.n_packet_size == 1);
-		cap_close(capdns);
-		options_free(&options);
-	}
-#ifdef INET6
 	{
 		ARGC_ARGV("-6", "-s", "replaced_by_MAXDATALEN/2", "localhost");
 		capdns = capdns_setup();
