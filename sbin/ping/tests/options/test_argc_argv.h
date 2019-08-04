@@ -39,12 +39,12 @@
 
 #define ARGC_ARGV_EMPTY      				                    \
 	char *test_argv[] = { "ping", NULL };        		            \
-	const int test_argc = sizeof(test_argv) / sizeof(test_argv[0]) - 1; \
+	const int test_argc = nitems(test_argv) - 1; \
 	GETOPT_RESET
 
 #define ARGC_ARGV(...)           				            \
 	char *test_argv[] = { "ping", __VA_ARGS__, NULL };	            \
-	const int test_argc = sizeof(test_argv) / sizeof(test_argv[0]) - 1; \
+	const int test_argc = nitems(test_argv) - 1; \
 	GETOPT_RESET
 
 #define	ARGV_BUFFER_SIZE	64
