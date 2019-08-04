@@ -122,26 +122,25 @@ ipsec_setpolicy(int socket, char *const policy, enum target_type target_type)
 		print_error_strerr("ipsec_set_policy");
 		return (false);
 	}
+
+	switch (target_type) {
 #ifdef INET
-#ifdef INET6
-	if (target_type == TARGET_IPV4) {
-#endif
+	case TARGET_IPV4:
 		level = IPPROTO_IP;
 		optname = IP_IPSEC_POLICY;
-#ifdef INET6
-	}
-#endif
+		break;
 #endif
 #ifdef INET6
-#ifdef INET
-	else {
-#endif
+	case TARGET_IPV6:
 		level = IPPROTO_IPV6;
 		optname = IPV6_IPSEC_POLICY;
-#ifdef INET
+		break;
+#endif
+	default:
+		print_error("program error: unknown target type");
+		return (false);
 	}
-#endif
-#endif
+
 	if (setsockopt(socket, level, optname, buf,
 		ipsec_get_policylen(buf)) != 0) {
 		print_error_strerr("setsockopt: Unable to set IPsec policy");
