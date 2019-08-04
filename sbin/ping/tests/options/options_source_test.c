@@ -50,7 +50,6 @@ static struct options options;
 ATF_TC_WITHOUT_HEAD(option_source);
 ATF_TC_BODY(option_source, tc)
 {
-#ifdef INET
 	{
 		ARGC_ARGV("-S", "host_unknown", "host_ipv4");
 		capdns = capdns_setup();
@@ -60,6 +59,7 @@ ATF_TC_BODY(option_source, tc)
 		cap_close(capdns);
 		options_free(&options);
 	}
+#ifdef INET
 	{
 		ARGC_ARGV("-S", "host_ipv4", "host_ipv4");
 		options.s_source[0] = '\0';
