@@ -121,7 +121,7 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	vars->icmp_type_rsp = ICMP_ECHOREPLY;
 
 	vars->target_sockaddr =
-		(struct sockaddr_in *) options->target_addrinfo->ai_addr;
+		(struct sockaddr_in *)options->target_addrinfo->ai_addr;
 	vars->outpack = vars->outpackhdr + sizeof(struct ip);
 
 	if (options->f_mask) {
@@ -170,7 +170,7 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	}
 
 	if (connect(vars->socket_send,
-		(const struct sockaddr *) vars->target_sockaddr,
+		(const struct sockaddr *)vars->target_sockaddr,
 		sizeof(*vars->target_sockaddr)) != 0) {
 		print_error_strerr("connect");
 		return (false);

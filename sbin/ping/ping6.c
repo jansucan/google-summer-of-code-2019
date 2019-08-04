@@ -171,7 +171,7 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 	datap = &vars->outpack6[ICMP6ECHOLEN + ICMP6ECHOTMLEN];
 
 	vars->target_sockaddr_in6 =
-		(struct sockaddr_in6 *) options->target_addrinfo->ai_addr;
+		(struct sockaddr_in6 *)options->target_addrinfo->ai_addr;
 
 	if (options->f_ping_filled) {
 		fill((char *)datap, MAXDATALEN - 8 + sizeof(struct tv32) +
@@ -231,7 +231,7 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 	}
 
 	if (connect(vars->socket_send,
-		(struct sockaddr *) vars->target_sockaddr_in6,
+		(struct sockaddr *)vars->target_sockaddr_in6,
 		sizeof(*vars->target_sockaddr_in6)) != 0) {
 		print_error_strerr("connect");
 		return (false);

@@ -478,8 +478,8 @@ pr_iph(const struct ip *const ip)
 	    ip->ip_v, ip->ip_hl, ip->ip_tos, ntohs(ip->ip_len),
 	    ntohs(ip->ip_id));
 	(void)printf("   %1lx %04lx",
-	    (u_long) (ntohl(ip->ip_off) & 0xe000) >> 13,
-	    (u_long) ntohl(ip->ip_off) & 0x1fff);
+	    (u_long)(ntohl(ip->ip_off) & 0xe000) >> 13,
+	    (u_long)ntohl(ip->ip_off) & 0x1fff);
 	(void)printf("  %02x  %02x %04x", ip->ip_ttl, ip->ip_p,
 							    ntohs(ip->ip_sum));
 	memcpy(&ina, &ip->ip_src.s_addr, sizeof(ina));

@@ -193,9 +193,9 @@ options_parse(int argc, char **argv, struct options *const options,
 				return (false);
 			}
 			/* 1 second = 1000 ms = 1000 * 1000 microseconds */
-			options->n_interval.tv_usec = (suseconds_t) (modf(dbl,
+			options->n_interval.tv_usec = (suseconds_t)(modf(dbl,
 				&dbl_integer_part) * 1000 * 1000);
-			options->n_interval.tv_sec = (time_t) dbl_integer_part;
+			options->n_interval.tv_sec = (time_t)dbl_integer_part;
 			options->f_interval = true;
 			break;
 		case 'l':
@@ -1109,7 +1109,7 @@ options_ipv4_check_post_hosts(struct options *const options,
 		return (true);
 
 	target_sockaddr =
-		(struct sockaddr_in *) options->target_addrinfo->ai_addr;
+		(struct sockaddr_in *)options->target_addrinfo->ai_addr;
 	is_ipv4_unicast_addr =
 		!IN_MULTICAST(ntohl(target_sockaddr->sin_addr.s_addr));
 

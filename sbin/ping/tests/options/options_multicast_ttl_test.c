@@ -99,7 +99,7 @@ ATF_TC_BODY(option_multicast_ttl, tc)
 		ARGC_ARGV("-T", "replaced_by_MAXTTL/2", "multicast_ipv4");
 		capdns = capdns_setup();
 
-		ARGV_SET_FROM_EXPR(test_argv, 2, (unsigned long) (MAXTTL / 2));
+		ARGV_SET_FROM_EXPR(test_argv, 2, (unsigned long)(MAXTTL / 2));
 		options.f_multicast_ttl = false;
 		options.n_multicast_ttl = -1;
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options,
@@ -126,7 +126,7 @@ ATF_TC_BODY(option_multicast_ttl, tc)
 		ARGC_ARGV("-T", "replaced_by_MAXTTL+1", "multicast_ipv4");
 		capdns = capdns_setup();
 
-		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) MAXTTL) + 1);
+		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long)MAXTTL) + 1);
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options,
 			capdns) == false);
 		cap_close(capdns);
@@ -136,7 +136,7 @@ ATF_TC_BODY(option_multicast_ttl, tc)
 		ARGC_ARGV("-T", "replaced_by_MAXTTL+1000", "multicast_ipv4");
 		capdns = capdns_setup();
 
-		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long) MAXTTL) + 1000);
+		ARGV_SET_FROM_EXPR(test_argv, 2, ((unsigned long)MAXTTL) + 1000);
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options,
 			capdns) == false);
 		cap_close(capdns);
