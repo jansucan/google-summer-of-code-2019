@@ -43,8 +43,8 @@ __FBSDID("$FreeBSD$");
 #define	IP_ADDR_MULTICAST	"224.0.0.0"
 
 int
-cap_getaddrinfo(cap_channel_t *chan, const char *hostname,
-    const char *servname, const struct addrinfo *hints,
+cap_getaddrinfo(cap_channel_t *chan __unused, const char *hostname,
+    const char *servname __unused, const struct addrinfo *hints __unused,
     struct addrinfo **res)
 {
 	static char host_ipv4_canonname[] = "host_ipv4_canonname";
