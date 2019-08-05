@@ -618,9 +618,7 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 	    !cap_limit_socket(vars->socket_send, RIGHTS_SEND))
 		return (false);
 
-	/* TODO: Remove duplicit arguments */
-	pr6_heading(&options->source_sockaddr.in6, vars->target_sockaddr_in6,
-	    options, vars->capdns);
+	pr6_heading(options, vars->target_sockaddr_in6, vars->capdns);
 
 	return (true);
 }

@@ -491,10 +491,11 @@ pr6_exthdrs(const struct msghdr *const mhdr)
 }
 
 void
-pr6_heading(const struct sockaddr_in6 *const src,
-    const struct sockaddr_in6 *const dst, const struct options *const options,
-    cap_channel_t *const capdns)
+pr6_heading(const struct options *const options,
+    const struct sockaddr_in6 *const dst, cap_channel_t *const capdns)
 {
+	const struct sockaddr_in6 *const src = &options->source_sockaddr.in6;
+
 	printf("PING6(%lu=40+8+%lu bytes) ", (unsigned long)
 	    (40 + pingerlen(options, sizeof(dst->sin6_addr))),
 	    (unsigned long)(pingerlen(options, sizeof(dst->sin6_addr)) - 8));
