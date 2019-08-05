@@ -47,27 +47,27 @@
 	const int test_argc = nitems(test_argv) - 1; \
 	GETOPT_RESET
 
-#define	ARGV_BUFFER_SIZE	64
+#define	ARG_BUFFER_SIZE	64
 
 #define ARGV_SET_FROM_EXPR(argv, idx, expr)				    \
 	const unsigned long ul_##idx = expr;				    \
-	char ul_str_##idx[ARGV_BUFFER_SIZE];				    \
-	const int sr##idx = snprintf(ul_str_##idx, ARGV_BUFFER_SIZE, "%lu", \
+	char ul_str_##idx[ARG_BUFFER_SIZE];				    \
+	const int sr##idx = snprintf(ul_str_##idx, ARG_BUFFER_SIZE, "%lu", \
 	    ul_##idx);						            \
 	if (sr##idx < 0)						    \
 		atf_tc_fail("snprintf() error");			    \
-	else if (sr##idx >= ARGV_BUFFER_SIZE)				    \
+	else if (sr##idx >= ARG_BUFFER_SIZE)				    \
 		atf_tc_fail("snprintf() buffer too small");		    \
 	argv[idx] = ul_str_##idx
 
 #define ARGV_SET_LDBL_FROM_EXPR(argv, idx, expr)			      \
 	const long double ldbl_##idx = expr;				      \
-	char ldbl_str_##idx[ARGV_BUFFER_SIZE];				      \
-	const int sr##idx = snprintf(ldbl_str_##idx, ARGV_BUFFER_SIZE, "%Lg", \
+	char ldbl_str_##idx[ARG_BUFFER_SIZE];				      \
+	const int sr##idx = snprintf(ldbl_str_##idx, ARG_BUFFER_SIZE, "%Lg", \
 	    ldbl_##idx);						      \
 	if (sr##idx < 0)						      \
 		atf_tc_fail("snprintf() error");			      \
-	else if (sr##idx >= ARGV_BUFFER_SIZE)				      \
+	else if (sr##idx >= ARG_BUFFER_SIZE)				      \
 		atf_tc_fail("snprintf() buffer too small");		      \
 	argv[idx] = ldbl_str_##idx
 
