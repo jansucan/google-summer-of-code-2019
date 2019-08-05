@@ -33,6 +33,8 @@ __FBSDID("$FreeBSD$");
 #include <errno.h>
 #include <string.h>
 
+#include "if_nametoindex.h"
+
 unsigned int
 if_nametoindex(const char *ifname)
 {
