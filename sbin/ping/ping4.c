@@ -683,7 +683,7 @@ in_cksum(const u_short *const addr, int len)
 
 	/* mop up an odd byte, if necessary */
 	if (nleft == 1) {
-		last.uc[0] = *(u_char *)w;
+		last.uc[0] = *(const u_char *)w;
 		last.uc[1] = 0;
 		sum += last.us;
 	}
