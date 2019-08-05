@@ -245,7 +245,7 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	if (options->f_rroute) {
 		char rspace[MAX_IPOPTLEN];	/* record route space */
 
-		bzero(rspace, sizeof(rspace));
+		memset(rspace, 0, sizeof(rspace));
 		rspace[IPOPT_OPTVAL] = IPOPT_RR;
 		rspace[IPOPT_OLEN] = sizeof(rspace) - 1;
 		rspace[IPOPT_OFFSET] = IPOPT_MINOFF;
@@ -341,7 +341,7 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	if (!cap_limit_socket(vars->socket_send, RIGHTS_SEND))
 		return (false);
 
-	bzero(&vars->msg, sizeof(vars->msg));
+	memset(&vars->msg, 0, sizeof(vars->msg));
 	vars->msg.msg_name = (caddr_t)&vars->from;
 	vars->msg.msg_iov = &vars->iov;
 	vars->msg.msg_iovlen = 1;
