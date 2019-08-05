@@ -31,23 +31,32 @@
 #ifndef TEST_ARGC_ARGV_H
 #define TEST_ARGC_ARGV_H 1
 
+#include <stddef.h>
+
 #define STRINGIFY(s) #s
 #define DEFINED_NUM_TO_STR(s) STRINGIFY(s)
+
+#define	ARG_BUFFER_SIZE	64
+
+void test_argv_create(char **dst, char (*const src)[ARG_BUFFER_SIZE],
+    size_t src_size);
 
 #define GETOPT_RESET \
 	optreset = optind = 1
 
-#define ARGC_ARGV_EMPTY      				                    \
-	char *test_argv[] = { "ping", NULL };        		            \
-	const int test_argc = nitems(test_argv) - 1; \
+#define ARGC_ARGV_EMPTY							\
+	char test_argv_buffer[][ARG_BUFFER_SIZE] = { "ping" };		\
+	const int test_argc = nitems(test_argv_buffer);			\
+	char *test_argv[test_argc + 1];					\
+	test_argv_create(test_argv, test_argv_buffer, test_argc);	\
 	GETOPT_RESET
 
-#define ARGC_ARGV(...)           				            \
-	char *test_argv[] = { "ping", __VA_ARGS__, NULL };	            \
-	const int test_argc = nitems(test_argv) - 1; \
+#define ARGC_ARGV(...)							    \
+	char test_argv_buffer[][ARG_BUFFER_SIZE] = { "ping", __VA_ARGS__ }; \
+	const int test_argc = nitems(test_argv_buffer);			    \
+	char *test_argv[test_argc + 1];					    \
+	test_argv_create(test_argv, test_argv_buffer, test_argc);           \
 	GETOPT_RESET
-
-#define	ARG_BUFFER_SIZE	64
 
 #define ARGV_SET_FROM_EXPR(argv, idx, expr)				    \
 	const unsigned long ul_##idx = expr;				    \

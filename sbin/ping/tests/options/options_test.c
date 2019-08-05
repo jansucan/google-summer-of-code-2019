@@ -2189,11 +2189,12 @@ ATF_TC_BODY(option_nodeaddr, tc)
 	}
 	{
 #ifdef NI_NODEADDR_FLAG_ANYCAST
-		char *const k_arg = "acClLsSgGA";
+		char k_arg[] = "acClLsSgGA";
 #else
-		char *const k_arg = "acClLsSgG";
+		char k_arg[] = "acClLsSgG";
 #endif
-		ARGC_ARGV("-k", k_arg, "localhost");
+		ARGC_ARGV("-k", "replaced_by_k_arg", "localhost");
+		test_argv[2] = (char *)&k_arg;
 		capdns = capdns_setup();
 
 		options.f_nodeaddr_flag_all = false;
