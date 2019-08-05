@@ -463,10 +463,8 @@ pinger(const struct options *const options, struct shared_variables *const vars,
 			icp->icmp_otime = htonl((now.tv_sec % (24*60*60))
 				* 1000 + now.tv_usec / 1000);
 		if (timing->enabled)
-			bcopy((void *)&tv32,
-			    (void *)&vars->outpack[ICMP_MINLEN +
-				vars->phdr_len],
-			    sizeof(tv32));
+			memcpy((void *)&vars->outpack[ICMP_MINLEN +
+				vars->phdr_len], (void *)&tv32, sizeof(tv32));
 	}
 
 	cc = ICMP_MINLEN + vars->phdr_len + options->n_packet_size;

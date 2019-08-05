@@ -1329,10 +1329,10 @@ options_ipv6_target_nigroup(char *const name, int nig_oldmcprefix)
 
 	if (nig_oldmcprefix) {
 		/* draft-ietf-ipngwg-icmp-name-lookup */
-		bcopy(digest, &in6.s6_addr[12], 4);
+		memcpy(&in6.s6_addr[12], digest, 4);
 	} else {
 		/* RFC 4620 */
-		bcopy(digest, &in6.s6_addr[13], 3);
+		memcpy(&in6.s6_addr[13], digest, 3);
 	}
 
 	if (inet_ntop(AF_INET6, &in6, hbuf, sizeof(hbuf)) == NULL)

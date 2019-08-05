@@ -210,7 +210,7 @@ pr_pack(const char *const buf, int cc, const struct sockaddr_in *const from,
 			if (j >= INADDR_LEN &&
 			    j <= hlen - (int)sizeof(struct ip)) {
 				for (;;) {
-					bcopy(++cp, &ina.s_addr, INADDR_LEN);
+					memcpy(&ina.s_addr, ++cp, INADDR_LEN);
 					if (ina.s_addr == 0)
 						(void)printf("\t0.0.0.0");
 					else
@@ -248,12 +248,12 @@ pr_pack(const char *const buf, int cc, const struct sockaddr_in *const from,
 				break;
 			}
 			old_rrlen = i;
-			bcopy((const char *)cp, old_rr, i);
+			memcpy(old_rr, (const char *)cp, i);
 			(void)printf("\nRR: ");
 			if (i >= INADDR_LEN &&
 			    i <= hlen - (int)sizeof(struct ip)) {
 				for (;;) {
-					bcopy(++cp, &ina.s_addr, INADDR_LEN);
+					memcpy(&ina.s_addr, ++cp, INADDR_LEN);
 					if (ina.s_addr == 0)
 						(void)printf("\t0.0.0.0");
 					else
