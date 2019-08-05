@@ -341,8 +341,6 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	if (!cap_limit_socket(vars->socket_send, RIGHTS_SEND))
 		return (false);
 
-	pr_heading(vars->target_sockaddr, options);
-
 	bzero(&vars->msg, sizeof(vars->msg));
 	vars->msg.msg_name = (caddr_t)&vars->from;
 	vars->msg.msg_iov = &vars->iov;

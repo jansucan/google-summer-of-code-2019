@@ -59,8 +59,12 @@ main(int argc, char *argv[])
 
 	if (((vars.capdns = capdns_setup()) == NULL) ||
 	    !options_parse(argc, argv, &options, vars.capdns) ||
-	    !ping_init(&options, &vars, &counters, &timing) ||
-	    !signals_setup(&options, &vars) ||
+	    !ping_init(&options, &vars, &counters, &timing))
+		return (1);
+
+	ping_print_heading(&options, &vars);
+
+	if (!signals_setup(&options, &vars) ||
 	    !ping_send_initial_packets(&options, &vars, &counters, &timing) ||
 	    !ping_loop(&options, &vars, &counters, &timing, &signal_vars) ||
 	    !signals_cleanup())

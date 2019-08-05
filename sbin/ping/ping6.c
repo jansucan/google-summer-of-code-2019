@@ -618,8 +618,6 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 	    !cap_limit_socket(vars->socket_send, RIGHTS_SEND))
 		return (false);
 
-	pr6_heading(options, vars->target_sockaddr_in6, vars->capdns);
-
 	return (true);
 }
 

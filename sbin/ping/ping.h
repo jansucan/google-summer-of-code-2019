@@ -106,5 +106,7 @@ bool	ping_loop(struct options *const options,
     struct signal_variables *const signal_vars);
 void	ping_print_summary(struct options *const options,
     const struct counters *const counters, const struct timing *const timing);
+void	ping_print_heading(const struct options *const options,
+	const struct shared_variables *const vars);
 
 #endif

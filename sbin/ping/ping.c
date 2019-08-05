@@ -375,3 +375,23 @@ ping_print_summary(struct options *const options,
 		break;
 	}
 }
+
+void
+ping_print_heading(const struct options *const options,
+    const struct shared_variables *const vars)
+{
+	switch (options->target_type) {
+#ifdef INET
+	case TARGET_IPV4:
+		pr_heading(vars->target_sockaddr, options);
+		break;
+#endif
+#ifdef INET6
+	case TARGET_IPV6:
+		pr6_heading(options, vars->target_sockaddr_in6, vars->capdns);
+		break;
+#endif
+	default:
+		break;
+	}
+}
