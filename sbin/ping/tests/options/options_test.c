@@ -587,7 +587,7 @@ ATF_TC_BODY(option_ping_filled, tc)
 		options.f_ping_filled = false;
 		options.ping_filled_size = 0;
 
-		for (int i = 0; i < nitems(options.a_ping_filled); ++i)
+		for (int i = 0; i < (int)nitems(options.a_ping_filled); ++i)
 			options.a_ping_filled[i] = i;
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options,
@@ -595,7 +595,7 @@ ATF_TC_BODY(option_ping_filled, tc)
 		ATF_REQUIRE(options.f_ping_filled == true);
 		ATF_REQUIRE(options.ping_filled_size == 16);
 
-		for (int i = 0; i < nitems(options.a_ping_filled); ++i)
+		for (int i = 0; i < (int)nitems(options.a_ping_filled); ++i)
 			ATF_REQUIRE(options.a_ping_filled[i] == i);
 		cap_close(capdns);
 		options_free(&options);
@@ -608,7 +608,7 @@ ATF_TC_BODY(option_ping_filled, tc)
 		options.f_ping_filled = false;
 		options.ping_filled_size = 0;
 
-		for (int i = 0; i < nitems(options.a_ping_filled); ++i)
+		for (int i = 0; i < (int)nitems(options.a_ping_filled); ++i)
 			options.a_ping_filled[i] = 0x70 + i;
 
 		ATF_REQUIRE(options_parse(test_argc, test_argv, &options,
@@ -616,7 +616,7 @@ ATF_TC_BODY(option_ping_filled, tc)
 		ATF_REQUIRE(options.f_ping_filled == true);
 		ATF_REQUIRE(options.ping_filled_size == 16);
 
-		for (int i = 0; i < nitems(options.a_ping_filled); ++i)
+		for (int i = 0; i < (int)nitems(options.a_ping_filled); ++i)
 			ATF_REQUIRE(options.a_ping_filled[i] == 0x70 + i);
 		cap_close(capdns);
 		options_free(&options);
