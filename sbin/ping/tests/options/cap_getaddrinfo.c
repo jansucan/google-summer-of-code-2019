@@ -57,7 +57,7 @@ cap_getaddrinfo(cap_channel_t *chan __unused, const char *hostname,
                         .s_addr = 0x01020304
                 }
         };
-	const static struct sockaddr_in6 sin6 = {
+	static struct sockaddr_in6 sin6 = {
                 .sin6_len = sizeof(struct sockaddr_in6),
                 .sin6_family = AF_INET6
         };
