@@ -28,11 +28,11 @@
  * $FreeBSD$
  */
 
-#define STRINGIFY(s) #s
-#define DEFINED_NUM_TO_STR(s) STRINGIFY(s)
-
 #ifndef TEST_ARGC_ARGV_H
 #define TEST_ARGC_ARGV_H 1
+
+#define STRINGIFY(s) #s
+#define DEFINED_NUM_TO_STR(s) STRINGIFY(s)
 
 #define GETOPT_RESET \
 	optreset = optind = 1
