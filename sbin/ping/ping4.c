@@ -120,8 +120,15 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	vars->icmp_type = ICMP_ECHO;
 	vars->icmp_type_rsp = ICMP_ECHOREPLY;
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-align"
+#endif
 	vars->target_sockaddr =
 		(struct sockaddr_in *)options->target_addrinfo->ai_addr;
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 	vars->outpack = vars->outpackhdr + sizeof(struct ip);
 
 	if (options->f_mask) {

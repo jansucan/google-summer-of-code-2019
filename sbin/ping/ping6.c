@@ -170,8 +170,15 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 
 	datap = &vars->outpack6[ICMP6ECHOLEN + ICMP6ECHOTMLEN];
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-align"
+#endif
 	vars->target_sockaddr_in6 =
 		(struct sockaddr_in6 *)options->target_addrinfo->ai_addr;
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 	if (options->f_ping_filled) {
 		fill((char *)datap, MAXDATALEN - 8 + sizeof(struct tv32) +
@@ -462,8 +469,15 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		}
 
 		for (hops = 0; hops < options->hop_count; hops++) {
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-align"
+#endif
 			sin6 = (struct sockaddr_in6 *)
 				options->hops_addrinfo[hops]->ai_addr;
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 			if (inet6_rth_add(rthdr, &sin6->sin6_addr)) {
 				print_error("can't add an intermediate node");
 				return (false);

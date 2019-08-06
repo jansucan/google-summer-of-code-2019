@@ -1103,8 +1103,15 @@ options_ipv4_check_post_hosts(struct options *const options,
 	if (options->target_addrinfo->ai_family != AF_INET)
 		return (true);
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-align"
+#endif
 	target_sockaddr =
 		(struct sockaddr_in *)options->target_addrinfo->ai_addr;
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 	is_ipv4_unicast_addr =
 		!IN_MULTICAST(ntohl(target_sockaddr->sin_addr.s_addr));
 
