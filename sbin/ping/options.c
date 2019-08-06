@@ -724,7 +724,6 @@ options_get_target_type(struct options *const options, bool *const is_hostname,
 	hints.ai_socktype = SOCK_RAW;
 	hints.ai_family = AF_UNSPEC;
 
-	options->target_type = TARGET_UNKNOWN;
 	*is_hostname = true;
 
 	/* Check whether the target was specified as an address. */
@@ -828,27 +827,22 @@ options_get_target_type(struct options *const options, bool *const is_hostname,
 #ifdef INET
 		if (options->f_protocol_ipv4) {
 			options->target_addrinfo = ai_ipv4;
-			options->target_type = TARGET_IPV4;
 			break;
 		}
 #endif
 #ifdef INET6
 		if (options->f_protocol_ipv6) {
 			options->target_addrinfo = ai_ipv6;
-			options->target_type = TARGET_IPV6;
 			break;
 		}
 		if (ai_first->ai_family == AF_INET6) {
 			options->target_addrinfo = ai_first;
-			options->target_type = TARGET_IPV6;
 			break;
 		}
 #endif
 #ifdef INET
-		else {
+		else
 			options->target_addrinfo = ai_first;
-			options->target_type = TARGET_IPV4;
-		}
 #endif
 		break;
 	}
@@ -906,13 +900,14 @@ options_parse_hosts(int argc, char **argv, struct options *const options,
 	 * unknown and the type must be one of the types supported by
 	 * the build configuration (IPv4-only, IPv6-only, IPv4-IPv6).
 	 */
+	assert(options->target_addrinfo != NULL);
 #if defined(INET) && defined(INET6)
-	assert((options->target_type == TARGET_IPV4) ||
-	    (options->target_type == TARGET_IPV6));
+	assert((options->target_addrinfo->ai_family == AF_INET) ||
+	    (options->target_addrinfo->ai_family == AF_INET6));
 #elif defined(INET)
-	assert(options->target_type == TARGET_IPV4);
+	assert(options->target_addrinfo->ai_family == AF_INET);
 #else
-	assert(options->target_type == TARGET_IPV6);
+	assert(options->target_addrinfo->ai_family == AF_INET6);
 #endif
 	/*
 	 * Now, when the target protocol family is known, the casper
@@ -927,7 +922,7 @@ options_parse_hosts(int argc, char **argv, struct options *const options,
 	if (argc != 0) {
 #ifdef INET
 		/* Ping to IPv4 host cannot have any hops specified. */
-		if (options->target_type == TARGET_IPV4) {
+		if (options->target_addrinfo->ai_family == AF_INET) {
 			usage();
 			return (false);
 		}
@@ -977,7 +972,7 @@ options_parse_hosts(int argc, char **argv, struct options *const options,
 	if ((options->target_addrinfo->ai_canonname != NULL)  &&
 #ifdef INET
 #ifdef INET6
-	    ((options->target_type != TARGET_IPV4) || is_hostname) &&
+	    ((options->target_addrinfo->ai_family != AF_INET) || is_hostname) &&
 #else
 	    is_hostname &&
 #endif
@@ -1002,7 +997,7 @@ options_set_defaults_post_hosts(struct options *const options)
 	if (!options->f_packet_size) {
 #ifdef INET
 #ifdef INET6
-		if (options->target_type == TARGET_IPV4)
+		if (options->target_addrinfo->ai_family == AF_INET)
 #endif
 			options->n_packet_size = DEFAULT_DATALEN_IPV4;
 #endif
@@ -1105,7 +1100,7 @@ options_ipv4_check_post_hosts(struct options *const options,
 	const struct sockaddr_in * target_sockaddr;
 	bool is_ipv4_unicast_addr;
 
-	if (options->target_type != TARGET_IPV4)
+	if (options->target_addrinfo->ai_family != AF_INET)
 		return (true);
 
 	target_sockaddr =
@@ -1186,7 +1181,7 @@ options_ipv6_check_post_hosts(struct options *const options,
     cap_channel_t *const capdns)
 {
 #ifdef INET6
-	if (options->target_type != TARGET_IPV6)
+	if (options->target_addrinfo->ai_family != AF_INET6)
 		return (true);
 	/*
 	 * Check options common to both IPv4 and IPv6 targets.

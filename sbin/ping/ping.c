@@ -79,14 +79,14 @@ ping_init(struct options *const options, struct shared_variables *const vars,
 	 * connect(2)'ed to, and send socket do not receive those
 	 * packets.
 	 */
-	switch (options->target_type) {
+	switch (options->target_addrinfo->ai_family) {
 #ifdef INET
-	case TARGET_IPV4:
+	case AF_INET:
 		protocol = IPPROTO_ICMP;
 		break;
 #endif
 #ifdef INET6
-	case TARGET_IPV6:
+	case AF_INET6:
 		protocol = IPPROTO_ICMPV6;
 		break;
 #endif
@@ -139,13 +139,13 @@ ping_init(struct options *const options, struct shared_variables *const vars,
 	/*
 	 * Do protocol-specific initialization.
 	 */
-	switch (options->target_type) {
+	switch (options->target_addrinfo->ai_family) {
 #ifdef INET
-	case TARGET_IPV4:
+	case AF_INET:
 		return (ping4_init(options, vars, counters, timing));
 #endif
 #ifdef INET6
-	case TARGET_IPV6:
+	case AF_INET6:
 		return (ping6_init(options, vars, timing));
 #endif
 	default:
@@ -177,15 +177,15 @@ ping_send_initial_packets(struct options *const options,
     struct timing *const timing)
 {
 	while (options->n_preload--) {
-		switch (options->target_type) {
+		switch (options->target_addrinfo->ai_family) {
 #ifdef INET
-		case TARGET_IPV4:
+		case AF_INET:
 			if (!pinger(options, vars, counters, timing))
 				return (false);
 			break;
 #endif
 #ifdef INET6
-		case TARGET_IPV6:
+		case AF_INET6:
 			if (!pinger6(options, vars, counters, timing))
 				return (false);
 			break;
@@ -218,14 +218,14 @@ ping_loop(struct options *const options, struct shared_variables *const vars,
 		bool is_ready, is_eintr;
 
 		if (signal_vars->siginfo) {
-			switch (options->target_type) {
+			switch (options->target_addrinfo->ai_family) {
 #ifdef INET
-			case TARGET_IPV4:
+			case AF_INET:
 				pr_status(counters, timing);
 				break;
 #endif
 #ifdef INET6
-			case TARGET_IPV6:
+			case AF_INET6:
 				pr6_summary(counters, timing, options->target);
 				continue;
 #endif
@@ -254,16 +254,16 @@ ping_loop(struct options *const options, struct shared_variables *const vars,
 #ifdef INET6
 			int r;
 #endif
-			switch (options->target_type) {
+			switch (options->target_addrinfo->ai_family) {
 #ifdef INET
-			case TARGET_IPV4:
+			case AF_INET:
 				next_iteration =
 					!ping4_process_received_packet(options,
 					    vars, counters, timing);
 				break;
 #endif
 #ifdef INET6
-			case TARGET_IPV6:
+			case AF_INET6:
 				r = ping6_process_received_packet(options, vars,
 				    counters, timing);
 				if (r < 0)
@@ -288,22 +288,22 @@ ping_loop(struct options *const options, struct shared_variables *const vars,
 		if (!is_ready || options->f_flood) {
 #ifdef INET
 #ifdef INET6
-			if (options->target_type == TARGET_IPV4)
+			if (options->target_addrinfo->ai_family == AF_INET)
 #endif
 				update_sweep(options, vars, counters);
 #endif
 			if ((options->n_packets == 0) ||
 			    (counters->transmitted < options->n_packets)) {
-				switch (options->target_type) {
+				switch (options->target_addrinfo->ai_family) {
 #ifdef INET
-				case TARGET_IPV4:
+				case AF_INET:
 					if (!pinger(options, vars, counters,
 						timing))
 						return (false);
 					break;
 #endif
 #ifdef INET6
-				case TARGET_IPV6:
+				case AF_INET6:
 					if (!pinger6(options, vars, counters,
 						timing))
 						return (false);
@@ -360,14 +360,14 @@ void
 ping_print_summary(struct options *const options,
     const struct counters *const counters, const struct timing *const timing)
 {
-	switch (options->target_type) {
+	switch (options->target_addrinfo->ai_family) {
 #ifdef INET
-	case TARGET_IPV4:
+	case AF_INET:
 		pr_summary(counters, timing, options->target);
 		break;
 #endif
 #ifdef INET6
-	case TARGET_IPV6:
+	case AF_INET6:
 		pr6_summary(counters, timing, options->target);
 		break;
 #endif
@@ -380,14 +380,14 @@ void
 ping_print_heading(const struct options *const options,
     const struct shared_variables *const vars)
 {
-	switch (options->target_type) {
+	switch (options->target_addrinfo->ai_family) {
 #ifdef INET
-	case TARGET_IPV4:
+	case AF_INET:
 		pr_heading(vars->target_sockaddr, options);
 		break;
 #endif
 #ifdef INET6
-	case TARGET_IPV6:
+	case AF_INET6:
 		pr6_heading(options, vars->target_sockaddr_in6, vars->capdns);
 		break;
 #endif

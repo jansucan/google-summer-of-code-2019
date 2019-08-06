@@ -42,7 +42,7 @@ __FBSDID("$FreeBSD$");
 #ifdef IPSEC
 #ifdef IPSEC_POLICY_IPSEC
 static bool ipsec_setpolicy(int socket, char *const policy,
-    enum target_type target_type);
+    int target_ai_family);
 #endif
 #endif
 
@@ -54,10 +54,10 @@ ipsec_configure(int socket_send, int socket_recv,
 #ifdef IPSEC_POLICY_IPSEC
 	if (options->f_policy) {
 		if (!ipsec_setpolicy(socket_send, options->s_policy_out,
-			options->target_type))
+			options->target_addrinfo->ai_family))
 			return (false);
 		if (!ipsec_setpolicy(socket_recv, options->s_policy_in,
-			options->target_type))
+			options->target_addrinfo->ai_family))
 			return (false);
 	}
 #else  /* !IPSEC_POLICY_IPSEC */
@@ -109,7 +109,7 @@ ipsec_configure(int socket_send, int socket_recv,
 #ifdef IPSEC
 #ifdef IPSEC_POLICY_IPSEC
 static bool
-ipsec_setpolicy(int socket, char *const policy, enum target_type target_type)
+ipsec_setpolicy(int socket, char *const policy, int target_ai_family)
 {
 	char *buf;
 	int level, optname;
@@ -123,15 +123,15 @@ ipsec_setpolicy(int socket, char *const policy, enum target_type target_type)
 		return (false);
 	}
 
-	switch (target_type) {
+	switch (target_ai_family) {
 #ifdef INET
-	case TARGET_IPV4:
+	case AF_INET:
 		level = IPPROTO_IP;
 		optname = IP_IPSEC_POLICY;
 		break;
 #endif
 #ifdef INET6
-	case TARGET_IPV6:
+	case AF_INET6:
 		level = IPPROTO_IPV6;
 		optname = IPV6_IPSEC_POLICY;
 		break;

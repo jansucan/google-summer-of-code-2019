@@ -49,16 +49,6 @@
 
 #include "cap.h"
 
-enum target_type {
-	TARGET_UNKNOWN,
-#ifdef INET
-	TARGET_IPV4,
-#endif
-#ifdef INET6
-	TARGET_IPV6
-#endif
-};
-
 struct options {
 	/*
 	 * Prefixes of the member variables:
@@ -142,7 +132,6 @@ struct options {
 	 * from cap_getaddrinfo().
 	 */
 	struct addrinfo *target_addrinfo;
-	enum target_type target_type;
 
 #ifdef INET
 	bool f_protocol_ipv4;
