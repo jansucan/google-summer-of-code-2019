@@ -194,7 +194,7 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	}
 
 	if (options->f_dont_fragment || options->f_tos) {
-		ip = (struct ip*)vars->outpackhdr;
+		ip = (struct ip *)vars->outpackhdr;
 		if (!options->f_ttl && !options->f_multicast_ttl) {
 			int mib[4];
 			size_t sz;
@@ -460,7 +460,7 @@ pinger(const struct options *const options, struct shared_variables *const vars,
 		tv32.tv32_sec = htonl(now.tv_sec);
 		tv32.tv32_usec = htonl(now.tv_usec);
 		if (options->f_time)
-			icp->icmp_otime = htonl((now.tv_sec % (24*60*60))
+			icp->icmp_otime = htonl((now.tv_sec % (24 * 60 * 60))
 				* 1000 + now.tv_usec / 1000);
 		if (timing->enabled)
 			memcpy((void *)&vars->outpack[ICMP_MINLEN +

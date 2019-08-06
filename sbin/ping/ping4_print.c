@@ -122,7 +122,7 @@ pr_pack(const char *const buf, int cc, const struct sockaddr_in *const from,
 				     recv_len, vars->send_len);
 			}
 			/* check the data */
-			cp = (const u_char*)&icp->icmp_data[vars->phdr_len];
+			cp = (const u_char *)&icp->icmp_data[vars->phdr_len];
 			dp = &vars->outpack[ICMP_MINLEN + vars->phdr_len];
 			cc -= ICMP_MINLEN + vars->phdr_len;
 			i = 0;
@@ -140,7 +140,7 @@ pr_pack(const char *const buf, int cc, const struct sockaddr_in *const from,
 					    "should be 0x%x but was 0x%x", i,
 					    *dp, *cp);
 					(void)printf("\ncp:");
-					cp = (const u_char*)&icp->icmp_data[0];
+					cp = (const u_char *)&icp->icmp_data[0];
 					for (i = 0; i < options->n_packet_size;
 					     ++i, ++cp) {
 						if ((i % 16) == 8)
