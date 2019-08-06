@@ -462,7 +462,6 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		}
 
 		for (hops = 0; hops < options->hop_count; hops++) {
-			/* TODO: Remove (void *) */
 			sin6 = (struct sockaddr_in6 *)
 				(void *)options->hops_addrinfo[hops]->ai_addr;
 			if (inet6_rth_add(rthdr, &sin6->sin6_addr)) {
