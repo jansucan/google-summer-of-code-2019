@@ -129,7 +129,7 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
-	vars->send_packet.outpack = vars->send_packet.outpackhdr + sizeof(struct ip);
+	vars->send_packet.outpack = vars->send_packet.raw + sizeof(struct ip);
 
 	if (options->f_mask) {
 		vars->send_packet.icmp_type = ICMP_MASKREQ;
@@ -201,7 +201,7 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	}
 
 	if (options->f_dont_fragment || options->f_tos) {
-		ip = (struct ip *)vars->send_packet.outpackhdr;
+		ip = (struct ip *)vars->send_packet.raw;
 		if (!options->f_ttl && !options->f_multicast_ttl) {
 			int mib[4];
 			size_t sz;
@@ -484,10 +484,10 @@ pinger(const struct options *const options, struct shared_variables *const vars,
 
 	if (options->f_dont_fragment || options->f_tos) {
 		cc += sizeof(struct ip);
-		ip = (struct ip *)vars->send_packet.outpackhdr;
+		ip = (struct ip *)vars->send_packet.raw;
 		ip->ip_len = htons(cc);
-		ip->ip_sum = in_cksum((u_short *)vars->send_packet.outpackhdr, cc);
-		packet = vars->send_packet.outpackhdr;
+		ip->ip_sum = in_cksum((u_short *)vars->send_packet.raw, cc);
+		packet = vars->send_packet.raw;
 	}
 	i = send(vars->socket_send, (char *)packet, cc, 0);
 	if (i < 0 || i != cc)  {

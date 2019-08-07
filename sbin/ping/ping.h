@@ -45,7 +45,7 @@ struct send_packet {
 	int icmp_len;
 	int phdr_len;
 	int send_len;
-	u_char outpackhdr[IP_MAXPACKET];
+	u_char raw[IP_MAXPACKET];
 	u_char *outpack;
 	u_char icmp_type;
 	u_char *datap;
