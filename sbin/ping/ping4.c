@@ -457,7 +457,7 @@ pinger(const struct options *const options, struct shared_variables *const vars,
 	icp->icmp_code = 0;
 	icp->icmp_cksum = 0;
 	icp->icmp_seq = htons(counters->transmitted);
-	icp->icmp_id = vars->ident;			/* ID */
+	icp->icmp_id = vars->ident;
 
 	BIT_ARRAY_CLR(vars->rcvd_tbl, counters->transmitted % MAX_DUP_CHK);
 
