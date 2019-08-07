@@ -57,7 +57,7 @@ struct shared_variables {
 	char ctrl[CMSG_SPACE(sizeof(struct timeval))];
 	struct msghdr msg;	/* V6: smsghdr */
 	struct sockaddr_in from;
-	u_char packet[IP_MAXPACKET] __aligned(4);
+	u_char rcvd_packet[IP_MAXPACKET] __aligned(4);
 	u_char *datap;
 	int icmp_len;
 	struct iovec iov;
