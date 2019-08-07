@@ -348,16 +348,6 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	if (!cap_limit_socket(vars->socket_send, RIGHTS_SEND))
 		return (false);
 
-	memset(&vars->msg, 0, sizeof(vars->msg));
-	vars->msg.msg_name = (caddr_t)&vars->from;
-	vars->msg.msg_iov = &vars->iov;
-	vars->msg.msg_iovlen = 1;
-#ifdef SO_TIMESTAMP
-	vars->msg.msg_control = (caddr_t)vars->ctrl;
-#endif
-	vars->iov.iov_base = vars->rcvd_packet;
-	vars->iov.iov_len = IP_MAXPACKET;
-
 	return (true);
 }
 
@@ -371,10 +361,20 @@ ping4_process_received_packet(const struct options *const options,
 	struct timeval *tv = NULL;
 #ifdef SO_TIMESTAMP
 	struct cmsghdr *cmsg = (struct cmsghdr *)&vars->ctrl;
+#endif
 
+	memset(&vars->msg, 0, sizeof(vars->msg));
+	vars->msg.msg_name = (caddr_t)&vars->from;
+	vars->msg.msg_namelen = sizeof(vars->from);
+	vars->msg.msg_iov = &vars->iov;
+	vars->msg.msg_iovlen = 1;
+#ifdef SO_TIMESTAMP
+	vars->msg.msg_control = (caddr_t)vars->ctrl;
 	vars->msg.msg_controllen = sizeof(vars->ctrl);
 #endif
-	vars->msg.msg_namelen = sizeof(vars->from);
+	vars->iov.iov_base = vars->rcvd_packet;
+	vars->iov.iov_len = IP_MAXPACKET;
+
 	if ((cc = recvmsg(vars->socket_recv, &vars->msg, 0)) < 0) {
 		if (errno == EINTR)
 			return (false);
