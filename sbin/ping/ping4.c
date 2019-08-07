@@ -158,13 +158,13 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 		return (false);
 	}
 	vars->send_packet.send_len = vars->send_packet.icmp_len + options->n_packet_size;
-	vars->send_packet.datap = &vars->send_packet.icmp[ICMP_MINLEN + vars->send_packet.phdr_len +
+	vars->send_packet.data = &vars->send_packet.icmp[ICMP_MINLEN + vars->send_packet.phdr_len +
 	    TIMEVAL_LEN];
 	if (options->f_ping_filled) {
-		fill((char *)vars->send_packet.datap, maxpayload -
+		fill((char *)vars->send_packet.data, maxpayload -
 		    (TIMEVAL_LEN + options->ping_filled_size), options);
 		if (!options->f_quiet)
-			print_fill_pattern((char *)vars->send_packet.datap,
+			print_fill_pattern((char *)vars->send_packet.data,
 			    options->ping_filled_size);
 	}
 
@@ -189,7 +189,7 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 
 	if (!options->f_ping_filled)
 		for (int i = TIMEVAL_LEN; i < options->n_packet_size; ++i)
-			*vars->send_packet.datap++ = i;
+			*vars->send_packet.data++ = i;
 
 	hold = 1;
 	if (options->f_so_dontroute) {
@@ -422,7 +422,7 @@ update_sweep(struct options *const options, struct shared_variables *const vars,
 	if ((options->n_sweep_max > 0) &&
 	    (counters->sweep_transmitted == counters->sweep_max_packets)) {
 		for (int i = 0; i < options->n_sweep_incr ; ++i)
-			*vars->send_packet.datap++ = i;
+			*vars->send_packet.data++ = i;
 		options->n_packet_size += options->n_sweep_incr;
 		if (options->n_packet_size > options->n_sweep_max)
 			return (false);

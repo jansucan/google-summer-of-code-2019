@@ -48,7 +48,7 @@ struct send_packet {
 	u_char raw[IP_MAXPACKET];
 	u_char *icmp;
 	u_char icmp_type;
-	u_char *datap;
+	u_char *data;
 #endif
 };
 
