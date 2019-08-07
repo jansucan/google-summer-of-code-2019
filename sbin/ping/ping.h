@@ -47,7 +47,8 @@ struct shared_variables {
 	int ident;		/* process id to identify our packets */
 	cap_channel_t *capdns;
 #ifdef INET
-	u_char outpackhdr[IP_MAXPACKET], *outpack;
+	u_char outpackhdr[IP_MAXPACKET];
+	u_char *outpack;
 	u_char icmp_type;
 	u_char icmp_type_rsp;
 	int phdr_len;
