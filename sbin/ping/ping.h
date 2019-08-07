@@ -40,6 +40,14 @@
 #include "defaults_limits.h"
 #include "options.h"
 
+struct send_packet {
+	;
+};
+
+struct receive_packet {
+	;
+};
+
 struct shared_variables {
 	char rcvd_tbl[MAX_DUP_CHK / 8];
 	int socket_send;
@@ -47,6 +55,8 @@ struct shared_variables {
 	/* Process id to identify our packets. */
 	int ident;
 	cap_channel_t *capdns;
+	struct send_packet send_packet;
+	struct receive_packet recv_packet;
 #ifdef INET
 	u_char outpackhdr[IP_MAXPACKET];
 	u_char *outpack;
