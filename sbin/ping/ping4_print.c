@@ -42,7 +42,7 @@ static char *pr_addr(struct in_addr, cap_channel_t *const, bool);
 static char *pr_ntime(n_time);
 static void pr_icmph(const struct icmp *const);
 static void pr_iph(const struct ip *const);
-static void pr_retip(const struct ip *const);
+static void pr_retip(const struct icmp *const);
 
 /*
  * pr_pack --
@@ -354,19 +354,11 @@ pr_icmph(const struct icmp *const icp)
 			break;
 		}
 		/* Print returned IP header information */
-#ifndef icmp_data
-		pr_retip(&icp->icmp_ip);
-#else
-		pr_retip((const struct ip *)icp->icmp_data);
-#endif
+		pr_retip(icp);
 		break;
 	case ICMP_SOURCEQUENCH:
 		(void)printf("Source Quench\n");
-#ifndef icmp_data
-		pr_retip(&icp->icmp_ip);
-#else
-		pr_retip((const struct ip *)icp->icmp_data);
-#endif
+		pr_retip(icp);
 		break;
 	case ICMP_REDIRECT:
 		switch(icp->icmp_code) {
@@ -387,11 +379,7 @@ pr_icmph(const struct icmp *const icp)
 			break;
 		}
 		(void)printf("(New addr: %s)\n", inet_ntoa(icp->icmp_gwaddr));
-#ifndef icmp_data
-		pr_retip(&icp->icmp_ip);
-#else
-		pr_retip((const struct ip *)icp->icmp_data);
-#endif
+		pr_retip(icp);
 		break;
 	case ICMP_ECHO:
 		(void)printf("Echo Request\n");
@@ -410,20 +398,12 @@ pr_icmph(const struct icmp *const icp)
 			    icp->icmp_code);
 			break;
 		}
-#ifndef icmp_data
-		pr_retip(&icp->icmp_ip);
-#else
-		pr_retip((const struct ip *)icp->icmp_data);
-#endif
+		pr_retip(icp);
 		break;
 	case ICMP_PARAMPROB:
 		(void)printf("Parameter problem: pointer = 0x%02x\n",
 		    icp->icmp_hun.ih_pptr);
-#ifndef icmp_data
-		pr_retip(&icp->icmp_ip);
-#else
-		pr_retip((const struct ip *)icp->icmp_data);
-#endif
+		pr_retip(icp);
 		break;
 	case ICMP_TSTAMP:
 		(void)printf("Timestamp\n");
@@ -522,10 +502,17 @@ pr_addr(struct in_addr ina, cap_channel_t *const capdns, bool numeric)
  *	Dump some info on a returned (via ICMP) IP packet.
  */
 static void
-pr_retip(const struct ip *const ip)
+pr_retip(const struct icmp *const icmp)
 {
 	const u_char *cp;
 	int hlen;
+	const struct ip *ip;
+
+#ifndef icmp_data
+	ip = &icp->icmp_ip;
+#else
+	ip = (const struct ip *)icmp->icmp_data;
+#endif
 
 	pr_iph(ip);
 	hlen = ip->ip_hl << 2;
