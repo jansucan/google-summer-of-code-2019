@@ -54,8 +54,6 @@ struct shared_variables {
 	int phdr_len;
 	int send_len;
 	const struct sockaddr_in *target_sockaddr;
-	char ctrl[CMSG_SPACE(sizeof(struct timeval))];
-	struct msghdr msg;	/* V6: smsghdr */
 	struct sockaddr_in from;
 	u_char rcvd_packet[IP_MAXPACKET] __aligned(4);
 	u_char *datap;
