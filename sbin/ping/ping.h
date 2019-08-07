@@ -41,7 +41,15 @@
 #include "options.h"
 
 struct send_packet {
-	;
+#ifdef INET
+	int icmp_len;
+	int phdr_len;
+	int send_len;
+	u_char outpackhdr[IP_MAXPACKET];
+	u_char *outpack;
+	u_char icmp_type;
+	u_char *datap;
+#endif
 };
 
 struct receive_packet {
@@ -58,17 +66,10 @@ struct shared_variables {
 	struct send_packet send_packet;
 	struct receive_packet recv_packet;
 #ifdef INET
-	u_char outpackhdr[IP_MAXPACKET];
-	u_char *outpack;
-	u_char icmp_type;
 	u_char icmp_type_rsp;
-	int phdr_len;
-	int send_len;
 	const struct sockaddr_in *target_sockaddr;
 	struct sockaddr_in from;
 	u_char rcvd_packet[IP_MAXPACKET] __aligned(4);
-	u_char *datap;
-	int icmp_len;
 #endif	/* INET */
 #ifdef INET6
 	struct sockaddr_in6 *target_sockaddr_in6;	/* who to ping6 */

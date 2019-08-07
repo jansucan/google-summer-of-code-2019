@@ -117,7 +117,7 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	struct ip *ip;
 	int hold;
 
-	vars->icmp_type = ICMP_ECHO;
+	vars->send_packet.icmp_type = ICMP_ECHO;
 	vars->icmp_type_rsp = ICMP_ECHOREPLY;
 
 #ifdef __clang__
@@ -129,42 +129,42 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
-	vars->outpack = vars->outpackhdr + sizeof(struct ip);
+	vars->send_packet.outpack = vars->send_packet.outpackhdr + sizeof(struct ip);
 
 	if (options->f_mask) {
-		vars->icmp_type = ICMP_MASKREQ;
+		vars->send_packet.icmp_type = ICMP_MASKREQ;
 		vars->icmp_type_rsp = ICMP_MASKREPLY;
-		vars->phdr_len = MASK_LEN;
+		vars->send_packet.phdr_len = MASK_LEN;
 		if (!options->f_quiet)
 			(void)printf("ICMP_MASKREQ\n");
 	} else if (options->f_time) {
-		vars->icmp_type = ICMP_TSTAMP;
+		vars->send_packet.icmp_type = ICMP_TSTAMP;
 		vars->icmp_type_rsp = ICMP_TSTAMPREPLY;
-		vars->phdr_len = TS_LEN;
+		vars->send_packet.phdr_len = TS_LEN;
 		if (!options->f_quiet)
 			(void)printf("ICMP_TSTAMP\n");
 
 	}
 
-	vars->icmp_len = sizeof(struct ip) + ICMP_MINLEN + vars->phdr_len;
+	vars->send_packet.icmp_len = sizeof(struct ip) + ICMP_MINLEN + vars->send_packet.phdr_len;
 	if (options->f_rroute)
-		vars->icmp_len += MAX_IPOPTLEN;
+		vars->send_packet.icmp_len += MAX_IPOPTLEN;
 
-	const int maxpayload = IP_MAXPACKET - vars->icmp_len;
+	const int maxpayload = IP_MAXPACKET - vars->send_packet.icmp_len;
 
 	if (options->n_packet_size > maxpayload) {
 		print_error("packet size too large: %ld > %d",
 		    options->n_packet_size, maxpayload);
 		return (false);
 	}
-	vars->send_len = vars->icmp_len + options->n_packet_size;
-	vars->datap = &vars->outpack[ICMP_MINLEN + vars->phdr_len +
+	vars->send_packet.send_len = vars->send_packet.icmp_len + options->n_packet_size;
+	vars->send_packet.datap = &vars->send_packet.outpack[ICMP_MINLEN + vars->send_packet.phdr_len +
 	    TIMEVAL_LEN];
 	if (options->f_ping_filled) {
-		fill((char *)vars->datap, maxpayload -
+		fill((char *)vars->send_packet.datap, maxpayload -
 		    (TIMEVAL_LEN + options->ping_filled_size), options);
 		if (!options->f_quiet)
-			print_fill_pattern((char *)vars->datap,
+			print_fill_pattern((char *)vars->send_packet.datap,
 			    options->ping_filled_size);
 	}
 
@@ -189,7 +189,7 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 
 	if (!options->f_ping_filled)
 		for (int i = TIMEVAL_LEN; i < options->n_packet_size; ++i)
-			*vars->datap++ = i;
+			*vars->send_packet.datap++ = i;
 
 	hold = 1;
 	if (options->f_so_dontroute) {
@@ -201,7 +201,7 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	}
 
 	if (options->f_dont_fragment || options->f_tos) {
-		ip = (struct ip *)vars->outpackhdr;
+		ip = (struct ip *)vars->send_packet.outpackhdr;
 		if (!options->f_ttl && !options->f_multicast_ttl) {
 			int mib[4];
 			size_t sz;
@@ -313,7 +313,7 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 		} else
 			counters->sweep_max_packets = 1;
 		options->n_packet_size = options->n_sweep_min;
-		vars->send_len = vars->icmp_len + options->n_sweep_min;
+		vars->send_packet.send_len = vars->send_packet.icmp_len + options->n_sweep_min;
 	}
 
 	/*
@@ -422,11 +422,11 @@ update_sweep(struct options *const options, struct shared_variables *const vars,
 	if ((options->n_sweep_max > 0) &&
 	    (counters->sweep_transmitted == counters->sweep_max_packets)) {
 		for (int i = 0; i < options->n_sweep_incr ; ++i)
-			*vars->datap++ = i;
+			*vars->send_packet.datap++ = i;
 		options->n_packet_size += options->n_sweep_incr;
 		if (options->n_packet_size > options->n_sweep_max)
 			return (false);
-		vars->send_len = vars->icmp_len + options->n_packet_size;
+		vars->send_packet.send_len = vars->send_packet.icmp_len + options->n_packet_size;
 		counters->sweep_transmitted = 0;
 	}
 	return (true);
@@ -451,9 +451,9 @@ pinger(const struct options *const options, struct shared_variables *const vars,
 	int cc, i;
 	u_char *packet;
 
-	packet = vars->outpack;
-	icp = (struct icmp *)vars->outpack;
-	icp->icmp_type = vars->icmp_type;
+	packet = vars->send_packet.outpack;
+	icp = (struct icmp *)vars->send_packet.outpack;
+	icp->icmp_type = vars->send_packet.icmp_type;
 	icp->icmp_code = 0;
 	icp->icmp_cksum = 0;
 	icp->icmp_seq = htons(counters->transmitted);
@@ -473,21 +473,21 @@ pinger(const struct options *const options, struct shared_variables *const vars,
 			icp->icmp_otime = htonl((now.tv_sec % (24 * 60 * 60))
 				* 1000 + now.tv_usec / 1000);
 		if (timing->enabled)
-			memcpy((void *)&vars->outpack[ICMP_MINLEN +
-				vars->phdr_len], (void *)&tv32, sizeof(tv32));
+			memcpy((void *)&vars->send_packet.outpack[ICMP_MINLEN +
+				vars->send_packet.phdr_len], (void *)&tv32, sizeof(tv32));
 	}
 
-	cc = ICMP_MINLEN + vars->phdr_len + options->n_packet_size;
+	cc = ICMP_MINLEN + vars->send_packet.phdr_len + options->n_packet_size;
 
 	/* compute ICMP checksum here */
 	icp->icmp_cksum = in_cksum((u_short *)icp, cc);
 
 	if (options->f_dont_fragment || options->f_tos) {
 		cc += sizeof(struct ip);
-		ip = (struct ip *)vars->outpackhdr;
+		ip = (struct ip *)vars->send_packet.outpackhdr;
 		ip->ip_len = htons(cc);
-		ip->ip_sum = in_cksum((u_short *)vars->outpackhdr, cc);
-		packet = vars->outpackhdr;
+		ip->ip_sum = in_cksum((u_short *)vars->send_packet.outpackhdr, cc);
+		packet = vars->send_packet.outpackhdr;
 	}
 	i = send(vars->socket_send, (char *)packet, cc, 0);
 	if (i < 0 || i != cc)  {
@@ -554,9 +554,9 @@ get_triptime(const char *const buf, size_t bufsize,
 #else
 		tp = icp->icmp_data;
 #endif
-		tp = (const char *)tp + vars->phdr_len;
+		tp = (const char *)tp + vars->send_packet.phdr_len;
 
-		if ((size_t)(bufsize - ICMP_MINLEN - vars->phdr_len) >=
+		if ((size_t)(bufsize - ICMP_MINLEN - vars->send_packet.phdr_len) >=
 		    sizeof(tv1)) {
 			/* Copy to avoid alignment problems: */
 			memcpy(&tv32, tp, sizeof(tv32));
@@ -592,9 +592,9 @@ update_timing(const char *const buf, size_t bufsize,
 #else
 		tp = icp->icmp_data;
 #endif
-		tp = (const char *)tp + vars->phdr_len;
+		tp = (const char *)tp + vars->send_packet.phdr_len;
 
-		if ((size_t)(bufsize - ICMP_MINLEN - vars->phdr_len) >=
+		if ((size_t)(bufsize - ICMP_MINLEN - vars->send_packet.phdr_len) >=
 		    sizeof(struct timeval)) {
 			/* Copy to avoid alignment problems: */
 			triptime_sec = ((double)triptime->tv_sec) * 1000.0 +

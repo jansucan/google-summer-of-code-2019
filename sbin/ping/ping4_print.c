@@ -116,15 +116,15 @@ pr_pack(const char *const buf, int cc, const struct sockaddr_in *const from,
 				(void)printf(" tst=%s",
 				    pr_ntime(icp->icmp_ttime));
 			}
-			if (recv_len != vars->send_len) {
+			if (recv_len != vars->send_packet.send_len) {
                         	(void)printf(
 				     "\nwrong total length %d instead of %d",
-				     recv_len, vars->send_len);
+				     recv_len, vars->send_packet.send_len);
 			}
 			/* check the data */
-			cp = (const u_char *)&icp->icmp_data[vars->phdr_len];
-			dp = &vars->outpack[ICMP_MINLEN + vars->phdr_len];
-			cc -= ICMP_MINLEN + vars->phdr_len;
+			cp = (const u_char *)&icp->icmp_data[vars->send_packet.phdr_len];
+			dp = &vars->send_packet.outpack[ICMP_MINLEN + vars->send_packet.phdr_len];
+			cc -= ICMP_MINLEN + vars->send_packet.phdr_len;
 			i = 0;
 			/* don't check variable timestamp */
 			if (timing_enabled) {
@@ -148,7 +148,7 @@ pr_pack(const char *const buf, int cc, const struct sockaddr_in *const from,
 						(void)printf("%2x ", *cp);
 					}
 					(void)printf("\ndp:");
-					cp = &vars->outpack[ICMP_MINLEN];
+					cp = &vars->send_packet.outpack[ICMP_MINLEN];
 					for (i = 0; i < options->n_packet_size;
 					     ++i, ++cp) {
 						if ((i % 16) == 8)
