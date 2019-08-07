@@ -41,7 +41,9 @@ __FBSDID("$FreeBSD$");
 #include "ping6_print.h"
 #include "utils.h"
 
-static struct signal_variables signal_vars;
+static struct options		options;
+static struct shared_variables	shared_vars;
+static struct signal_variables	signal_vars;
 
 static bool signals_setup(struct options *const options,
     struct shared_variables *const vars);
@@ -52,39 +54,39 @@ static void signal_handler_sigint_sigalrm(int sig __unused);
 int
 main(int argc, char *argv[])
 {
-	struct options options;
-	struct shared_variables vars;
 	struct counters counters;
 	struct timing timing;
 
-	if (((vars.capdns = capdns_setup()) == NULL) ||
-	    !options_parse(argc, argv, &options, vars.capdns) ||
-	    !ping_init(&options, &vars, &counters, &timing))
+	if (((shared_vars.capdns = capdns_setup()) == NULL) ||
+	    !options_parse(argc, argv, &options, shared_vars.capdns) ||
+	    !ping_init(&options, &shared_vars, &counters, &timing))
 		return (1);
 
-	ping_print_heading(&options, &vars);
+	ping_print_heading(&options, &shared_vars);
 
-	if (!signals_setup(&options, &vars) ||
-	    !ping_send_initial_packets(&options, &vars, &counters, &timing) ||
-	    !ping_loop(&options, &vars, &counters, &timing, &signal_vars) ||
+	if (!signals_setup(&options, &shared_vars) ||
+	    !ping_send_initial_packets(&options, &shared_vars, &counters,
+		&timing) ||
+	    !ping_loop(&options, &shared_vars, &counters, &timing,
+		&signal_vars) ||
 	    !signals_cleanup())
 		return (1);
 
 	ping_print_summary(&options, &counters, &timing);
-	ping_free(&options, &vars);
+	ping_free(&options, &shared_vars);
 
 	return ((counters.received != 0) ? 0 : 2);
 }
 
 static bool
-signals_setup(struct options *const options,
+signals_setup(struct options *const opts,
     struct shared_variables *const vars)
 {
 	struct sigaction si_sa;
 
 	signal_vars.siginfo = false;
 	signal_vars.sigint_sigalrm = false;
-	signal_vars.options = options;
+	signal_vars.options = opts;
 	signal_vars.vars = vars;
 
 	/*
@@ -109,7 +111,7 @@ signals_setup(struct options *const options,
 		return (false);
 	}
 
-	if (options->f_timeout && (sigaction(SIGALRM, &si_sa, 0) == -1)) {
+	if (opts->f_timeout && (sigaction(SIGALRM, &si_sa, 0) == -1)) {
 		print_error_strerr("sigaction SIGALRM");
 		return (false);
 	}
