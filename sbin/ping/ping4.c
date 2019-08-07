@@ -129,7 +129,7 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
-	vars->send_packet.outpack = vars->send_packet.raw + sizeof(struct ip);
+	vars->send_packet.icmp = vars->send_packet.raw + sizeof(struct ip);
 
 	if (options->f_mask) {
 		vars->send_packet.icmp_type = ICMP_MASKREQ;
@@ -158,7 +158,7 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 		return (false);
 	}
 	vars->send_packet.send_len = vars->send_packet.icmp_len + options->n_packet_size;
-	vars->send_packet.datap = &vars->send_packet.outpack[ICMP_MINLEN + vars->send_packet.phdr_len +
+	vars->send_packet.datap = &vars->send_packet.icmp[ICMP_MINLEN + vars->send_packet.phdr_len +
 	    TIMEVAL_LEN];
 	if (options->f_ping_filled) {
 		fill((char *)vars->send_packet.datap, maxpayload -
@@ -451,8 +451,8 @@ pinger(const struct options *const options, struct shared_variables *const vars,
 	int cc, i;
 	u_char *packet;
 
-	packet = vars->send_packet.outpack;
-	icp = (struct icmp *)vars->send_packet.outpack;
+	packet = vars->send_packet.icmp;
+	icp = (struct icmp *)vars->send_packet.icmp;
 	icp->icmp_type = vars->send_packet.icmp_type;
 	icp->icmp_code = 0;
 	icp->icmp_cksum = 0;
@@ -473,7 +473,7 @@ pinger(const struct options *const options, struct shared_variables *const vars,
 			icp->icmp_otime = htonl((now.tv_sec % (24 * 60 * 60))
 				* 1000 + now.tv_usec / 1000);
 		if (timing->enabled)
-			memcpy((void *)&vars->send_packet.outpack[ICMP_MINLEN +
+			memcpy((void *)&vars->send_packet.icmp[ICMP_MINLEN +
 				vars->send_packet.phdr_len], (void *)&tv32, sizeof(tv32));
 	}
 

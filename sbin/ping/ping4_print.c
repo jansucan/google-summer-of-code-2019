@@ -123,7 +123,7 @@ pr_pack(const char *const buf, int cc, const struct sockaddr_in *const from,
 			}
 			/* check the data */
 			cp = (const u_char *)&icp->icmp_data[vars->send_packet.phdr_len];
-			dp = &vars->send_packet.outpack[ICMP_MINLEN + vars->send_packet.phdr_len];
+			dp = &vars->send_packet.icmp[ICMP_MINLEN + vars->send_packet.phdr_len];
 			cc -= ICMP_MINLEN + vars->send_packet.phdr_len;
 			i = 0;
 			/* don't check variable timestamp */
@@ -148,7 +148,7 @@ pr_pack(const char *const buf, int cc, const struct sockaddr_in *const from,
 						(void)printf("%2x ", *cp);
 					}
 					(void)printf("\ndp:");
-					cp = &vars->send_packet.outpack[ICMP_MINLEN];
+					cp = &vars->send_packet.icmp[ICMP_MINLEN];
 					for (i = 0; i < options->n_packet_size;
 					     ++i, ++cp) {
 						if ((i % 16) == 8)
