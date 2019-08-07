@@ -81,6 +81,7 @@ __FBSDID("$FreeBSD$");
 #include <errno.h>
 #include <math.h>
 #include <netdb.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -114,7 +115,6 @@ bool
 ping4_init(struct options *const options, struct shared_variables *const vars,
     struct counters *const counters, struct timing *const timing)
 {
-	struct ip *ip;
 	int hold;
 
 	vars->send_packet.icmp_type = ICMP_ECHO;
@@ -201,7 +201,6 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	}
 
 	if (options->f_dont_fragment || options->f_tos) {
-		ip = (struct ip *)vars->send_packet.raw;
 		if (!options->f_ttl && !options->f_multicast_ttl) {
 			int mib[4];
 			size_t sz;
@@ -222,17 +221,18 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 			print_error_strerr("setsockopt() IP_HDRINCL");
 			return (false);
 		}
-		ip->ip_v = IPVERSION;
-		ip->ip_hl = sizeof(struct ip) >> 2;
-		ip->ip_tos = options->n_tos;
-		ip->ip_id = 0;
-		ip->ip_off = htons(options->f_dont_fragment ? IP_DF : 0);
-		ip->ip_ttl = options->n_ttl;
-		ip->ip_p = IPPROTO_ICMP;
-		ip->ip_src.s_addr = options->f_source ?
+		vars->send_packet.ip.ip_v = IPVERSION;
+		vars->send_packet.ip.ip_hl = sizeof(struct ip) >> 2;
+		vars->send_packet.ip.ip_tos = options->n_tos;
+		vars->send_packet.ip.ip_id = 0;
+		vars->send_packet.ip.ip_off =
+			htons(options->f_dont_fragment ? IP_DF : 0);
+		vars->send_packet.ip.ip_ttl = options->n_ttl;
+		vars->send_packet.ip.ip_p = IPPROTO_ICMP;
+		vars->send_packet.ip.ip_src.s_addr = options->f_source ?
 			options->source_sockaddr.in.sin_addr.s_addr :
 			INADDR_ANY;
-		ip->ip_dst = vars->target_sockaddr->sin_addr;
+		vars->send_packet.ip.ip_dst = vars->target_sockaddr->sin_addr;
         }
 
 	/*
@@ -446,7 +446,6 @@ pinger(const struct options *const options, struct shared_variables *const vars,
 {
 	struct timeval now;
 	struct tv32 tv32;
-	struct ip *ip;
 	struct icmp *icp;
 	int cc, i;
 	u_char *packet;
@@ -484,9 +483,19 @@ pinger(const struct options *const options, struct shared_variables *const vars,
 
 	if (options->f_dont_fragment || options->f_tos) {
 		cc += sizeof(struct ip);
-		ip = (struct ip *)vars->send_packet.raw;
-		ip->ip_len = htons(cc);
-		ip->ip_sum = in_cksum((u_short *)vars->send_packet.raw, cc);
+		vars->send_packet.ip.ip_len = htons(cc);
+		/*
+		 * Copy the 'struct ip' to raw data buffer so the
+		 * checksum can be computed.
+		 */
+		memcpy(vars->send_packet.raw, &vars->send_packet.ip,
+		    sizeof(struct ip));
+		vars->send_packet.ip.ip_sum =
+			in_cksum((u_short *)vars->send_packet.raw, cc);
+		/* Update only ip_sum in the raw data. */
+		memcpy(vars->send_packet.raw + offsetof(struct ip, ip_sum),
+		    &vars->send_packet.ip.ip_sum,
+		    sizeof(vars->send_packet.ip.ip_sum));
 		packet = vars->send_packet.raw;
 	}
 	i = send(vars->socket_send, (char *)packet, cc, 0);
