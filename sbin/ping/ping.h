@@ -58,7 +58,6 @@ struct shared_variables {
 	u_char rcvd_packet[IP_MAXPACKET] __aligned(4);
 	u_char *datap;
 	int icmp_len;
-	struct iovec iov;
 #endif	/* INET */
 #ifdef INET6
 	struct sockaddr_in6 *target_sockaddr_in6;	/* who to ping6 */

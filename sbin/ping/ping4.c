@@ -358,6 +358,7 @@ ping4_process_received_packet(const struct options *const options,
 {
 	int cc;
 	char ctrl[CMSG_SPACE(sizeof(struct timeval))];
+	struct iovec iov;
 	struct msghdr msg;
 	struct timeval now;
 	struct timeval *tv = NULL;
@@ -368,14 +369,14 @@ ping4_process_received_packet(const struct options *const options,
 	memset(&msg, 0, sizeof(msg));
 	msg.msg_name = (caddr_t)&vars->from;
 	msg.msg_namelen = sizeof(vars->from);
-	msg.msg_iov = &vars->iov;
+	msg.msg_iov = &iov;
 	msg.msg_iovlen = 1;
 #ifdef SO_TIMESTAMP
 	msg.msg_control = (caddr_t)ctrl;
 	msg.msg_controllen = sizeof(ctrl);
 #endif
-	vars->iov.iov_base = vars->rcvd_packet;
-	vars->iov.iov_len = IP_MAXPACKET;
+	iov.iov_base = vars->rcvd_packet;
+	iov.iov_len = IP_MAXPACKET;
 
 	if ((cc = recvmsg(vars->socket_recv, &msg, 0)) < 0) {
 		if (errno == EINTR)
