@@ -54,7 +54,7 @@ struct send_packet {
 
 struct receive_packet {
 #ifdef INET
-	u_char icmp_type_rsp;
+	u_char icmp_type;
 	struct sockaddr_in from;
 	u_char rcvd_packet[IP_MAXPACKET] __aligned(4);
 #endif

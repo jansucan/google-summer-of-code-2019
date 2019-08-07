@@ -72,7 +72,7 @@ pr_pack(const char *const buf, int cc, const struct sockaddr_in *const from,
 	/* Now the ICMP part */
 	cc -= hlen;
 	icp = (const struct icmp *)(buf + hlen);
-	if (icp->icmp_type == vars->recv_packet.icmp_type_rsp) {
+	if (icp->icmp_type == vars->recv_packet.icmp_type) {
 		double triptime_sec;
 
 		if (icp->icmp_id != vars->ident)
