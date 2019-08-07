@@ -118,7 +118,7 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	int hold;
 
 	vars->send_packet.icmp_type = ICMP_ECHO;
-	vars->icmp_type_rsp = ICMP_ECHOREPLY;
+	vars->recv_packet.icmp_type_rsp = ICMP_ECHOREPLY;
 
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -133,13 +133,13 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 
 	if (options->f_mask) {
 		vars->send_packet.icmp_type = ICMP_MASKREQ;
-		vars->icmp_type_rsp = ICMP_MASKREPLY;
+		vars->recv_packet.icmp_type_rsp = ICMP_MASKREPLY;
 		vars->send_packet.phdr_len = MASK_LEN;
 		if (!options->f_quiet)
 			(void)printf("ICMP_MASKREQ\n");
 	} else if (options->f_time) {
 		vars->send_packet.icmp_type = ICMP_TSTAMP;
-		vars->icmp_type_rsp = ICMP_TSTAMPREPLY;
+		vars->recv_packet.icmp_type_rsp = ICMP_TSTAMPREPLY;
 		vars->send_packet.phdr_len = TS_LEN;
 		if (!options->f_quiet)
 			(void)printf("ICMP_TSTAMP\n");
@@ -367,15 +367,15 @@ ping4_process_received_packet(const struct options *const options,
 #endif
 
 	memset(&msg, 0, sizeof(msg));
-	msg.msg_name = (caddr_t)&vars->from;
-	msg.msg_namelen = sizeof(vars->from);
+	msg.msg_name = (caddr_t)&vars->recv_packet.from;
+	msg.msg_namelen = sizeof(vars->recv_packet.from);
 	msg.msg_iov = &iov;
 	msg.msg_iovlen = 1;
 #ifdef SO_TIMESTAMP
 	msg.msg_control = (caddr_t)ctrl;
 	msg.msg_controllen = sizeof(ctrl);
 #endif
-	iov.iov_base = vars->rcvd_packet;
+	iov.iov_base = vars->recv_packet.rcvd_packet;
 	iov.iov_len = IP_MAXPACKET;
 
 	if ((cc = recvmsg(vars->socket_recv, &msg, 0)) < 0) {
@@ -400,16 +400,16 @@ ping4_process_received_packet(const struct options *const options,
 		}
 		tv = &now;
 	}
-	if (!is_packet_too_short((char *)vars->rcvd_packet, cc, &vars->from,
+	if (!is_packet_too_short((char *)vars->recv_packet.rcvd_packet, cc, &vars->recv_packet.from,
 		options->f_verbose)) {
-		get_triptime((char *)vars->rcvd_packet, cc, tv, vars,
+		get_triptime((char *)vars->recv_packet.rcvd_packet, cc, tv, vars,
 		    timing->enabled);
-		update_timing((char *)vars->rcvd_packet, cc, tv, vars, timing);
-		update_counters((char *)vars->rcvd_packet, tv, options, vars,
+		update_timing((char *)vars->recv_packet.rcvd_packet, cc, tv, vars, timing);
+		update_counters((char *)vars->recv_packet.rcvd_packet, tv, options, vars,
 		    counters);
-		pr_pack((char *)vars->rcvd_packet, cc, &vars->from, tv, options,
+		pr_pack((char *)vars->recv_packet.rcvd_packet, cc, &vars->recv_packet.from, tv, options,
 		    vars, timing->enabled);
-		mark_packet_as_received((char *)vars->rcvd_packet, vars);
+		mark_packet_as_received((char *)vars->recv_packet.rcvd_packet, vars);
 	}
 
 	return (true);
@@ -545,7 +545,7 @@ get_triptime(const char *const buf, size_t bufsize,
 	/* Now the ICMP part */
 	bufsize -= hlen;
 	icp = (const struct icmp *)(buf + hlen);
-	if ((icp->icmp_type == vars->icmp_type_rsp) &&
+	if ((icp->icmp_type == vars->recv_packet.icmp_type_rsp) &&
 	    ((icp->icmp_id == vars->ident) && (timing_enabled))) {
 		struct timeval tv1;
 		struct tv32 tv32;
@@ -585,7 +585,7 @@ update_timing(const char *const buf, size_t bufsize,
 	bufsize -= hlen;
 	icp = (const struct icmp *)(buf + hlen);
 
-	if ((icp->icmp_type == vars->icmp_type_rsp) &&
+	if ((icp->icmp_type == vars->recv_packet.icmp_type_rsp) &&
 	    (icp->icmp_id == vars->ident) && (timing->enabled)) {
 #ifndef icmp_data
 		tp = &icp->icmp_ip;
@@ -624,7 +624,7 @@ update_counters(const char *const buf, const struct timeval *const triptime,
 	hlen = ip->ip_hl << 2;
 
 	icp = (const struct icmp *)(buf + hlen);
-	if ((icp->icmp_type == vars->icmp_type_rsp) &&
+	if ((icp->icmp_type == vars->recv_packet.icmp_type_rsp) &&
 	    (icp->icmp_id == vars->ident)) {
 		seq = ntohs(icp->icmp_seq);
 		if (BIT_ARRAY_IS_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK))
@@ -655,7 +655,7 @@ mark_packet_as_received(const char *const buf,
 
 	/* Now the ICMP part */
 	icp = (const struct icmp *)(buf + hlen);
-	if ((icp->icmp_type == vars->icmp_type_rsp) &&
+	if ((icp->icmp_type == vars->recv_packet.icmp_type_rsp) &&
 	    (icp->icmp_id == vars->ident)) {
 		seq = ntohs(icp->icmp_seq);
 		BIT_ARRAY_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK);
