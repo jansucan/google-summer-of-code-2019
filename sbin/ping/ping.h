@@ -44,7 +44,8 @@ struct shared_variables {
 	char rcvd_tbl[MAX_DUP_CHK / 8];
 	int socket_send;
 	int socket_recv;
-	int ident;		/* process id to identify our packets */
+	/* Process id to identify our packets. */
+	int ident;
 	cap_channel_t *capdns;
 #ifdef INET
 	u_char outpackhdr[IP_MAXPACKET];
