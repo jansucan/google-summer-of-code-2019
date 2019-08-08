@@ -374,7 +374,7 @@ ping4_process_received_packet(const struct options *const options,
 	msg.msg_control = (caddr_t)ctrl;
 	msg.msg_controllen = sizeof(ctrl);
 #endif
-	iov.iov_base = vars->recv_packet.rcvd_packet;
+	iov.iov_base = vars->recv_packet.raw;
 	iov.iov_len = IP_MAXPACKET;
 
 	if ((cc = recvmsg(vars->socket_recv, &msg, 0)) < 0) {
@@ -399,16 +399,16 @@ ping4_process_received_packet(const struct options *const options,
 		}
 		tv = &now;
 	}
-	if (!is_packet_too_short((char *)vars->recv_packet.rcvd_packet, cc, &vars->recv_packet.from,
+	if (!is_packet_too_short((char *)vars->recv_packet.raw, cc, &vars->recv_packet.from,
 		options->f_verbose)) {
-		get_triptime((char *)vars->recv_packet.rcvd_packet, cc, tv, vars,
+		get_triptime((char *)vars->recv_packet.raw, cc, tv, vars,
 		    timing->enabled);
-		update_timing((char *)vars->recv_packet.rcvd_packet, cc, tv, vars, timing);
-		update_counters((char *)vars->recv_packet.rcvd_packet, tv, options, vars,
+		update_timing((char *)vars->recv_packet.raw, cc, tv, vars, timing);
+		update_counters((char *)vars->recv_packet.raw, tv, options, vars,
 		    counters);
-		pr_pack((char *)vars->recv_packet.rcvd_packet, cc, &vars->recv_packet.from, tv, options,
+		pr_pack((char *)vars->recv_packet.raw, cc, &vars->recv_packet.from, tv, options,
 		    vars, timing->enabled);
-		mark_packet_as_received((char *)vars->recv_packet.rcvd_packet, vars);
+		mark_packet_as_received((char *)vars->recv_packet.raw, vars);
 	}
 
 	return (true);
