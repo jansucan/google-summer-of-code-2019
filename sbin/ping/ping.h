@@ -35,6 +35,7 @@
 
 #include <netinet/in.h>
 #include <netinet/ip.h>
+#include <netinet/ip_icmp.h>
 
 #include "cap.h"
 #include "defaults_limits.h"
@@ -47,7 +48,7 @@ struct send_packet {
 	int send_len;
 	u_char raw[IP_MAXPACKET];
 	struct ip ip;
-	u_char *icmp;
+	struct icmp icmp;
 	u_char icmp_type;
 	u_char *data;
 #endif

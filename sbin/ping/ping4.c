@@ -129,7 +129,6 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
-	vars->send_packet.icmp = vars->send_packet.raw + sizeof(struct ip);
 
 	if (options->f_mask) {
 		vars->send_packet.icmp_type = ICMP_MASKREQ;
@@ -446,17 +445,15 @@ pinger(const struct options *const options, struct shared_variables *const vars,
 {
 	struct timeval now;
 	struct tv32 tv32;
-	struct icmp *icp;
 	int cc, i;
 	u_char *packet;
 
-	packet = vars->send_packet.icmp;
-	icp = (struct icmp *)vars->send_packet.icmp;
-	icp->icmp_type = vars->send_packet.icmp_type;
-	icp->icmp_code = 0;
-	icp->icmp_cksum = 0;
-	icp->icmp_seq = htons(counters->transmitted);
-	icp->icmp_id = vars->ident;
+	packet = vars->send_packet.raw + sizeof(struct ip);
+	vars->send_packet.icmp.icmp_type = vars->send_packet.icmp_type;
+	vars->send_packet.icmp.icmp_code = 0;
+	vars->send_packet.icmp.icmp_cksum = 0;
+	vars->send_packet.icmp.icmp_seq = htons(counters->transmitted);
+	vars->send_packet.icmp.icmp_id = vars->ident;
 
 	BIT_ARRAY_CLR(vars->rcvd_tbl, counters->transmitted % MAX_DUP_CHK);
 
@@ -469,17 +466,31 @@ pinger(const struct options *const options, struct shared_variables *const vars,
 		tv32.tv32_sec = htonl(now.tv_sec);
 		tv32.tv32_usec = htonl(now.tv_usec);
 		if (options->f_time)
-			icp->icmp_otime = htonl((now.tv_sec % (24 * 60 * 60))
-				* 1000 + now.tv_usec / 1000);
+			vars->send_packet.icmp.icmp_otime =
+				htonl((now.tv_sec % (24 * 60 * 60)) * 1000 +
+				    now.tv_usec / 1000);
 		if (timing->enabled)
-			memcpy((void *)&vars->send_packet.icmp[ICMP_MINLEN +
-				vars->send_packet.phdr_len], (void *)&tv32, sizeof(tv32));
+			memcpy((void *)(vars->send_packet.raw +
+				sizeof(struct ip) + ICMP_MINLEN +
+				vars->send_packet.phdr_len), (void *)&tv32,
+			    sizeof(tv32));
 	}
 
 	cc = ICMP_MINLEN + vars->send_packet.phdr_len + options->n_packet_size;
 
-	/* compute ICMP checksum here */
-	icp->icmp_cksum = in_cksum((u_short *)icp, cc);
+	/*
+	 * Copy the used part of 'struct icmp' to raw data buffer so
+	 * the checksum can be computed.
+	 */
+	memcpy(vars->send_packet.raw + sizeof(struct ip),
+	    &vars->send_packet.icmp, ICMP_MINLEN + vars->send_packet.phdr_len);
+	vars->send_packet.icmp.icmp_cksum = in_cksum((u_short *)
+	    (vars->send_packet.raw + sizeof(struct ip)), cc);
+	/* Update only icmp_cksum in the raw data. */
+	memcpy(vars->send_packet.raw + sizeof(struct ip) +
+	    offsetof(struct icmp, icmp_cksum),
+	    &vars->send_packet.icmp.icmp_cksum,
+	    sizeof(vars->send_packet.icmp.icmp_cksum));
 
 	if (options->f_dont_fragment || options->f_tos) {
 		cc += sizeof(struct ip);
