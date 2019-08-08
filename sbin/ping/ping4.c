@@ -158,8 +158,8 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 		return (false);
 	}
 	vars->send_packet.send_len = vars->send_packet.icmp_len + options->n_packet_size;
-	vars->send_packet.data = &vars->send_packet.icmp[ICMP_MINLEN + vars->send_packet.phdr_len +
-	    TIMEVAL_LEN];
+	vars->send_packet.data = vars->send_packet.raw + sizeof(struct ip) +
+		ICMP_MINLEN + vars->send_packet.phdr_len + TIMEVAL_LEN;
 	if (options->f_ping_filled) {
 		fill((char *)vars->send_packet.data, maxpayload -
 		    (TIMEVAL_LEN + options->ping_filled_size), options);
