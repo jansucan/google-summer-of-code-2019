@@ -117,7 +117,7 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 	int hold;
 
 	vars->send_packet.icmp_type = ICMP_ECHO;
-	vars->recv_packet.icmp_type = ICMP_ECHOREPLY;
+	vars->recv_packet.expected_icmp_type = ICMP_ECHOREPLY;
 
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -131,13 +131,13 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 
 	if (options->f_mask) {
 		vars->send_packet.icmp_type = ICMP_MASKREQ;
-		vars->recv_packet.icmp_type = ICMP_MASKREPLY;
+		vars->recv_packet.expected_icmp_type = ICMP_MASKREPLY;
 		vars->send_packet.phdr_len = MASK_LEN;
 		if (!options->f_quiet)
 			(void)printf("ICMP_MASKREQ\n");
 	} else if (options->f_time) {
 		vars->send_packet.icmp_type = ICMP_TSTAMP;
-		vars->recv_packet.icmp_type = ICMP_TSTAMPREPLY;
+		vars->recv_packet.expected_icmp_type = ICMP_TSTAMPREPLY;
 		vars->send_packet.phdr_len = TS_LEN;
 		if (!options->f_quiet)
 			(void)printf("ICMP_TSTAMP\n");
@@ -576,7 +576,8 @@ get_triptime(size_t bufsize, struct timeval *const triptime,
 
 	bufsize -= vars->recv_packet.ip_header_len;
 
-	if ((vars->recv_packet.icmp.icmp_type == vars->recv_packet.icmp_type) &&
+	if ((vars->recv_packet.icmp.icmp_type ==
+		vars->recv_packet.expected_icmp_type) &&
 	    ((vars->recv_packet.icmp.icmp_id == vars->ident)
 		&& (timing_enabled))) {
 		struct timeval tv1;
@@ -604,7 +605,8 @@ update_timing(size_t bufsize, const struct timeval *const triptime,
 
 	bufsize -= vars->recv_packet.ip_header_len;
 
-	if ((vars->recv_packet.icmp.icmp_type == vars->recv_packet.icmp_type) &&
+	if ((vars->recv_packet.icmp.icmp_type ==
+		vars->recv_packet.expected_icmp_type) &&
 	    ((vars->recv_packet.icmp.icmp_id == vars->ident)
 		&& (timing->enabled))) {
 		tp = (const char *)vars->recv_packet.icmp_payload +
@@ -634,7 +636,8 @@ update_counters(const struct timeval *const triptime,
 	size_t seq;
 	double triptime_sec;
 
-	if ((vars->recv_packet.icmp.icmp_type == vars->recv_packet.icmp_type) &&
+	if ((vars->recv_packet.icmp.icmp_type ==
+		vars->recv_packet.expected_icmp_type) &&
 	    (vars->recv_packet.icmp.icmp_id == vars->ident)) {
 		seq = ntohs(vars->recv_packet.icmp.icmp_seq);
 		if (BIT_ARRAY_IS_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK))
@@ -658,7 +661,8 @@ mark_packet_as_received(const struct icmp *const icmp,
 {
 	size_t seq;
 
-	if ((icmp->icmp_type == vars->recv_packet.icmp_type) &&
+	if ((icmp->icmp_type ==
+		vars->recv_packet.expected_icmp_type) &&
 	    (icmp->icmp_id == vars->ident)) {
 		seq = ntohs(icmp->icmp_seq);
 		BIT_ARRAY_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK);

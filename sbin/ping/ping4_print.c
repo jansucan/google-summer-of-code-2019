@@ -69,7 +69,8 @@ pr_pack(int cc, const struct timeval *const triptime,
 	recv_len = cc;
 	cc -= hlen;
 
-	if (vars->recv_packet.icmp.icmp_type == vars->recv_packet.icmp_type) {
+	if (vars->recv_packet.icmp.icmp_type ==
+	    vars->recv_packet.expected_icmp_type) {
 		double triptime_sec;
 
 		if (vars->recv_packet.icmp.icmp_id != vars->ident)

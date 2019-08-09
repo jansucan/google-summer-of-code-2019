@@ -56,7 +56,7 @@ struct send_packet {
 
 struct receive_packet {
 #ifdef INET
-	u_char icmp_type;
+	u_char expected_icmp_type;
 	struct sockaddr_in from;
 	u_char raw[IP_MAXPACKET];
 	struct ip ip;
