@@ -577,7 +577,7 @@ get_triptime(size_t bufsize, struct timeval *const triptime,
 	if ((vars->recv_packet.icmp.icmp_type ==
 		vars->recv_packet.expected_icmp_type) &&
 	    ((vars->recv_packet.icmp.icmp_id == vars->ident)
-		&& (timing_enabled))) {
+		&& timing_enabled)) {
 		struct timeval tv1;
 		struct tv32 tv32;
 		tp = (const char *)vars->recv_packet.icmp_payload +
@@ -606,7 +606,7 @@ update_timing(size_t bufsize, const struct timeval *const triptime,
 	if ((vars->recv_packet.icmp.icmp_type ==
 		vars->recv_packet.expected_icmp_type) &&
 	    ((vars->recv_packet.icmp.icmp_id == vars->ident)
-		&& (timing->enabled))) {
+		&& timing->enabled)) {
 		tp = (const char *)vars->recv_packet.icmp_payload +
 			vars->send_packet.phdr_len;
 
