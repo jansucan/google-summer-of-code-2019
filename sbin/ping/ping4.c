@@ -141,7 +141,6 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 		vars->send_packet.phdr_len = TS_LEN;
 		if (!options->f_quiet)
 			(void)printf("ICMP_TSTAMP\n");
-
 	}
 
 	vars->send_packet.icmp_len = sizeof(struct ip) + ICMP_MINLEN + vars->send_packet.phdr_len;
