@@ -570,8 +570,6 @@ static void
 get_triptime(size_t bufsize, struct timeval *const triptime,
     const struct shared_variables *const vars, bool timing_enabled)
 {
-	const void *tp;
-
 	bufsize -= vars->recv_packet.ip_header_len;
 
 	if ((vars->recv_packet.icmp.icmp_type ==
@@ -580,6 +578,8 @@ get_triptime(size_t bufsize, struct timeval *const triptime,
 		&& timing_enabled)) {
 		struct timeval tv1;
 		struct tv32 tv32;
+		const void *tp;
+
 		tp = (const char *)vars->recv_packet.icmp_payload +
 			vars->send_packet.phdr_len;
 
@@ -598,15 +598,15 @@ static void
 update_timing(size_t bufsize, const struct timeval *const triptime,
     const struct shared_variables *const vars, struct timing *const timing)
 {
-	const void *tp;
-	double triptime_sec;
-
 	bufsize -= vars->recv_packet.ip_header_len;
 
 	if ((vars->recv_packet.icmp.icmp_type ==
 		vars->recv_packet.expected_icmp_type) &&
 	    ((vars->recv_packet.icmp.icmp_id == vars->ident)
 		&& timing->enabled)) {
+		const void *tp;
+		double triptime_sec;
+
 		tp = (const char *)vars->recv_packet.icmp_payload +
 			vars->send_packet.phdr_len;
 
@@ -631,12 +631,12 @@ update_counters(const struct timeval *const triptime,
     const struct options *const options,
     const struct shared_variables *const vars, struct counters *const counters)
 {
-	size_t seq;
-	double triptime_sec;
-
 	if ((vars->recv_packet.icmp.icmp_type ==
 		vars->recv_packet.expected_icmp_type) &&
 	    (vars->recv_packet.icmp.icmp_id == vars->ident)) {
+		size_t seq;
+		double triptime_sec;
+
 		seq = ntohs(vars->recv_packet.icmp.icmp_seq);
 		if (BIT_ARRAY_IS_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK))
 			++(counters->repeats);
@@ -657,11 +657,11 @@ static void
 mark_packet_as_received(const struct icmp *const icmp,
     struct shared_variables *const vars)
 {
-	size_t seq;
-
 	if ((icmp->icmp_type ==
 		vars->recv_packet.expected_icmp_type) &&
 	    (icmp->icmp_id == vars->ident)) {
+		size_t seq;
+
 		seq = ntohs(icmp->icmp_seq);
 		BIT_ARRAY_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK);
 	}
