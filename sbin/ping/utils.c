@@ -65,10 +65,10 @@ in_cksum(const u_char *addr, size_t nleft)
 	 * carry bits from the top 16 bits into the lower 16 bits.
 	 */
 	while (nleft > 1)  {
-		u_short data;
+		u_short word;
 
-		memcpy(&data, addr, sizeof(u_short));
-		sum += data;
+		memcpy(&word, addr, sizeof(u_short));
+		sum += word;
 		addr += sizeof(u_short);
 		nleft -= 2;
 	}
