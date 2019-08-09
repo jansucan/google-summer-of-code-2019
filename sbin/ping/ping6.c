@@ -157,7 +157,6 @@ bool
 ping6_init(struct options *const options, struct shared_variables *const vars,
     struct timing *const timing)
 {
-	struct sockaddr_in6 *sin6;
 	int hold, optval;
 	u_char *datap;
 	char *scmsg = 0;
@@ -469,6 +468,7 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		}
 
 		for (hops = 0; hops < options->hop_count; hops++) {
+			struct sockaddr_in6 *sin6;
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wcast-align"
