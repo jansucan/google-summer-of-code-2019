@@ -37,20 +37,48 @@ __FBSDID("$FreeBSD$");
  * Test cases.
  */
 
-ATF_TC_WITHOUT_HEAD(aligned_even_length);
-ATF_TC_BODY(aligned_even_length, tc)
+ATF_TC_WITHOUT_HEAD(aligned_even_length_big_endian);
+ATF_TC_BODY(aligned_even_length_big_endian, tc)
 {
 	const u_char data[] __aligned(sizeof(u_short)) =
 		{0x12, 0x34, 0x56, 0x78};
-	ATF_REQUIRE(in_cksum((const u_short *)data, nitems(data)) == 0x5397);
+	u_short sum;
+
+	sum = in_cksum((const u_short *)data, nitems(data));
+	ATF_REQUIRE(sum == 0x5397);
 }
 
-ATF_TC_WITHOUT_HEAD(aligned_odd_length);
-ATF_TC_BODY(aligned_odd_length, tc)
+ATF_TC_WITHOUT_HEAD(aligned_odd_length_big_endian);
+ATF_TC_BODY(aligned_odd_length_big_endian, tc)
 {
 	const u_char data[] __aligned(sizeof(u_short)) =
 		{0x12, 0x34, 0x56, 0x78, 0x9a};
-	ATF_REQUIRE(in_cksum((const u_short *)data, nitems(data)) == 0x52fd);
+	u_short sum;
+
+	sum = in_cksum((const u_short *)data, nitems(data));
+	ATF_REQUIRE(sum == 0x52fd);
+}
+
+ATF_TC_WITHOUT_HEAD(aligned_even_length_little_endian);
+ATF_TC_BODY(aligned_even_length_little_endian, tc)
+{
+	const u_char data[] __aligned(sizeof(u_short)) =
+		{0x34, 0x12, 0x78, 0x56};
+	u_short sum;
+
+	sum = in_cksum((const u_short *)data, nitems(data));
+	ATF_REQUIRE_MSG(sum == 0x9753, "%d", sum);
+}
+
+ATF_TC_WITHOUT_HEAD(aligned_odd_length_little_endian);
+ATF_TC_BODY(aligned_odd_length_little_endian, tc)
+{
+	const u_char data[] __aligned(sizeof(u_short)) =
+		{0x34, 0x12, 0x78, 0x56, 0x00, 0x9a};
+	u_short sum;
+
+	sum = in_cksum((const u_short *)data, nitems(data));
+	ATF_REQUIRE(sum == 0xfd52);
 }
 
 /*
@@ -59,8 +87,10 @@ ATF_TC_BODY(aligned_odd_length, tc)
 
 ATF_TP_ADD_TCS(tp)
 {
-	ATF_TP_ADD_TC(tp, aligned_even_length);
-	ATF_TP_ADD_TC(tp, aligned_odd_length);
+	ATF_TP_ADD_TC(tp, aligned_even_length_big_endian);
+	ATF_TP_ADD_TC(tp, aligned_odd_length_big_endian);
+	ATF_TP_ADD_TC(tp, aligned_even_length_little_endian);
+	ATF_TP_ADD_TC(tp, aligned_odd_length_little_endian);
 
 	return (atf_no_error());
 }
