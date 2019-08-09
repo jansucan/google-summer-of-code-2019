@@ -507,7 +507,7 @@ pinger(const struct options *const options, struct shared_variables *const vars,
 	 */
 	memcpy(vars->send_packet.raw + sizeof(struct ip),
 	    &vars->send_packet.icmp, ICMP_MINLEN + vars->send_packet.phdr_len);
-	vars->send_packet.icmp.icmp_cksum = in_cksum((u_short *)
+	vars->send_packet.icmp.icmp_cksum = in_cksum(
 	    (vars->send_packet.raw + sizeof(struct ip)), cc);
 	/* Update only icmp_cksum in the raw data. */
 	memcpy(vars->send_packet.raw + sizeof(struct ip) +
@@ -525,7 +525,7 @@ pinger(const struct options *const options, struct shared_variables *const vars,
 		memcpy(vars->send_packet.raw, &vars->send_packet.ip,
 		    sizeof(struct ip));
 		vars->send_packet.ip.ip_sum =
-			in_cksum((u_short *)vars->send_packet.raw, cc);
+			in_cksum(vars->send_packet.raw, cc);
 		/* Update only ip_sum in the raw data. */
 		memcpy(vars->send_packet.raw + offsetof(struct ip, ip_sum),
 		    &vars->send_packet.ip.ip_sum,
