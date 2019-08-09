@@ -73,7 +73,7 @@ in_cksum(const u_char *addr, size_t nleft)
 		nleft -= 2;
 	}
 
-	/* mop up an odd byte, if necessary */
+	/* Mop up an odd byte, if necessary. */
 	if (nleft == 1) {
 		union {
 			u_short	us;
@@ -85,10 +85,12 @@ in_cksum(const u_char *addr, size_t nleft)
 		sum += last.us;
 	}
 
-	/* add back carry outs from top 16 bits to low 16 bits */
-	sum = (sum >> 16) + (sum & 0xffff);	/* add hi 16 to low 16 */
-	sum += (sum >> 16);			/* add carry */
-	answer = ~sum;				/* truncate to 16 bits */
+	/* Add back carry outs from top 16 bits to low 16 bits. */
+	sum = (sum >> 16) + (sum & 0xffff);
+	/* Add carry caused by the previous addition. */
+	sum += (sum >> 16);
+	/* Truncate to 16 bits. */
+	answer = ~sum;
 	return (answer);
 }
 
