@@ -52,10 +52,9 @@ fill(char *const bp, size_t bp_size, const struct options *const options)
  *	Checksum routine for Internet Protocol family headers (C Version)
  */
 u_short
-in_cksum(const u_char *const addr, int len)
+in_cksum(const u_char *addr, int len)
 {
 	int nleft, sum;
-	const u_char *w;
 	union {
 		u_short	us;
 		u_char	uc[2];
@@ -64,7 +63,6 @@ in_cksum(const u_char *const addr, int len)
 
 	nleft = len;
 	sum = 0;
-	w = addr;
 
 	/*
 	 * Our algorithm is simple, using a 32 bit accumulator (sum), we add
@@ -74,15 +72,15 @@ in_cksum(const u_char *const addr, int len)
 	while (nleft > 1)  {
 		u_short data;
 
-		memcpy(&data, w, sizeof(u_short));
+		memcpy(&data, addr, sizeof(u_short));
 		sum += data;
-		w += sizeof(u_short);
+		addr += sizeof(u_short);
 		nleft -= 2;
 	}
 
 	/* mop up an odd byte, if necessary */
 	if (nleft == 1) {
-		last.uc[0] = *w;
+		last.uc[0] = *addr;
 		last.uc[1] = 0;
 		sum += last.us;
 	}
