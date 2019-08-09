@@ -46,8 +46,8 @@
 
 void pr_heading(const struct sockaddr_in *const target_sockaddr,
     const struct options *const options);
-void pr_pack(int, const struct sockaddr_in *const, const struct timeval *const,
-    const struct options *const, const struct shared_variables *const, bool);
+void pr_pack(int, const struct timeval *const, const struct options *const,
+    const struct shared_variables *const, bool);
 void pr_status(const struct counters *const, const struct timing *const);
 void pr_summary(const struct counters *const,
     const struct timing *const, const char *const);

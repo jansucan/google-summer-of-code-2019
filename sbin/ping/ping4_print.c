@@ -54,8 +54,8 @@ static void pr_retip(const struct ip *const, const u_char *);
  * program to be run without having intermingled output (or statistics!).
  */
 void
-pr_pack(int cc, const struct sockaddr_in *const from,
-    const struct timeval *const triptime, const struct options *const options,
+pr_pack(int cc, const struct timeval *const triptime,
+    const struct options *const options,
     const struct shared_variables *const vars, bool timing_enabled)
 {
 	struct in_addr ina;
@@ -91,7 +91,7 @@ pr_pack(int cc, const struct sockaddr_in *const from,
 		else {
 			(void)printf("%d bytes from %s: icmp_seq=%u", cc,
 			   inet_ntoa(*(const struct in_addr *)
-			       &from->sin_addr.s_addr), seq);
+			       &vars->recv_packet.from.sin_addr.s_addr), seq);
 			(void)printf(" ttl=%d", vars->recv_packet.ip.ip_ttl);
 			if (timing_enabled)
 				(void)printf(" time=%.3f ms", triptime_sec);
@@ -196,7 +196,7 @@ pr_pack(int cc, const struct sockaddr_in *const from,
 		     (oicmp.icmp_type == ICMP_ECHO) &&
 		     (oicmp.icmp_id == vars->ident))) {
 		    (void)printf("%d bytes from %s: ", cc,
-			pr_addr(from->sin_addr, vars->capdns,
+			pr_addr(vars->recv_packet.from.sin_addr, vars->capdns,
 			    options->f_numeric));
 		    pr_icmph(&vars->recv_packet.icmp, &oip, oicmp_raw);
 		} else

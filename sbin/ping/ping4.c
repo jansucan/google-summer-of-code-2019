@@ -432,9 +432,7 @@ ping4_process_received_packet(const struct options *const options,
 		get_triptime(cc, tv, vars, timing->enabled);
 		update_timing(cc, tv, vars, timing);
 		update_counters(tv, options, vars, counters);
-		/* TODO: from is redundant */
-		pr_pack(cc, &vars->recv_packet.from, tv, options, vars,
-		    timing->enabled);
+		pr_pack(cc, tv, options, vars, timing->enabled);
 		mark_packet_as_received(&vars->recv_packet.icmp, vars);
 	}
 
