@@ -55,10 +55,6 @@ u_short
 in_cksum(const u_char *addr, size_t nleft)
 {
 	int sum;
-	union {
-		u_short	us;
-		u_char	uc[2];
-	} last;
 	u_short answer;
 
 	sum = 0;
@@ -79,6 +75,11 @@ in_cksum(const u_char *addr, size_t nleft)
 
 	/* mop up an odd byte, if necessary */
 	if (nleft == 1) {
+		union {
+			u_short	us;
+			u_char	uc[2];
+		} last;
+
 		last.uc[0] = *addr;
 		last.uc[1] = 0;
 		sum += last.us;
