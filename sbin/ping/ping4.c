@@ -116,19 +116,6 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 {
 	int hold;
 
-	vars->send_packet.icmp_type = ICMP_ECHO;
-	vars->recv_packet.expected_icmp_type = ICMP_ECHOREPLY;
-
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wcast-align"
-#endif
-	vars->target_sockaddr =
-		(struct sockaddr_in *)options->target_addrinfo->ai_addr;
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
-
 	if (options->f_mask) {
 		vars->send_packet.icmp_type = ICMP_MASKREQ;
 		vars->recv_packet.expected_icmp_type = ICMP_MASKREPLY;
@@ -141,7 +128,20 @@ ping4_init(struct options *const options, struct shared_variables *const vars,
 		vars->send_packet.phdr_len = TS_LEN;
 		if (!options->f_quiet)
 			(void)printf("ICMP_TSTAMP\n");
+	} else {
+		vars->send_packet.icmp_type = ICMP_ECHO;
+		vars->recv_packet.expected_icmp_type = ICMP_ECHOREPLY;
 	}
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-align"
+#endif
+	vars->target_sockaddr =
+		(struct sockaddr_in *)options->target_addrinfo->ai_addr;
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 	vars->send_packet.icmp_len = sizeof(struct ip) + ICMP_MINLEN + vars->send_packet.phdr_len;
 	if (options->f_rroute)
