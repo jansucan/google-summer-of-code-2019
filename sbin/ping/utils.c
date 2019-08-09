@@ -52,7 +52,7 @@ fill(char *const bp, size_t bp_size, const struct options *const options)
  *	Checksum routine for Internet Protocol family headers (C Version)
  */
 u_short
-in_cksum(const u_char *addr, int nleft)
+in_cksum(const u_char *addr, size_t nleft)
 {
 	int sum;
 	union {
