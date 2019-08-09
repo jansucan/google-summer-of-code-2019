@@ -54,7 +54,7 @@
 
 void	fill(char *const bp, size_t bp_size,
     const struct options *const options);
-u_short	in_cksum(const u_short *const, int);
+u_short	in_cksum(const u_char *const, int);
 void	print_error(const char *const fmt, ...);
 void	print_error_strerr(const char *const fmt, ...);
 void	print_fill_pattern(const char *const bp, size_t pattern_size);
