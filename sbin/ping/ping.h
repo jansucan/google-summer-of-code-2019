@@ -58,7 +58,11 @@ struct receive_packet {
 #ifdef INET
 	u_char icmp_type;
 	struct sockaddr_in from;
-	u_char raw[IP_MAXPACKET] __aligned(4);
+	u_char raw[IP_MAXPACKET] __aligned(4); /* TODO: Remove alignment */
+	struct ip ip;
+	struct icmp icmp;
+	u_char ip_header_len;
+	const u_char *icmp_payload;
 #endif
 };
 

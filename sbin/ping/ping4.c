@@ -98,18 +98,17 @@ __FBSDID("$FreeBSD$");
 #define	FLOOD_BACKOFF	20000		/* usecs to back off if F_FLOOD mode */
 
 static u_short in_cksum(const u_short *const, int);
-static void get_triptime(const char *const, size_t, struct timeval *const,
+static void get_triptime(size_t, struct timeval *const,
     const struct shared_variables *const, bool);
-static bool is_packet_too_short(const char *const, size_t,
+static bool is_packet_too_short(u_char, size_t,
     const struct sockaddr_in *const, bool);
-static void mark_packet_as_received(const char *const,
+static void mark_packet_as_received(const struct icmp *const,
     struct shared_variables *const);
-static void update_counters(const char *const, const struct timeval *const,
+static void update_counters(const struct timeval *const,
     const struct options *const, const struct shared_variables *const,
     struct counters *const);
-static void update_timing(const char *const, size_t,
-    const struct timeval *const, const struct shared_variables *const,
-    struct timing *const);
+static void update_timing(size_t, const struct timeval *const,
+    const struct shared_variables *const, struct timing *const);
 
 bool
 ping4_init(struct options *const options, struct shared_variables *const vars,
@@ -399,16 +398,44 @@ ping4_process_received_packet(const struct options *const options,
 		}
 		tv = &now;
 	}
-	if (!is_packet_too_short((char *)vars->recv_packet.raw, cc, &vars->recv_packet.from,
-		options->f_verbose)) {
-		get_triptime((char *)vars->recv_packet.raw, cc, tv, vars,
+
+	/*
+	 * Get size of IP header of the received packet. The
+	 * information is contained in the lower four bits of the
+	 * first byte.
+	 */
+	memcpy(&vars->recv_packet.ip_header_len, vars->recv_packet.raw, 1);
+	vars->recv_packet.ip_header_len =
+		(vars->recv_packet.ip_header_len & 0x0f) << 2;
+
+	/* Copy 'struct ip' out of the raw packet byte array. */
+	memcpy(&vars->recv_packet.ip, vars->recv_packet.raw,
+	    vars->recv_packet.ip_header_len);
+	/*
+	 * Copy used part of 'struct icmp' out of the raw packet byte
+	 * array.
+	 */
+	memcpy(&vars->recv_packet.icmp, vars->recv_packet.raw +
+	    vars->recv_packet.ip_header_len, ICMP_MINLEN +
+	    vars->send_packet.phdr_len);
+	/* Get address of ICMP data in the raw buffer. */
+	vars->recv_packet.icmp_payload = vars->recv_packet.raw +
+		vars->recv_packet.ip_header_len;
+#ifndef icmp_data
+	vars->recv_packet.icmp_payload += offsetof(struct icmp, icmp_ip);
+#else
+	vars->recv_packet.icmp_payload += offsetof(struct icmp, icmp_data);
+#endif
+
+	if (!is_packet_too_short(vars->recv_packet.ip_header_len, cc,
+		&vars->recv_packet.from, options->f_verbose)) {
+		get_triptime(cc, tv, vars, timing->enabled);
+		update_timing(cc, tv, vars, timing);
+		update_counters(tv, options, vars, counters);
+		/* TODO: from is redundant */
+		pr_pack(cc, &vars->recv_packet.from, tv, options, vars,
 		    timing->enabled);
-		update_timing((char *)vars->recv_packet.raw, cc, tv, vars, timing);
-		update_counters((char *)vars->recv_packet.raw, tv, options, vars,
-		    counters);
-		pr_pack((char *)vars->recv_packet.raw, cc, &vars->recv_packet.from, tv, options,
-		    vars, timing->enabled);
-		mark_packet_as_received((char *)vars->recv_packet.raw, vars);
+		mark_packet_as_received(&vars->recv_packet.icmp, vars);
 	}
 
 	return (true);
@@ -531,16 +558,10 @@ pinger(const struct options *const options, struct shared_variables *const vars,
 }
 
 static bool
-is_packet_too_short(const char *const buf, size_t bufsize,
+is_packet_too_short(u_char ip_header_len, size_t bufsize,
     const struct sockaddr_in *const from, bool verbose)
 {
-	const struct ip *ip;
-	size_t hlen;
-
-	ip = (const struct ip *)buf;
-	hlen = ip->ip_hl << 2;
-
-	if (bufsize < (hlen + ICMP_MINLEN))  {
+	if (bufsize < (ip_header_len + ICMP_MINLEN))  {
 		if (verbose)
 			warn("packet too short (%zu bytes) from %s", bufsize,
 			    inet_ntoa(from->sin_addr));
@@ -550,31 +571,20 @@ is_packet_too_short(const char *const buf, size_t bufsize,
 }
 
 static void
-get_triptime(const char *const buf, size_t bufsize,
-    struct timeval *const triptime, const struct shared_variables *const vars,
-    bool timing_enabled)
+get_triptime(size_t bufsize, struct timeval *const triptime,
+    const struct shared_variables *const vars, bool timing_enabled)
 {
-	const struct icmp *icp;
-	const struct ip *ip;
 	const void *tp;
-	size_t hlen;
 
-	ip = (const struct ip *)buf;
-	hlen = ip->ip_hl << 2;
+	bufsize -= vars->recv_packet.ip_header_len;
 
-	/* Now the ICMP part */
-	bufsize -= hlen;
-	icp = (const struct icmp *)(buf + hlen);
-	if ((icp->icmp_type == vars->recv_packet.icmp_type) &&
-	    ((icp->icmp_id == vars->ident) && (timing_enabled))) {
+	if ((vars->recv_packet.icmp.icmp_type == vars->recv_packet.icmp_type) &&
+	    ((vars->recv_packet.icmp.icmp_id == vars->ident)
+		&& (timing_enabled))) {
 		struct timeval tv1;
 		struct tv32 tv32;
-#ifndef icmp_data
-		tp = &icp->icmp_ip;
-#else
-		tp = icp->icmp_data;
-#endif
-		tp = (const char *)tp + vars->send_packet.phdr_len;
+		tp = (const char *)vars->recv_packet.icmp_payload +
+			vars->send_packet.phdr_len;
 
 		if ((size_t)(bufsize - ICMP_MINLEN - vars->send_packet.phdr_len) >=
 		    sizeof(tv1)) {
@@ -588,31 +598,19 @@ get_triptime(const char *const buf, size_t bufsize,
 }
 
 static void
-update_timing(const char *const buf, size_t bufsize,
-    const struct timeval *const triptime,
+update_timing(size_t bufsize, const struct timeval *const triptime,
     const struct shared_variables *const vars, struct timing *const timing)
 {
-	const struct icmp *icp;
-	const struct ip *ip;
 	const void *tp;
 	double triptime_sec;
-	size_t hlen;
 
-	ip = (const struct ip *)buf;
-	hlen = ip->ip_hl << 2;
+	bufsize -= vars->recv_packet.ip_header_len;
 
-	/* Now the ICMP part */
-	bufsize -= hlen;
-	icp = (const struct icmp *)(buf + hlen);
-
-	if ((icp->icmp_type == vars->recv_packet.icmp_type) &&
-	    (icp->icmp_id == vars->ident) && (timing->enabled)) {
-#ifndef icmp_data
-		tp = &icp->icmp_ip;
-#else
-		tp = icp->icmp_data;
-#endif
-		tp = (const char *)tp + vars->send_packet.phdr_len;
+	if ((vars->recv_packet.icmp.icmp_type == vars->recv_packet.icmp_type) &&
+	    ((vars->recv_packet.icmp.icmp_id == vars->ident)
+		&& (timing->enabled))) {
+		tp = (const char *)vars->recv_packet.icmp_payload +
+			vars->send_packet.phdr_len;
 
 		if ((size_t)(bufsize - ICMP_MINLEN - vars->send_packet.phdr_len) >=
 		    sizeof(struct timeval)) {
@@ -631,22 +629,16 @@ update_timing(const char *const buf, size_t bufsize,
 }
 
 static void
-update_counters(const char *const buf, const struct timeval *const triptime,
+update_counters(const struct timeval *const triptime,
     const struct options *const options,
     const struct shared_variables *const vars, struct counters *const counters)
 {
-	const struct icmp *icp;
-	const struct ip *ip;
-	size_t hlen, seq;
+	size_t seq;
 	double triptime_sec;
 
-	ip = (const struct ip *)buf;
-	hlen = ip->ip_hl << 2;
-
-	icp = (const struct icmp *)(buf + hlen);
-	if ((icp->icmp_type == vars->recv_packet.icmp_type) &&
-	    (icp->icmp_id == vars->ident)) {
-		seq = ntohs(icp->icmp_seq);
+	if ((vars->recv_packet.icmp.icmp_type == vars->recv_packet.icmp_type) &&
+	    (vars->recv_packet.icmp.icmp_id == vars->ident)) {
+		seq = ntohs(vars->recv_packet.icmp.icmp_seq);
 		if (BIT_ARRAY_IS_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK))
 			++(counters->repeats);
 		else
@@ -663,21 +655,14 @@ update_counters(const char *const buf, const struct timeval *const triptime,
 }
 
 static void
-mark_packet_as_received(const char *const buf,
+mark_packet_as_received(const struct icmp *const icmp,
     struct shared_variables *const vars)
 {
-	const struct icmp *icp;
-	const struct ip *ip;
-	size_t hlen, seq;
+	size_t seq;
 
-	ip = (const struct ip *)buf;
-	hlen = ip->ip_hl << 2;
-
-	/* Now the ICMP part */
-	icp = (const struct icmp *)(buf + hlen);
-	if ((icp->icmp_type == vars->recv_packet.icmp_type) &&
-	    (icp->icmp_id == vars->ident)) {
-		seq = ntohs(icp->icmp_seq);
+	if ((icmp->icmp_type == vars->recv_packet.icmp_type) &&
+	    (icmp->icmp_id == vars->ident)) {
+		seq = ntohs(icmp->icmp_seq);
 		BIT_ARRAY_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK);
 	}
 }
