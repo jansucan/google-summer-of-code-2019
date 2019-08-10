@@ -3,6 +3,7 @@
 .include <src.opts.mk>
 
 PACKAGE=tests
+WARNS?=	6
 
 .if ${MK_INET_SUPPORT} != "no"
 ATF_TESTS_SH+=		ping_test

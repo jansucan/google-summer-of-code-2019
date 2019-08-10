@@ -3,6 +3,8 @@
 .include <bsd.own.mk>
 .include <src.opts.mk>
 
+WARNS?= 6
+
 TESTSDIR=	${TESTSBASE}/sbin/ping/options
 
 ATF_TESTS_C+=	options_test options_flood_test options_hops_target_test

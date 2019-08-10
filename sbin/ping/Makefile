@@ -9,7 +9,7 @@ SRCS=	cap.c ipsec.c main.c options.c ping.c timing.c utils.c
 MAN=	ping.8
 BINOWN=	root
 BINMODE=4555
-WARNS?=	3
+WARNS?=	6
 LIBADD=	m
 
 .if ${MK_INET_SUPPORT} != "no"
