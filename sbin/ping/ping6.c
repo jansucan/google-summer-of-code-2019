@@ -741,6 +741,7 @@ pinger6(struct options *const options, struct shared_variables *const vars,
 
 		memcpy(nip->icmp6_ni_nonce, vars->nonce,
 		    sizeof(nip->icmp6_ni_nonce));
+		/* XXX: Shouldn't this be htons? */
 		s = ntohs(seq);
 		memcpy(nip->icmp6_ni_nonce, &s, sizeof(s));
 
@@ -761,6 +762,7 @@ pinger6(struct options *const options, struct shared_variables *const vars,
 
 		memcpy(nip->icmp6_ni_nonce, vars->nonce,
 		    sizeof(nip->icmp6_ni_nonce));
+		/* XXX: Shouldn't this be htons? */
 		s = ntohs(seq);
 		memcpy(nip->icmp6_ni_nonce, &s, sizeof(s));
 
@@ -776,6 +778,7 @@ pinger6(struct options *const options, struct shared_variables *const vars,
 
 		memcpy(nip->icmp6_ni_nonce, vars->nonce,
 		    sizeof(nip->icmp6_ni_nonce));
+		/* XXX: Shouldn't this be htons? */
 		s = ntohs(seq);
 		memcpy(nip->icmp6_ni_nonce, &s, sizeof(s));
 
@@ -796,6 +799,7 @@ pinger6(struct options *const options, struct shared_variables *const vars,
 
 		memcpy(nip->icmp6_ni_nonce, vars->nonce,
 		    sizeof(nip->icmp6_ni_nonce));
+		/* XXX: Shouldn't this be htons? */
 		s = ntohs(seq);
 		memcpy(nip->icmp6_ni_nonce, &s, sizeof(s));
 		cc = ICMP6_NIQLEN;
