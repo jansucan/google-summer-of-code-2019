@@ -152,6 +152,7 @@ get_hoplim(const struct msghdr *const mhdr)
 struct in6_pktinfo *
 get_rcvpktinfo(const struct msghdr *const mhdr)
 {
+	static struct in6_pktinfo pi;
 	struct cmsghdr *cm;
 
 	for (cm = (struct cmsghdr *)CMSG_FIRSTHDR(mhdr); cm;
@@ -161,8 +162,10 @@ get_rcvpktinfo(const struct msghdr *const mhdr)
 
 		if (cm->cmsg_level == IPPROTO_IPV6 &&
 		    cm->cmsg_type == IPV6_PKTINFO &&
-		    cm->cmsg_len == CMSG_LEN(sizeof(struct in6_pktinfo)))
-			return ((struct in6_pktinfo *)CMSG_DATA(cm));
+		    cm->cmsg_len == CMSG_LEN(sizeof(struct in6_pktinfo))) {
+			memcpy(&pi, CMSG_DATA(cm), sizeof(pi));
+			return (&pi);
+		}
 	}
 
 	return (NULL);
