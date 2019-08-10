@@ -441,7 +441,8 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		scmsgp->cmsg_len = CMSG_LEN(sizeof(int));
 		scmsgp->cmsg_level = IPPROTO_IPV6;
 		scmsgp->cmsg_type = IPV6_HOPLIMIT;
-		*(int *)(CMSG_DATA(scmsgp)) = options->n_hoplimit;
+		memcpy(CMSG_DATA(scmsgp), &options->n_hoplimit,
+		    sizeof(options->n_hoplimit));
 
 		scmsgp = CMSG_NXTHDR(&vars->smsghdr, scmsgp);
 	}
