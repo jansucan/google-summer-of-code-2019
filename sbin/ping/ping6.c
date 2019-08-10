@@ -162,10 +162,12 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 	char *scmsg = NULL;
 	size_t ip6optlen = 0;
 	struct cmsghdr *scmsgp = NULL;
-	struct in6_pktinfo *pktinfo = NULL;
+	struct in6_pktinfo pktinfo;
+	unsigned char *cmsg_pktinfo = NULL;
 	struct ip6_rthdr *rthdr = NULL;
 
 	memset(&vars->smsghdr, 0, sizeof(vars->smsghdr));
+	memset(&pktinfo, 0, sizeof(pktinfo));
 
 	datap = &vars->outpack6[ICMP6ECHOLEN + ICMP6ECHOTMLEN];
 
@@ -419,8 +421,7 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		scmsgp = CMSG_FIRSTHDR(&vars->smsghdr);
 	}
 	if (options->f_interface_use_pktinfo) {
-		pktinfo = (struct in6_pktinfo *)(CMSG_DATA(scmsgp));
-		memset(pktinfo, 0, sizeof(*pktinfo));
+		cmsg_pktinfo = CMSG_DATA(scmsgp); /* ALIGN 1 to 4 */
 		scmsgp->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));
 		scmsgp->cmsg_level = IPPROTO_IPV6;
 		scmsgp->cmsg_type = IPV6_PKTINFO;
@@ -431,7 +432,7 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 	if (options->f_interface) {
 #ifndef USE_SIN6_SCOPE_ID
 		/* pktinfo must have already been allocated */
-		pktinfo->ipi6_ifindex = options->interface.index;
+		pktinfo.ipi6_ifindex = options->interface.index;
 #else
 		dst.sin6_scope_id = options->interface.index;
 #endif
@@ -509,9 +510,9 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		options->source_sockaddr.in6.sin6_scope_id =
 			vars->target_sockaddr_in6->sin6_scope_id;
 
-		if (pktinfo &&
+		if (options->f_interface_use_pktinfo &&
 		    (setsockopt(dummy, IPPROTO_IPV6, IPV6_PKTINFO,
-			(void *)pktinfo, sizeof(*pktinfo)) != 0)) {
+			(void *)&pktinfo, sizeof(pktinfo)) != 0)) {
 			print_error_strerr("UDP setsockopt(IPV6_PKTINFO)");
 			return (false);
 		}
@@ -630,6 +631,10 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 	if (!cap_limit_socket(vars->socket_recv, RIGHTS_RECV_EVENT) ||
 	    !cap_limit_socket(vars->socket_send, RIGHTS_SEND))
 		return (false);
+
+	/* Save pktinfo in the ancillary data. */
+	if (options->f_interface_use_pktinfo)
+		memcpy(cmsg_pktinfo, &pktinfo, sizeof(pktinfo));
 
 	return (true);
 }
