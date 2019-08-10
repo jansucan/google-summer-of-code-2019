@@ -416,7 +416,7 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		}
 		vars->smsghdr.msg_control = (caddr_t)scmsg;
 		vars->smsghdr.msg_controllen = ip6optlen;
-		scmsgp = (struct cmsghdr *)scmsg;
+		scmsgp = CMSG_FIRSTHDR(&vars->smsghdr);
 	}
 	if (options->f_interface_use_pktinfo) {
 		pktinfo = (struct in6_pktinfo *)(CMSG_DATA(scmsgp));
