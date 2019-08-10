@@ -807,14 +807,15 @@ pinger6(struct options *const options, struct shared_variables *const vars,
 		icp->icmp6_seq = ntohs(seq);
 		if (timing->enabled) {
 			struct timeval tv;
-			struct tv32 *tv32;
+			struct tv32 tv32;
 			if (gettimeofday(&tv, NULL) != 0) {
 				print_error_strerr("gettimeofday()");
 				return (false);
 			}
-			tv32 = (struct tv32 *)&vars->outpack6[ICMP6ECHOLEN];
-			tv32->tv32_sec = htonl(tv.tv_sec);
-			tv32->tv32_usec = htonl(tv.tv_usec);
+			tv32.tv32_sec = htonl(tv.tv_sec);
+			tv32.tv32_usec = htonl(tv.tv_usec);
+			memcpy(&vars->outpack6[ICMP6ECHOLEN], &tv32,
+			    sizeof(tv32));
 		}
 		cc = ICMP6ECHOLEN + options->n_packet_size;
 	}
