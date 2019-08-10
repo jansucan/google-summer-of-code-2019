@@ -160,7 +160,7 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 	int hold, optval;
 	u_char *datap;
 	char *scmsg = NULL;
-	int ip6optlen = 0;
+	size_t ip6optlen = 0;
 	struct cmsghdr *scmsgp = NULL;
 	struct in6_pktinfo *pktinfo = NULL;
 	struct ip6_rthdr *rthdr = NULL;
