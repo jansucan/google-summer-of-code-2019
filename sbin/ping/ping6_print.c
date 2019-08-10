@@ -299,7 +299,10 @@ pr6_pack(int cc, const struct msghdr *const mhdr,
 		}
 	} else if (icp->icmp6_type == ICMP6_NI_REPLY &&
 	    mynireply(ni, vars->nonce)) {
-		seq = ntohs(*(uint16_t *)ni->icmp6_ni_nonce);
+		uint16_t s;
+
+		memcpy(&s, ni->icmp6_ni_nonce, sizeof(s));
+		seq = ntohs(s);
 
 		if (options->f_quiet)
 			return;
