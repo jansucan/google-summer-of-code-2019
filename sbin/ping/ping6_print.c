@@ -1168,6 +1168,8 @@ pr6_retip(const struct ip6_hdr *const ip6, const u_char *const end)
 	nh = ip6->ip6_nxt;
 	cp += hlen;
 	while (end - cp >= 8) {
+		struct ah ah;
+
 		switch (nh) {
 		case IPPROTO_HOPOPTS:
 			printf("HBH ");
@@ -1192,8 +1194,9 @@ pr6_retip(const struct ip6_hdr *const ip6, const u_char *const end)
 #ifdef IPSEC
 		case IPPROTO_AH:
 			printf("AH ");
-			hlen = (((const struct ah *)cp)->ah_len+2) << 2;
-			nh = ((const struct ah *)cp)->ah_nxt;
+			memcpy(&ah, cp, sizeof(ah));
+			hlen = (ah.ah_len+2) << 2;
+			nh = ah.ah_nxt;
 			break;
 #endif
 		case IPPROTO_ICMPV6:
