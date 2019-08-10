@@ -955,7 +955,7 @@ update_timing(const struct shared_variables *const vars,
 {
 	struct icmp6_hdr *icp;
 	struct timeval tv, tp;
-	struct tv32 *tpp;
+	struct tv32 tpp;
 
 	*triptime = 0;
 
@@ -969,9 +969,9 @@ update_timing(const struct shared_variables *const vars,
 	if (icp->icmp6_type == ICMP6_ECHO_REPLY &&
 	    myechoreply(icp, vars->ident)) {
 		if (timing->enabled) {
-			tpp = (struct tv32 *)(icp + 1);
-			tp.tv_sec = ntohl(tpp->tv32_sec);
-			tp.tv_usec = ntohl(tpp->tv32_usec);
+			memcpy(&tpp, icp + 1, sizeof(tpp));
+			tp.tv_sec = ntohl(tpp.tv32_sec);
+			tp.tv_usec = ntohl(tpp.tv32_usec);
 			tvsub(&tv, &tp);
 			*triptime = ((double)tv.tv_sec) * 1000.0 +
 			    ((double)tv.tv_usec) / 1000.0;
