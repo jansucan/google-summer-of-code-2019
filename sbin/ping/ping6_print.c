@@ -781,8 +781,10 @@ pr6_nodeaddr(const struct icmp6_nodeinfo *const ni, int nilen, bool verbose)
 		uint32_t ttl;
 
 		if (withttl) {
-			/* XXX: alignment? */
-			ttl = (uint32_t)ntohl(*(const uint32_t *)cp);
+			uint32_t t;
+
+			memcpy(&t, cp, sizeof(t));
+			ttl = (uint32_t)ntohl(t);
 			cp += sizeof(uint32_t);
 			nilen -= sizeof(uint32_t);
 		}
