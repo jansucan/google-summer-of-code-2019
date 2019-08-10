@@ -994,7 +994,7 @@ get_pathmtu(const struct msghdr *const mhdr,
 {
 #ifdef IPV6_RECVPATHMTU
 	struct cmsghdr *cm;
-	struct ip6_mtuinfo *mtuctl = NULL;
+	struct ip6_mtuinfo mtuctl;
 
 	for (cm = (struct cmsghdr *)CMSG_FIRSTHDR(mhdr); cm;
 	     cm = (struct cmsghdr *)CMSG_NXTHDR(mhdr, cm)) {
@@ -1004,7 +1004,7 @@ get_pathmtu(const struct msghdr *const mhdr,
 		if (cm->cmsg_level == IPPROTO_IPV6 &&
 		    cm->cmsg_type == IPV6_PATHMTU &&
 		    cm->cmsg_len == CMSG_LEN(sizeof(struct ip6_mtuinfo))) {
-			mtuctl = (struct ip6_mtuinfo *)CMSG_DATA(cm);
+			memcpy(&mtuctl, CMSG_DATA(cm), sizeof(mtuctl));
 
 			/*
 			 * If the notified destination is different from
@@ -1014,18 +1014,18 @@ get_pathmtu(const struct msghdr *const mhdr,
 			 * have used the default scope zone ID for sending,
 			 * in which case the scope ID value is 0.
 			 */
-			if (!IN6_ARE_ADDR_EQUAL(&mtuctl->ip6m_addr.sin6_addr,
+			if (!IN6_ARE_ADDR_EQUAL(&mtuctl.ip6m_addr.sin6_addr,
 						&dst->sin6_addr) ||
-			    (mtuctl->ip6m_addr.sin6_scope_id &&
+			    (mtuctl.ip6m_addr.sin6_scope_id &&
 			     dst->sin6_scope_id &&
-			     mtuctl->ip6m_addr.sin6_scope_id !=
+			     mtuctl.ip6m_addr.sin6_scope_id !=
 			     dst->sin6_scope_id)) {
 				if (options->f_verbose) {
 					printf("path MTU for %s is notified. "
 					       "(ignored)\n",
 					   pr6_addr((struct sockaddr *)
-					       &mtuctl->ip6m_addr,
-					       sizeof(mtuctl->ip6m_addr),
+					       &mtuctl.ip6m_addr,
+					       sizeof(mtuctl.ip6m_addr),
 					       options->f_numeric, capdns));
 				}
 				return (0);
@@ -1035,11 +1035,11 @@ get_pathmtu(const struct msghdr *const mhdr,
 			 * Ignore an invalid MTU. XXX: can we just believe
 			 * the kernel check?
 			 */
-			if (mtuctl->ip6m_mtu < IPV6_MMTU)
+			if (mtuctl.ip6m_mtu < IPV6_MMTU)
 				return (0);
 
 			/* notification for our destination. return the MTU. */
-			return ((int)mtuctl->ip6m_mtu);
+			return ((int)mtuctl.ip6m_mtu);
 		}
 	}
 #endif
