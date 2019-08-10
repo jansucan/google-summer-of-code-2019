@@ -138,8 +138,12 @@ get_hoplim(const struct msghdr *const mhdr)
 
 		if (cm->cmsg_level == IPPROTO_IPV6 &&
 		    cm->cmsg_type == IPV6_HOPLIMIT &&
-		    cm->cmsg_len == CMSG_LEN(sizeof(int)))
-			return (*(int *)CMSG_DATA(cm));
+		    cm->cmsg_len == CMSG_LEN(sizeof(int))) {
+			int r;
+
+			memcpy(&r, CMSG_DATA(cm), sizeof(r));
+			return (r);
+		}
 	}
 
 	return (-1);
