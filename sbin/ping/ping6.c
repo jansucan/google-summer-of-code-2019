@@ -166,10 +166,10 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 	unsigned char *cmsg_pktinfo = NULL;
 	struct ip6_rthdr *rthdr = NULL;
 
-	memset(&vars->smsghdr, 0, sizeof(vars->smsghdr));
+	memset(&vars->send_packet.smsghdr, 0, sizeof(vars->send_packet.smsghdr));
 	memset(&pktinfo, 0, sizeof(pktinfo));
 
-	datap = &vars->outpack6[ICMP6ECHOLEN + ICMP6ECHOTMLEN];
+	datap = &vars->send_packet.outpack6[ICMP6ECHOLEN + ICMP6ECHOTMLEN];
 
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -306,26 +306,26 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 			timing->enabled = false;
 		/* in F_VERBOSE case, we may get non-echoreply packets*/
 		if (options->f_verbose)
-			vars->packlen = 2048 + IP6LEN + ICMP6ECHOLEN + EXTRA;
+			vars->recv_packet.packlen = 2048 + IP6LEN + ICMP6ECHOLEN + EXTRA;
 		else
-			vars->packlen = options->n_packet_size + IP6LEN +
+			vars->recv_packet.packlen = options->n_packet_size + IP6LEN +
 				ICMP6ECHOLEN + EXTRA;
 	} else {
 		/* suppress timing for node information query */
 		timing->enabled = false;
 		options->n_packet_size = 2048;
-		vars->packlen = 2048 + IP6LEN + ICMP6ECHOLEN + EXTRA;
+		vars->recv_packet.packlen = 2048 + IP6LEN + ICMP6ECHOLEN + EXTRA;
 	}
 
-	if (!(vars->packet6 = (u_char *)malloc((u_int)vars->packlen))) {
+	if (!(vars->recv_packet.packet6 = (u_char *)malloc((u_int)vars->recv_packet.packlen))) {
 		print_error("Unable to allocate packet");
 		return (false);
 	}
 	if (!options->f_ping_filled)
-		for (int i = ICMP6ECHOLEN; i < vars->packlen; ++i)
+		for (int i = ICMP6ECHOLEN; i < vars->recv_packet.packlen; ++i)
 			*datap++ = i;
 
-	arc4random_buf(vars->nonce, sizeof(vars->nonce));
+	arc4random_buf(vars->send_packet.nonce, sizeof(vars->send_packet.nonce));
 	optval = 1;
 	if (options->f_dont_fragment)
 		if (setsockopt(vars->socket_send, IPPROTO_IPV6, IPV6_DONTFRAG,
@@ -416,16 +416,16 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 			print_error("can't allocate enough memory");
 			return (false);
 		}
-		vars->smsghdr.msg_control = (caddr_t)scmsg;
-		vars->smsghdr.msg_controllen = ip6optlen;
-		scmsgp = CMSG_FIRSTHDR(&vars->smsghdr);
+		vars->send_packet.smsghdr.msg_control = (caddr_t)scmsg;
+		vars->send_packet.smsghdr.msg_controllen = ip6optlen;
+		scmsgp = CMSG_FIRSTHDR(&vars->send_packet.smsghdr);
 	}
 	if (options->f_interface_use_pktinfo) {
 		cmsg_pktinfo = CMSG_DATA(scmsgp);
 		scmsgp->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));
 		scmsgp->cmsg_level = IPPROTO_IPV6;
 		scmsgp->cmsg_type = IPV6_PKTINFO;
-		scmsgp = CMSG_NXTHDR(&vars->smsghdr, scmsgp);
+		scmsgp = CMSG_NXTHDR(&vars->send_packet.smsghdr, scmsgp);
 	}
 
 	/* set the outgoing interface */
@@ -444,7 +444,7 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		memcpy(CMSG_DATA(scmsgp), &options->n_hoplimit,
 		    sizeof(options->n_hoplimit));
 
-		scmsgp = CMSG_NXTHDR(&vars->smsghdr, scmsgp);
+		scmsgp = CMSG_NXTHDR(&vars->send_packet.smsghdr, scmsgp);
 	}
 
 	if (options->hop_count != 0) {
@@ -488,7 +488,7 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 			options->hops_addrinfo[hops] = NULL;
 		}
 
-		scmsgp = CMSG_NXTHDR(&vars->smsghdr, scmsgp);
+		scmsgp = CMSG_NXTHDR(&vars->send_packet.smsghdr, scmsgp);
 	}
 
 	if (!options->f_source) {
@@ -655,8 +655,8 @@ ping6_process_received_packet(const struct options *const options,
 	m.msg_name = (caddr_t)&from;
 	m.msg_namelen = sizeof(from);
 	memset(&iov, 0, sizeof(iov));
-	iov[0].iov_base = (caddr_t)vars->packet6;
-	iov[0].iov_len = vars->packlen;
+	iov[0].iov_base = (caddr_t)vars->recv_packet.packet6;
+	iov[0].iov_len = vars->recv_packet.packlen;
 	m.msg_iov = iov;
 	m.msg_iovlen = 1;
 	memset(cm, 0, CONTROLLEN);
@@ -724,8 +724,8 @@ pinger6(struct options *const options, struct shared_variables *const vars,
 	if (options->n_packets && counters->transmitted >= options->n_packets)
 		return (true);	/* no more transmission */
 
-	icp = (struct icmp6_hdr *)vars->outpack6;
-	nip = (struct icmp6_nodeinfo *)vars->outpack6;
+	icp = (struct icmp6_hdr *)vars->send_packet.outpack6;
+	nip = (struct icmp6_nodeinfo *)vars->send_packet.outpack6;
 	memset(icp, 0, sizeof(*icp));
 	icp->icmp6_cksum = 0;
 	seq = counters->transmitted++;
@@ -739,13 +739,13 @@ pinger6(struct options *const options, struct shared_variables *const vars,
 		nip->ni_qtype = htons(NI_QTYPE_FQDN);
 		nip->ni_flags = htons(0);
 
-		memcpy(nip->icmp6_ni_nonce, vars->nonce,
+		memcpy(nip->icmp6_ni_nonce, vars->send_packet.nonce,
 		    sizeof(nip->icmp6_ni_nonce));
 		/* XXX: Shouldn't this be htons? */
 		s = ntohs(seq);
 		memcpy(nip->icmp6_ni_nonce, &s, sizeof(s));
 
-		memcpy(&vars->outpack6[ICMP6_NIQLEN],
+		memcpy(&vars->send_packet.outpack6[ICMP6_NIQLEN],
 		    &vars->target_sockaddr_in6->sin6_addr,
 		    sizeof(vars->target_sockaddr_in6->sin6_addr));
 		cc = ICMP6_NIQLEN +
@@ -760,7 +760,7 @@ pinger6(struct options *const options, struct shared_variables *const vars,
 		nip->ni_qtype = htons(NI_QTYPE_FQDN);
 		nip->ni_flags = htons(0);
 
-		memcpy(nip->icmp6_ni_nonce, vars->nonce,
+		memcpy(nip->icmp6_ni_nonce, vars->send_packet.nonce,
 		    sizeof(nip->icmp6_ni_nonce));
 		/* XXX: Shouldn't this be htons? */
 		s = ntohs(seq);
@@ -776,13 +776,13 @@ pinger6(struct options *const options, struct shared_variables *const vars,
 		nip->ni_qtype = htons(NI_QTYPE_NODEADDR);
 		nip->ni_flags = get_node_address_flags(options);
 
-		memcpy(nip->icmp6_ni_nonce, vars->nonce,
+		memcpy(nip->icmp6_ni_nonce, vars->send_packet.nonce,
 		    sizeof(nip->icmp6_ni_nonce));
 		/* XXX: Shouldn't this be htons? */
 		s = ntohs(seq);
 		memcpy(nip->icmp6_ni_nonce, &s, sizeof(s));
 
-		memcpy(&vars->outpack6[ICMP6_NIQLEN],
+		memcpy(&vars->send_packet.outpack6[ICMP6_NIQLEN],
 		    &vars->target_sockaddr_in6->sin6_addr,
 		    sizeof(vars->target_sockaddr_in6->sin6_addr));
 		cc = ICMP6_NIQLEN +
@@ -797,7 +797,7 @@ pinger6(struct options *const options, struct shared_variables *const vars,
 		/* we support compressed bitmap */
 		nip->ni_flags = NI_SUPTYPE_FLAG_COMPRESS;
 
-		memcpy(nip->icmp6_ni_nonce, vars->nonce,
+		memcpy(nip->icmp6_ni_nonce, vars->send_packet.nonce,
 		    sizeof(nip->icmp6_ni_nonce));
 		/* XXX: Shouldn't this be htons? */
 		s = ntohs(seq);
@@ -818,7 +818,7 @@ pinger6(struct options *const options, struct shared_variables *const vars,
 			}
 			tv32.tv32_sec = htonl(tv.tv_sec);
 			tv32.tv32_usec = htonl(tv.tv_usec);
-			memcpy(&vars->outpack6[ICMP6ECHOLEN], &tv32,
+			memcpy(&vars->send_packet.outpack6[ICMP6ECHOLEN], &tv32,
 			    sizeof(tv32));
 		}
 		cc = ICMP6ECHOLEN + options->n_packet_size;
@@ -832,12 +832,12 @@ pinger6(struct options *const options, struct shared_variables *const vars,
 #endif
 
 	memset(&iov, 0, sizeof(iov));
-	iov[0].iov_base = (caddr_t)vars->outpack6;
+	iov[0].iov_base = (caddr_t)vars->send_packet.outpack6;
 	iov[0].iov_len = cc;
-	vars->smsghdr.msg_iov = iov;
-	vars->smsghdr.msg_iovlen = 1;
+	vars->send_packet.smsghdr.msg_iov = iov;
+	vars->send_packet.smsghdr.msg_iovlen = 1;
 
-	i = sendmsg(vars->socket_send, &vars->smsghdr, 0);
+	i = sendmsg(vars->socket_send, &vars->send_packet.smsghdr, 0);
 
 	if (i < 0 || i != cc)  {
 		if (i < 0)
@@ -898,15 +898,15 @@ mark_packet_as_received(struct shared_variables *const vars)
 	struct icmp6_nodeinfo *ni;
 	uint16_t seq;
 
-	icp = (struct icmp6_hdr *)vars->packet6;
-	ni = (struct icmp6_nodeinfo *)vars->packet6;
+	icp = (struct icmp6_hdr *)vars->recv_packet.packet6;
+	ni = (struct icmp6_nodeinfo *)vars->recv_packet.packet6;
 
 	if (icp->icmp6_type == ICMP6_ECHO_REPLY &&
 	    myechoreply(icp, vars->ident)) {
 		seq = ntohs(icp->icmp6_seq);
 		BIT_ARRAY_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK);
 	} else if (icp->icmp6_type == ICMP6_NI_REPLY &&
-	    mynireply(ni, vars->nonce)) {
+	    mynireply(ni, vars->send_packet.nonce)) {
 		memcpy(&seq, ni->icmp6_ni_nonce, sizeof(seq));
 		BIT_ARRAY_SET(vars->rcvd_tbl, ntohs(seq) % MAX_DUP_CHK);
 	}
@@ -921,8 +921,8 @@ update_counters(const struct options *const options,
 	struct icmp6_nodeinfo *ni;
 	uint16_t seq;
 
-	icp = (struct icmp6_hdr *)vars->packet6;
-	ni = (struct icmp6_nodeinfo *)vars->packet6;
+	icp = (struct icmp6_hdr *)vars->recv_packet.packet6;
+	ni = (struct icmp6_nodeinfo *)vars->recv_packet.packet6;
 
 	if (icp->icmp6_type == ICMP6_ECHO_REPLY &&
 	    myechoreply(icp, vars->ident)) {
@@ -939,7 +939,7 @@ update_counters(const struct options *const options,
 		if (options->f_wait_time && triptime > options->n_wait_time)
 			++(counters->rcvtimeout);
 	} else if (icp->icmp6_type == ICMP6_NI_REPLY &&
-	    mynireply(ni, vars->nonce)) {
+	    mynireply(ni, vars->send_packet.nonce)) {
 		memcpy(&seq, ni->icmp6_ni_nonce, sizeof(seq));
 
 		if (BIT_ARRAY_IS_SET(vars->rcvd_tbl, ntohs(seq) % MAX_DUP_CHK))
@@ -964,7 +964,7 @@ update_timing(const struct shared_variables *const vars,
 		return (false);
 	}
 
-	icp = (struct icmp6_hdr *)vars->packet6;
+	icp = (struct icmp6_hdr *)vars->recv_packet.packet6;
 
 	if (icp->icmp6_type == ICMP6_ECHO_REPLY &&
 	    myechoreply(icp, vars->ident)) {

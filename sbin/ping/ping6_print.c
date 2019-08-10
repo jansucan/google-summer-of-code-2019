@@ -224,7 +224,7 @@ pr6_pack(int cc, const struct msghdr *const mhdr,
 	int hoplim;
 	struct sockaddr *from;
 	int fromlen;
-	u_char *cp = NULL, *end = vars->packet6 + cc;
+	u_char *cp = NULL, *end = vars->recv_packet.packet6 + cc;
 	const u_char *dp;
 	struct in6_pktinfo *pktinfo = NULL;
 	size_t off;
@@ -238,8 +238,8 @@ pr6_pack(int cc, const struct msghdr *const mhdr,
 	if (((mhdr->msg_flags & MSG_CTRUNC) != 0) &&
 	    options->f_verbose)
 		warnx("some control data discarded, insufficient buffer size");
-	icp = (struct icmp6_hdr *)vars->packet6;
-	ni = (struct icmp6_nodeinfo *)vars->packet6;
+	icp = (struct icmp6_hdr *)vars->recv_packet.packet6;
+	ni = (struct icmp6_nodeinfo *)vars->recv_packet.packet6;
 	off = 0;
 	/*
 	 * The next two calls cannot fail. They were tried and checked
@@ -285,9 +285,9 @@ pr6_pack(int cc, const struct msghdr *const mhdr,
 			if (BIT_ARRAY_IS_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK))
 				(void)printf("(DUP!)");
 			/* check the data */
-			cp = vars->packet6 + off + ICMP6ECHOLEN +
+			cp = vars->recv_packet.packet6 + off + ICMP6ECHOLEN +
 				ICMP6ECHOTMLEN;
-			dp = vars->outpack6 + ICMP6ECHOLEN + ICMP6ECHOTMLEN;
+			dp = vars->send_packet.outpack6 + ICMP6ECHOLEN + ICMP6ECHOTMLEN;
 			for (i = 8; cp < end; ++i, ++cp, ++dp) {
 				if (*cp != *dp) {
 					(void)printf("\nwrong data byte #%d "
@@ -298,7 +298,7 @@ pr6_pack(int cc, const struct msghdr *const mhdr,
 			}
 		}
 	} else if (icp->icmp6_type == ICMP6_NI_REPLY &&
-	    mynireply(ni, vars->nonce)) {
+	    mynireply(ni, vars->send_packet.nonce)) {
 		uint16_t s;
 
 		memcpy(&s, ni->icmp6_ni_nonce, sizeof(s));
@@ -340,7 +340,7 @@ pr6_pack(int cc, const struct msghdr *const mhdr,
 		case NI_QTYPE_FQDN:
 		default:	/* XXX: for backward compatibility */
 			cp = (u_char *)ni + ICMP6_NIRLEN;
-			if (vars->packet6[off + ICMP6_NIRLEN] ==
+			if (vars->recv_packet.packet6[off + ICMP6_NIRLEN] ==
 			    cc - off - ICMP6_NIRLEN - 1)
 				oldfqdn = 1;
 			else
@@ -400,7 +400,7 @@ pr6_pack(int cc, const struct msghdr *const mhdr,
 					printf(")");
 					goto fqdnend;
 				}
-				memcpy(&t, &vars->packet6[off+ICMP6ECHOLEN+8],
+				memcpy(&t, &vars->recv_packet.packet6[off+ICMP6ECHOLEN+8],
 				    sizeof(t));
 				ttl = (int32_t)ntohl(t);
 				if (comma)
@@ -432,12 +432,12 @@ pr6_pack(int cc, const struct msghdr *const mhdr,
 					}
 				}
 
-				if (vars->packet6[off + ICMP6_NIRLEN] !=
+				if (vars->recv_packet.packet6[off + ICMP6_NIRLEN] !=
 				    cc - off - ICMP6_NIRLEN - 1 && oldfqdn) {
 					if (comma)
 						printf(",");
 					(void)printf("invalid namelen:%d/%lu",
-					    vars->packet6[off + ICMP6_NIRLEN],
+					    vars->recv_packet.packet6[off + ICMP6_NIRLEN],
 					    (u_long)cc - off -
 					    ICMP6_NIRLEN - 1);
 					comma++;

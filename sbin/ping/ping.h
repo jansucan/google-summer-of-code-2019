@@ -52,6 +52,11 @@ struct send_packet {
 	u_char icmp_type;
 	u_char *data;
 #endif
+#ifdef INET6
+	u_char outpack6[MAXPACKETLEN];
+	struct msghdr smsghdr;
+	uint8_t nonce[8];	/* nonce field for node information */
+#endif
 };
 
 struct receive_packet {
@@ -63,6 +68,10 @@ struct receive_packet {
 	struct icmp icmp;
 	u_char ip_header_len;
 	const u_char *icmp_payload;
+#endif
+#ifdef INET6
+	int packlen;
+	u_char *packet6;
 #endif
 };
 
@@ -80,11 +89,6 @@ struct shared_variables {
 #endif	/* INET */
 #ifdef INET6
 	struct sockaddr_in6 *target_sockaddr_in6;	/* who to ping6 */
-	u_char outpack6[MAXPACKETLEN];			/* V6: outpack */
-	uint8_t nonce[8];	/* nonce field for node information */
-	int packlen;
-	struct msghdr smsghdr;
-	u_char *packet6;
 #endif	/* INET6 */
 };
 

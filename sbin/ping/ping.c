@@ -160,13 +160,13 @@ ping_free(struct options *const options, struct shared_variables *const vars)
 	options_free(options);
 	cap_close(vars->capdns);
 #ifdef INET6
-	if (vars->packet6 != NULL) {
-                free(vars->packet6);
-		vars->packet6 = NULL;
+	if (vars->recv_packet.packet6 != NULL) {
+                free(vars->recv_packet.packet6);
+		vars->recv_packet.packet6 = NULL;
 	}
-	if (vars->smsghdr.msg_control != NULL) {
-                free(vars->smsghdr.msg_control);
-		vars->smsghdr.msg_control = NULL;
+	if (vars->send_packet.smsghdr.msg_control != NULL) {
+                free(vars->send_packet.smsghdr.msg_control);
+		vars->send_packet.smsghdr.msg_control = NULL;
 	}
 #endif
 }
