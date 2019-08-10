@@ -732,6 +732,8 @@ pinger6(struct options *const options, struct shared_variables *const vars,
 	BIT_ARRAY_CLR(vars->rcvd_tbl, seq % MAX_DUP_CHK);
 
 	if (options->f_fqdn) {
+		uint16_t s;
+
 		icp->icmp6_type = ICMP6_NI_QUERY;
 		icp->icmp6_code = ICMP6_NI_SUBJ_IPV6;
 		nip->ni_qtype = htons(NI_QTYPE_FQDN);
@@ -739,7 +741,8 @@ pinger6(struct options *const options, struct shared_variables *const vars,
 
 		memcpy(nip->icmp6_ni_nonce, vars->nonce,
 		    sizeof(nip->icmp6_ni_nonce));
-		*(uint16_t *)nip->icmp6_ni_nonce = ntohs(seq);
+		s = ntohs(seq);
+		memcpy(nip->icmp6_ni_nonce, &s, sizeof(s));
 
 		memcpy(&vars->outpack6[ICMP6_NIQLEN],
 		    &vars->target_sockaddr_in6->sin6_addr,
@@ -748,6 +751,8 @@ pinger6(struct options *const options, struct shared_variables *const vars,
 			sizeof(vars->target_sockaddr_in6->sin6_addr);
 		options->n_packet_size = 0;
 	} else if (options->f_fqdn_old) {
+		uint16_t s;
+
 		/* packet format in 03 draft - no Subject data on queries */
 		icp->icmp6_type = ICMP6_NI_QUERY;
 		icp->icmp6_code = 0;	/* code field is always 0 */
@@ -756,11 +761,14 @@ pinger6(struct options *const options, struct shared_variables *const vars,
 
 		memcpy(nip->icmp6_ni_nonce, vars->nonce,
 		    sizeof(nip->icmp6_ni_nonce));
-		*(uint16_t *)nip->icmp6_ni_nonce = ntohs(seq);
+		s = ntohs(seq);
+		memcpy(nip->icmp6_ni_nonce, &s, sizeof(s));
 
 		cc = ICMP6_NIQLEN;
 		options->n_packet_size = 0;
 	} else if (options->f_nodeaddr) {
+		uint16_t s;
+
 		icp->icmp6_type = ICMP6_NI_QUERY;
 		icp->icmp6_code = ICMP6_NI_SUBJ_IPV6;
 		nip->ni_qtype = htons(NI_QTYPE_NODEADDR);
@@ -768,7 +776,8 @@ pinger6(struct options *const options, struct shared_variables *const vars,
 
 		memcpy(nip->icmp6_ni_nonce, vars->nonce,
 		    sizeof(nip->icmp6_ni_nonce));
-		*(uint16_t *)nip->icmp6_ni_nonce = ntohs(seq);
+		s = ntohs(seq);
+		memcpy(nip->icmp6_ni_nonce, &s, sizeof(s));
 
 		memcpy(&vars->outpack6[ICMP6_NIQLEN],
 		    &vars->target_sockaddr_in6->sin6_addr,
@@ -777,6 +786,8 @@ pinger6(struct options *const options, struct shared_variables *const vars,
 			sizeof(vars->target_sockaddr_in6->sin6_addr);
 		options->n_packet_size = 0;
 	} else if (options->f_subtypes) {
+		uint16_t s;
+
 		icp->icmp6_type = ICMP6_NI_QUERY;
 		icp->icmp6_code = ICMP6_NI_SUBJ_FQDN;	/*empty*/
 		nip->ni_qtype = htons(NI_QTYPE_SUPTYPES);
@@ -785,7 +796,8 @@ pinger6(struct options *const options, struct shared_variables *const vars,
 
 		memcpy(nip->icmp6_ni_nonce, vars->nonce,
 		    sizeof(nip->icmp6_ni_nonce));
-		*(uint16_t *)nip->icmp6_ni_nonce = ntohs(seq);
+		s = ntohs(seq);
+		memcpy(nip->icmp6_ni_nonce, &s, sizeof(s));
 		cc = ICMP6_NIQLEN;
 		options->n_packet_size = 0;
 	} else {
