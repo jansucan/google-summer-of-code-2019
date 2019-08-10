@@ -409,7 +409,7 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		ip6optlen += CMSG_SPACE(sizeof(int));
 
 	/* set IP6 packet options */
-	if (ip6optlen) {
+	if (ip6optlen > 0) {
 		if ((scmsg = (char *)malloc(ip6optlen)) == NULL) {
 			print_error("can't allocate enough memory");
 			return (false);
