@@ -377,6 +377,7 @@ pr6_pack(int cc, const struct msghdr *const mhdr,
 				}
 			}
 			if (options->f_verbose) {
+				u_long t;
 				int32_t ttl;
 				int comma = 0;
 
@@ -399,8 +400,9 @@ pr6_pack(int cc, const struct msghdr *const mhdr,
 					printf(")");
 					goto fqdnend;
 				}
-				ttl = (int32_t)ntohl(*(u_long *)
-				    &vars->packet6[off+ICMP6ECHOLEN+8]);
+				memcpy(&t, &vars->packet6[off+ICMP6ECHOLEN+8],
+				    sizeof(t));
+				ttl = (int32_t)ntohl(t);
 				if (comma)
 					printf(",");
 				if (!(ni->ni_flags & NI_FQDN_FLAG_VALIDTTL)) {
