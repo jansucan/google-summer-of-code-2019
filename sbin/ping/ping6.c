@@ -907,8 +907,8 @@ mark_packet_as_received(struct shared_variables *const vars)
 		BIT_ARRAY_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK);
 	} else if (icp->icmp6_type == ICMP6_NI_REPLY &&
 	    mynireply(ni, vars->nonce)) {
-		seq = ntohs(*(uint16_t *)ni->icmp6_ni_nonce);
-		BIT_ARRAY_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK);
+		memcpy(&seq, ni->icmp6_ni_nonce, sizeof(seq));
+		BIT_ARRAY_SET(vars->rcvd_tbl, ntohs(seq) % MAX_DUP_CHK);
 	}
 }
 
@@ -940,9 +940,9 @@ update_counters(const struct options *const options,
 			++(counters->rcvtimeout);
 	} else if (icp->icmp6_type == ICMP6_NI_REPLY &&
 	    mynireply(ni, vars->nonce)) {
-		seq = ntohs(*(uint16_t *)ni->icmp6_ni_nonce);
+		memcpy(&seq, ni->icmp6_ni_nonce, sizeof(seq));
 
-		if (BIT_ARRAY_IS_SET(vars->rcvd_tbl, seq % MAX_DUP_CHK))
+		if (BIT_ARRAY_IS_SET(vars->rcvd_tbl, ntohs(seq) % MAX_DUP_CHK))
 			++(counters->repeats);
 		else
 			++(counters->received);
