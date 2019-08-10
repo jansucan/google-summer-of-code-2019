@@ -421,7 +421,7 @@ ping6_init(struct options *const options, struct shared_variables *const vars,
 		scmsgp = CMSG_FIRSTHDR(&vars->smsghdr);
 	}
 	if (options->f_interface_use_pktinfo) {
-		cmsg_pktinfo = CMSG_DATA(scmsgp); /* ALIGN 1 to 4 */
+		cmsg_pktinfo = CMSG_DATA(scmsgp);
 		scmsgp->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));
 		scmsgp->cmsg_level = IPPROTO_IPV6;
 		scmsgp->cmsg_type = IPV6_PKTINFO;
