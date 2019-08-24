@@ -4,7 +4,7 @@ The main goals were to merge ping6 into ping, remove code duplication and make t
 
 ## How the work was done
 
-During the first two phases I worked on my branch hosted on GitHub. I communicated with my mentor mainly by comments of the commits. In the third phase I started using FreeBSD's Phabricator for a code review to get feedback from the community and to the code merged into FreeBSD.
+During the first two phases I worked on my branch hosted on GitHub. I communicated with my mentor mainly by comments of the commits. In the third phase I started using FreeBSD's Phabricator for a code review to get feedback from the community and to get the code merged into FreeBSD.
 
 ## What work was done
 
