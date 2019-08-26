@@ -80,3 +80,7 @@ Minor changes:
 Most of the code has not been merged to FreeBSD yet.
 
 ## Conclusion
+
+The main goals were met: ping6 was merged into ping, and major code duplications were eliminated. Additionally, many other aspects of the code were improved. It is now more readable and maintainable.
+
+GSoC has been a highly valuable experience for me. It not only gave me more knowledge about programming and development for a real-world projects like FreeBSD but I also gained more skill in how to communicate with users and developers, and how to make it an important factor in software development.
