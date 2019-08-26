@@ -1,6 +1,6 @@
 # GSoC 2019: Dual-stack ping command
 
-The main goals were to merge ping6 into ping, remove code duplication and make the code more maintainable while not changing stdout output. The code was moved, compartmentalized, and modified rather than rewritten. Thus, the new ping command should be fully functional. Usage information can be found in the new manual page.
+The main goals were to merge ping6 into ping, remove code duplication and make the code more maintainable while not changing stdout output. The code was moved, compartmentalized, and modified rather than rewritten. Thus, the new ping command is buildable and functional. Usage information can be found in the new manual page.
 
 ## How the work was done
 
