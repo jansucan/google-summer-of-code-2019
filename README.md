@@ -8,6 +8,8 @@ During the first two phases I worked on my branch hosted on GitHub. I communicat
 
 ## What work was done
 
+My work on the GitHub can be easily found by listing the commits from the last. The set of all my commits is continuous.
+
 Major changes:
 
 - It's possible to build IPv4-only, IPv6-only, and IPv4-IPv6 version.
